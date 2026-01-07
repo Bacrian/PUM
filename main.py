@@ -10,6 +10,9 @@ import threading
 import sys
 import time
 import gzip
+import requests
+import webbrowser
+from tkinter import messagebox
 
 customtkinter.set_appearance_mode("dark")
 theme = "dark"
@@ -19,6 +22,19 @@ APP_VERSION = "1.0.0"
 
 from pathlib import Path as _Path
 ASSETS_DIR = _Path("assets")
+
+def check_updates():
+    url = "https://raw.githubusercontent.com/Bacrian/PUM/main/version.json"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data["version"] > APP_VERSION:
+                if messagebox.askyesno("Update Available", 
+                    f"A new version ({data['version']}) is out!\n\nWhat's new:\n{data['changelog']}\n\nDo you want to download it?"):
+                    webbrowser.open(data["download_url"])
+    except:
+        pass
 
 def ensure_assets_exist():
     try:
