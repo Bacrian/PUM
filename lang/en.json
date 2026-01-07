@@ -52,5 +52,11 @@
   "select_paks_folder": "Select MHUR Paks Folder",
   "credits_text": "Created by: ImBacrian/Bacrian\n\nPowered by:\n• CustomTkinter (UI Framework)\n• Pillow (Image Processing)\n• Python 3.11\n\nA specialized Mod Manager for MHUR"
   ,
-  "select_mod_prompt": "Select a mod to see details"
+  "select_mod_prompt": "Select a mod to see details",
+  "update_available": "Update Available!",
+  "new_version": "A new version is available:",
+  "changelog":"changelog",
+  "no_notes": "No release notes available.",
+  "download_button": "Download",
+  "later_button": "Later"
 }

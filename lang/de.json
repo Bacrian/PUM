@@ -50,5 +50,11 @@
   "apply_close": "Übernehmen & Schließen",
   "select_paks_folder": "Wähle den MHUR Paks-Ordner",
   "credits_text": "Plus Ultra Manager\nVersion: {version}\nMitwirkende: Sie",
-  "select_mod_prompt": "Wählen Sie einen Mod, um Details zu sehen"
+  "select_mod_prompt": "Wählen Sie einen Mod, um Details zu sehen",
+  "update_available": "Update verfügbar!",
+  "new_version": "Eine neue Version ist verfügbar:",
+  "changelog": "Änderungsprotokoll",
+  "no_notes": "Keine Versionshinweise verfügbar.",
+  "download_button": "Herunterladen",
+  "later_button": "Später"
 }

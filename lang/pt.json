@@ -50,5 +50,11 @@
   "apply_close": "Aplicar e fechar",
   "select_paks_folder": "Selecione a pasta Paks do MHUR",
   "credits_text": "Plus Ultra Manager\nVersão: {version}\nContribuidores: Você",
-  "select_mod_prompt": "Selecione um mod para ver os detalhes"
+  "select_mod_prompt": "Selecione um mod para ver os detalhes",
+  "update_available": "Atualização disponível!",
+  "new_version": "Uma nova versão está disponível:",
+  "changelog": "Notas de atualização",
+  "no_notes": "Nenhuma nota de versão disponível.",
+  "download_button": "Baixar",
+  "later_button": "Depois"
 }

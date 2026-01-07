@@ -12,7 +12,6 @@ import time
 import gzip
 import requests
 import webbrowser
-from tkinter import messagebox
 
 customtkinter.set_appearance_mode("dark")
 theme = "dark"
@@ -23,18 +22,16 @@ APP_VERSION = "1.0.0"
 from pathlib import Path as _Path
 ASSETS_DIR = _Path("assets")
 
-def check_updates():
-    url = "https://raw.githubusercontent.com/Bacrian/PUM/main/version.json"
+def check_for_updates(root):
+    url = "https://raw.githubusercontent.com/Bacrian/PUM/refs/heads/main/version.json"
     try:
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             data = response.json()
             if data["version"] > APP_VERSION:
-                if messagebox.askyesno("Update Available", 
-                    f"A new version ({data['version']}) is out!\n\nWhat's new:\n{data['changelog']}\n\nDo you want to download it?"):
-                    webbrowser.open(data["download_url"])
-    except:
-        pass
+                root.open_update_window(data)
+    except Exception as e:
+        print(f"Error upon looking for updates: {e}")
 
 def ensure_assets_exist():
     try:
@@ -325,6 +322,9 @@ class App(customtkinter.CTk):
         self.setting_window = None
         self.credits_window = None
         self.option_vars = {}
+        config_data = load_app_settings()
+        if config_data.get("check_updates", True):
+            self.after(200, lambda: check_for_updates(self))
 
         # Cargar configuración inicial
         self.current_path, self.saved_mods, self.mod_options = load_config()
@@ -984,7 +984,7 @@ class App(customtkinter.CTk):
         self.setting_window = customtkinter.CTkToplevel(self)
         self.setting_window.title(t("settings_title"))
         # Smaller window since contents will be compact
-        self.setting_window.geometry("420x220")
+        self.setting_window.geometry("420x320")
         self.setting_window.after(200, lambda: self.setting_window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
         # Ensure the settings window appears on top and receives focus
         try:
@@ -1060,7 +1060,7 @@ class App(customtkinter.CTk):
                        command=lambda: self._save_app_settings())
         updates_cb.pack(anchor="w", pady=4)
 
-        # Minimize to tray (full implementation)
+        # Minimize to tray
         self.minimize_tray_var = customtkinter.BooleanVar(value=app_settings.get("minimize_to_tray", False))
         tray_cb = customtkinter.CTkCheckBox(extras_frame, text=t("minimize_to_tray_label"), variable=self.minimize_tray_var,
                    fg_color="#1a9f84", hover_color="#13775c",
@@ -1241,6 +1241,55 @@ class App(customtkinter.CTk):
                 pass
         except Exception:
             pass
+
+    def open_update_window(self, update_data):
+        update_win = customtkinter.CTkToplevel(self)
+        update_win.title(t("update_available") + " - Plus Ultra Manager")
+        update_win.geometry("450x400")
+        update_win.after(200, lambda: update_win.iconbitmap("assets/icon.ico"))
+        update_win.attributes("-topmost", True) # Ensure the window appears on top
+
+        # Title
+        title_label = customtkinter.CTkLabel(
+            update_win, 
+            text=(t("new_version") + f" v{update_data['version']}"), 
+            font=("Arial", 18, "bold"),
+            text_color="#1a9f84"
+        )
+        title_label.pack(pady=(20, 10))
+
+        # Changelog / Release Notes
+        changelog_frame = customtkinter.CTkScrollableFrame(update_win, width=400, height=120)
+        changelog_frame.pack(padx=20, pady=10)
+
+        changelog_text = customtkinter.CTkLabel(
+            changelog_frame, 
+            text=update_data.get(t("changelog"), t("no_notes")),
+            justify="left",
+            wraplength=350
+        )
+        changelog_text.pack(padx=10, pady=5)
+
+        # Buttons
+        btn_frame = customtkinter.CTkFrame(update_win, fg_color="transparent")
+        btn_frame.pack(fill="x", side="bottom", pady=20)
+
+        update_btn = customtkinter.CTkButton(
+            btn_frame, 
+            text=t("download_button"), 
+            fg_color="#1a9f84", 
+            hover_color="#13775c",
+            command=lambda: webbrowser.open(update_data["download_url"])
+        )
+        update_btn.pack(side="right", padx=10)
+
+        close_btn = customtkinter.CTkButton(
+            btn_frame, 
+            text=t("later_button"), 
+            fg_color="gray30", 
+            command=update_win.destroy
+        )
+        close_btn.pack(side="right", padx=20)
 
     def open_credits(self):
         if self.credits_window is not None and self.credits_window.winfo_exists():

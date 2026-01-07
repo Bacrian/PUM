@@ -50,5 +50,11 @@
   "apply_close": "应用并关闭",
   "select_paks_folder": "选择 MHUR 的 Paks 文件夹",
   "credits_text": "Plus Ultra 管理器\n版本：{version}\n贡献者：您",
-  "select_mod_prompt": "选择一个模组以查看详细信息"
+  "select_mod_prompt": "选择一个模组以查看详细信息",
+  "update_available": "有可用更新！",
+  "new_version": "新版本已发布：",
+  "changelog": "更新日志",
+  "no_notes": "暂无版本说明。",
+  "download_button": "下载",
+  "later_button": "以后"
 }

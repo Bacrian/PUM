@@ -50,5 +50,11 @@
   "apply_close": "適用して閉じる",
   "select_paks_folder": "MHUR の Paks フォルダを選択",
   "credits_text": "Plus Ultra マネージャー\nバージョン：{version}\n貢献者：あなた",
-  "select_mod_prompt": "詳細を表示するModを選択してください"
+  "select_mod_prompt": "詳細を表示するModを選択してください",
+  "update_available": "アップデートがあります！",
+  "new_version": "新しいバージョンが利用可能です：",
+  "changelog": "変更履歴",
+  "no_notes": "リリースノートはありません。",
+  "download_button": "ダウンロード",
+  "later_button": "後で"
 }
