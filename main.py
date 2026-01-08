@@ -35,7 +35,7 @@ except ImportError:
 customtkinter.set_appearance_mode("dark")
 theme = "dark"
 dynamic_text_color = ("black", "white")
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 
 
 from pathlib import Path as _Path
