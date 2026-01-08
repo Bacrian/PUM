@@ -260,7 +260,7 @@ def t(key: str, **kwargs):
 
 # region --- Mod Scanning ---
 def mod_info():
-    mods_folder = Path("./mods")
+    mods_folder = Path("./mods").resolve()
     if not mods_folder.exists(): mods_folder.mkdir()
     
     mod_list = []
@@ -1397,7 +1397,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             row_idx = i + 1
             # Aquí usamos la permanencia
             val_inicial = 1 if mod["name"] in saved_selected_mods else 0
-            var = customtkinter.Variable(value=val_inicial)
+            var = tkinter.IntVar(value=val_inicial)
             
             # Checkbox del mod
             cb = customtkinter.CTkCheckBox(
@@ -1531,7 +1531,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             self.current_path = folder_selected
             # Al guardar el path, enviamos también los mods actuales para no borrarlos
             current_selection = [mod["mod_info"]["name"] for mod in self.mod_checkboxes if mod["variable"].get() == 1]
-            save_config(self.current_path, current_selection)
+            save_config(self.current_path, current_selection, self.mod_options)
             print(t("path_updated", path=folder_selected))
 
     def deploy_mods(self):
@@ -1543,11 +1543,15 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
 
         # Limpiar carpeta ~mods
         for old_file in target.glob("*.pak"):
-            try: os.remove(old_file)
-            except: pass
+            try:
+                if old_file.exists():
+                    os.chmod(old_file, 0o777)
+                    os.remove(old_file)
+            except Exception as e:
+                print(f"Error removing {old_file}: {e}")
 
         # Cargar las opciones guardadas
-        _, _, all_mod_options = load_config()
+        all_mod_options = self.mod_options
 
         for mod in self.get(): # self.get() devuelve los mods activos
             source = Path(mod["folder_path"]) / "assets"
@@ -1562,7 +1566,10 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
                         dest_name = file_path.name
                         if not file_path.stem.endswith("_P"):
                             dest_name = f"{file_path.stem}_P{file_path.suffix}"
-                        shutil.copy(file_path, target / dest_name)
+                        try:
+                            shutil.copy(file_path, target / dest_name)
+                        except Exception as e:
+                            print(f"Error copying {file_name}: {e}")
             else:
                 # Si no tiene opciones, comportamiento por defecto: copiar todo assets
                 if source.exists():
@@ -1571,7 +1578,10 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
                         dest_name = item.name
                         if not item.stem.endswith("_P"):
                             dest_name = f"{item.stem}_P{item.suffix}"
-                        shutil.copy(item, target / dest_name)
+                        try:
+                            shutil.copy(item, target / dest_name)
+                        except Exception as e:
+                            print(f"Error copying {item.name}: {e}")
         print(t("deploy_success"))
         return True
     # endregion
@@ -2380,7 +2390,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
     def game_callback(self):
         if self.deploy_mods():
             print(t("launch_game"))
-            os.startfile("steam://rungameid/1607250")
+            self.after(500, lambda: os.startfile("steam://rungameid/1607250"))
 # endregion
 
 # region Main loop
