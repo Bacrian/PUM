@@ -1,5 +1,5 @@
 {
-"version": "1.0.1",
+"version": "1.1.0",
   "download_url": "https://gamebanana.com/tools/21625",
-  "changelog": "- none yet lol"
+  "changelog": "- Added Mod Profiles\n- Added update checking feature\n- Fixed various bugs\n- Added integrated mod metadata editor\n- Added usage statistics (it only measures how many mods you have btw, haven't figured out the total game time counter yet)\n- Made sure all .pak files end with '_P', Thanks to Shawolf for pointing it out!\n- Added name and author sorting"
 }

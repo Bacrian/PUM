@@ -1,9 +1,12 @@
+# region --- Imports & Constants ---
 import shutil
 import customtkinter
 import json
 import os
 import ctypes
 from tkinter import filedialog
+import tkinter
+import tkinter.messagebox
 from pathlib import Path
 from PIL import Image
 import threading
@@ -12,16 +15,34 @@ import time
 import gzip
 import requests
 import webbrowser
+import zipfile
+import tempfile
+import subprocess
+try:
+    from tkinterdnd2 import TkinterDnD, DND_ALL
+except ImportError:
+    print("Warning: tkinterdnd2 not found. Drag & Drop will not work.")
+    # Dummy classes to avoid NameError if library is missing
+    class TkinterDnD:
+        class DnDWrapper: pass
+        class DnDWrapper:
+            def drop_target_register(self, *args): pass
+            def dnd_bind(self, *args): pass
+        @staticmethod
+        def _require(self): return None
+    DND_ALL = 'all'
 
 customtkinter.set_appearance_mode("dark")
 theme = "dark"
 dynamic_text_color = ("black", "white")
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 
 
 from pathlib import Path as _Path
 ASSETS_DIR = _Path("assets")
+# endregion
 
+# region --- Helper Functions ---
 def check_for_updates(root):
     url = "https://raw.githubusercontent.com/Bacrian/PUM/refs/heads/main/version.json"
     try:
@@ -79,7 +100,9 @@ class ConsoleRedirector:
 
     def flush(self):
         pass
+# endregion
 
+# region --- Configuration Management ---
 # --- FUNCIONES DE CONFIGURACIÓN ---
 def save_config(path, selected_mods, mod_options=None, app_settings=None):
     # Ensure defaults
@@ -129,9 +152,9 @@ def load_app_settings():
     except Exception:
         pass
     return {}
+# endregion
 
-
-# --- Localization support ---
+# region --- Localization ---
 LANG_CODE_MAP = {
     "english": "en",
     "en": "en",
@@ -233,7 +256,9 @@ def t(key: str, **kwargs):
         return txt.format(**kwargs) if kwargs else txt
     except Exception:
         return txt
+# endregion
 
+# region --- Mod Scanning ---
 def mod_info():
     mods_folder = Path("./mods")
     if not mods_folder.exists(): mods_folder.mkdir()
@@ -313,11 +338,14 @@ def mod_info():
         except Exception:
             pass
     return mod_list
+# endregion
 
 # --- CLASE PRINCIPAL ---
-class App(customtkinter.CTk):
+class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
+    # region --- Initialization ---
     def __init__(self):
         super().__init__()
+        self.TkdndVersion = TkinterDnD._require(self)
         self.config_window = None
         self.setting_window = None
         self.credits_window = None
@@ -360,23 +388,23 @@ class App(customtkinter.CTk):
         self.top_bar = customtkinter.CTkFrame(self, height=25, corner_radius=0)
         self.top_bar.grid(row=0, column=0, columnspan=2, sticky="ew", padx=0, pady=(0, 2))
         
-        self.path_button = customtkinter.CTkButton(self.top_bar, text=t("game_path"), corner_radius=2, height=20, fg_color="transparent", hover_color="gray25",text_color=dynamic_text_color, command=self.select_path_callback)
+        self.path_button = customtkinter.CTkButton(self.top_bar, text=t("game_path"), corner_radius=2, height=20, fg_color="transparent", hover_color=("gray80", "gray25"),text_color=dynamic_text_color, command=self.select_path_callback)
         self.path_button.grid(row=0, column=0, padx=10, pady=5)
 
-        self.refresh_button = customtkinter.CTkButton(self.top_bar, text=t("refresh_mods"), corner_radius=2, height=20, fg_color="transparent", hover_color="gray25",text_color=dynamic_text_color, command=self.refresh_logic)
+        self.refresh_button = customtkinter.CTkButton(self.top_bar, text=t("refresh_mods"), corner_radius=2, height=20, fg_color="transparent", hover_color=("gray80", "gray25"),text_color=dynamic_text_color, command=self.refresh_logic)
         self.refresh_button.grid(row=0, column=1, padx=10, pady=5)
 
-        self.save_mods_button = customtkinter.CTkButton(self.top_bar, text=t("save_selected_mods"), corner_radius=2, height=20, fg_color="transparent", hover_color="gray25",text_color=dynamic_text_color, command=self.deploy_mods)
+        self.save_mods_button = customtkinter.CTkButton(self.top_bar, text=t("save_selected_mods"), corner_radius=2, height=20, fg_color="transparent", hover_color=("gray80", "gray25"),text_color=dynamic_text_color, command=self.deploy_mods)
         self.save_mods_button.grid(row=0, column=2, padx=10, pady=5)
 
-        self.settings_button = customtkinter.CTkButton(self.top_bar, text=t("settings_title"), corner_radius=2, height=20, fg_color="transparent", hover_color="gray25",text_color=dynamic_text_color, command=self.open_settings)
+        self.settings_button = customtkinter.CTkButton(self.top_bar, text=t("settings_title"), corner_radius=2, height=20, fg_color="transparent", hover_color=("gray80", "gray25"),text_color=dynamic_text_color, command=self.open_settings)
         self.settings_button.grid(row=0, column=3, padx=10, pady=5)
 
-        self.credits_button = customtkinter.CTkButton(self.top_bar, text=t("credits_title"), corner_radius=2, height=20, fg_color="transparent", hover_color="gray25",text_color=dynamic_text_color, command=self.open_credits)
+        self.credits_button = customtkinter.CTkButton(self.top_bar, text=t("credits_title"), corner_radius=2, height=20, fg_color="transparent", hover_color=("gray80", "gray25"),text_color=dynamic_text_color, command=self.open_credits)
         self.credits_button.grid(row=0, column=4, padx=10, pady=5)
 
         # Console button (only shown when enabled in settings)
-        self.console_button = customtkinter.CTkButton(self.top_bar, text=t("console_button"), corner_radius=2, height=20, fg_color="transparent", hover_color="gray25", text_color=dynamic_text_color, command=self.open_console_window)
+        self.console_button = customtkinter.CTkButton(self.top_bar, text=t("console_button"), corner_radius=2, height=20, fg_color="transparent", hover_color=("gray80", "gray25"), text_color=dynamic_text_color, command=self.open_console_window)
         # We'll grid() this button only if console is enabled in settings (see below)
 
         # Botones inferiores
@@ -397,13 +425,16 @@ class App(customtkinter.CTk):
         
         self.modlist_frame = customtkinter.CTkScrollableFrame(self)
         self.modlist_frame.grid(row=1, column=0, padx=10, pady=(10,0), sticky="nsew")
-        self.modlist_frame.grid_columnconfigure((0,1), weight=0)
-        self.modlist_frame.grid_columnconfigure(2, weight=1)
+        self.modlist_frame.grid_columnconfigure(0, weight=0)
+        self.modlist_frame.grid_columnconfigure(1, weight=1) # Name expands
+        self.modlist_frame.grid_columnconfigure(2, weight=0) # Author fits content
+        self.modlist_frame.grid_columnconfigure(3, weight=0) # Version fits content
 
         # Frame de botones de selección (Izquierda abajo)
 
         self.modbuttons_frame = customtkinter.CTkFrame(self,height=25, corner_radius=0)
         self.modbuttons_frame.grid(row=2, column=0, columnspan=1, sticky="ew", padx=10, pady=(0, 2))
+        self.modbuttons_frame.grid_columnconfigure(2, weight=1)
 
         self.mod_folder = customtkinter.CTkButton(
             self.modbuttons_frame,
@@ -426,9 +457,9 @@ class App(customtkinter.CTk):
             command=self.toggle_all_mods)
         self.select_all.grid(row=0, column=1, padx=10, pady=(5, 0), sticky="w")
 
-        # Sistema de filtro
+# region -- Sistema de filtro + Perfiles --
 
-        # 1. Input de Búsqueda
+        # Input de Búsqueda
         self.search_var = customtkinter.StringVar()
         self.search_var.trace_add("write", lambda *args: self.refresh_logic()) # Busca mientras escribes
         
@@ -440,25 +471,31 @@ class App(customtkinter.CTk):
         )
         self.search_entry.grid(row=0, column=2, padx=(10, 5), pady=5, sticky="ew")
 
-        # 2. Filtro de Categoría
+        ###--- Segunda barra de ajustes ---###
+        self.filter_frame = customtkinter.CTkFrame(self.modbuttons_frame, height=23, fg_color="transparent")
+        self.filter_frame.grid(row=1, column=0, columnspan=3, padx=(5, 10), pady=5, sticky="ew")
+
+        # Filtro de Categoría
         # Keep canonical category keys (matching modinfo) and localized display values
         self.cat_canonical = ["All Categories", "Skin", "Voice", "UI", "Music", "Other"]
         self.cat_display_values = [t("all_categories"), t("cat_skin"), t("cat_voice"), t("cat_ui"), t("cat_music"), t("cat_other")]
         self.cat_filter = customtkinter.CTkOptionMenu(
-            self.modbuttons_frame,
+            self.filter_frame,
             values=self.cat_display_values,
             command=lambda _: self.refresh_logic(),
             width=120,
             height=28,
             fg_color="#1a9f84",
-            button_color="#13775c"
+            button_color="#208d6f",
+            button_hover_color="#13775c"
         )
-        self.cat_filter.grid(row=1, column=0, padx=5, pady=5)
+        self.cat_filter.grid(row=0, column=0, padx=5, pady=5)
 
-        # 3. Botón de Ordenar (A-Z / Z-A)
+        # Botón de Ordenar (A-Z / Z-A)
         self.sort_order = "A-Z"
+        self.sort_key = "name"
         self.sort_btn = customtkinter.CTkButton(
-            self.modbuttons_frame, 
+            self.filter_frame, 
             text=t("sort_AZ"), 
             width=40, 
             height=28,
@@ -466,8 +503,69 @@ class App(customtkinter.CTk):
             hover_color="#13775c",
             command=self.toggle_sort
         )
-        self.sort_btn.grid(row=1, column=1, padx=(5, 10), pady=5)
+        self.sort_btn.grid(row=0, column=1, padx=(5, 10), pady=5)
 
+        # Sección de perfiles
+        self.profile_var = customtkinter.StringVar(value="Default Profile")
+
+        self.profile_menu = customtkinter.CTkOptionMenu(
+            self.filter_frame,
+            values=self.get_saved_profiles(),
+            variable=self.profile_var,
+            command=self.load_profile_event,
+            width=140,
+            height=28,
+            fg_color="#1a9f84",
+            button_color="#208d6f",
+            button_hover_color="#13775c"
+        )
+        self.profile_menu.grid(row=0, column=2, padx=(10, 5), pady=5, sticky="ew")
+
+        # Cargar iconos de botones de perfil
+        self.save_icon = None
+        self.delete_icon = None
+        try:
+            img_s = Image.open(ASSETS_DIR / "save_button.png")
+            self.save_icon = customtkinter.CTkImage(light_image=img_s, dark_image=img_s, size=(18, 18))
+            img_d = Image.open(ASSETS_DIR / "delete_button.png")
+            self.delete_icon = customtkinter.CTkImage(light_image=img_d, dark_image=img_d, size=(18, 18))
+        except Exception:
+            pass
+
+        # Cargar icono de Drag & Drop
+        self.dnd_icon = None
+        try:
+            img_dnd = Image.open(ASSETS_DIR / "drag_n_drop.png")
+            self.dnd_icon = customtkinter.CTkImage(light_image=img_dnd, dark_image=img_dnd, size=(100, 100))
+        except Exception:
+            pass
+
+        self.save_profile_btn = customtkinter.CTkButton(
+            self.filter_frame,
+            text="" if self.save_icon else "💾",
+            image=self.save_icon,
+            width=28,
+            height=28,
+            fg_color="#da8938",
+            hover_color="#c05b17",
+            command=self.save_current_profile
+        )
+        self.save_profile_btn.grid(row=0, column=3, padx=5, pady=5)
+
+        self.delete_profile_btn = customtkinter.CTkButton(
+            self.filter_frame,
+            text="" if self.delete_icon else "🗑️",
+            image=self.delete_icon,
+            width=28,
+            height=28,
+            fg_color="#8c1c1c", # Un rojo oscuro para indicar peligro
+            hover_color="#5e1313",
+            command=self.delete_current_profile
+        )
+        self.delete_profile_btn.grid(row=0, column=4, padx=5, pady=5)
+# endregion
+
+# region -- Logo frame + integrated metadata editor --
         # Frame del logo del modloader (Derecha abajo)
         self.logo_frame = customtkinter.CTkFrame(self, height=60)
         self.logo_frame.grid(row=2, column=1, columnspan=1, rowspan=2, sticky="ew", padx=10, pady=(0, 2))
@@ -487,6 +585,41 @@ class App(customtkinter.CTk):
             self.logo_label.grid(row=0, column=0, padx=(0, 10))
         except Exception as e:
             print(t("error_loading_logos", err=str(e)))
+        
+        # --- Integrated Mod Metadata Editor ---
+        self.logo_frame.grid_columnconfigure(1, weight=1)
+        self.edit_info_btn = customtkinter.CTkButton(
+            self.logo_frame,
+            text=t("edit_mod_info"),
+            width=80,
+            height=24,
+            fg_color="transparent",
+            hover_color="#208d6f",
+            border_width=1,
+            border_color=("gray50", "gray60"),
+            text_color=("gray10", "gray90"),
+            command=self.open_metadata_editor
+        )
+        self.edit_info_btn.grid(row=0, column=2, padx=10, sticky="e")
+
+
+# endregion
+
+# region -- App Stats --
+        self.stats_frame = customtkinter.CTkFrame(self, height=40, corner_radius=0, fg_color="transparent")
+        self.stats_frame.grid(row=3, column=1, sticky="ew", padx=10, pady=(0, 5))
+        
+        self.stats_label = customtkinter.CTkLabel(
+            self.stats_frame, 
+            text="Active Mods: 0 | Total Mods: 0", 
+            font=("Arial", 12, "italic"),
+            text_color=("gray40", "gray70")
+        )
+        self.stats_label.pack(side="right", padx=20)
+# endregion
+
+        self.drop_target_register(DND_ALL)
+        self.dnd_bind('<<Drop>>', self.on_drop)
 
         ## Mostrar datos de mods
         self.preview_frame = customtkinter.CTkFrame(self.config_frame,bg_color="transparent")
@@ -518,6 +651,8 @@ class App(customtkinter.CTk):
         self.focused_mod = None
 
         self.mod_checkboxes = []
+        self.suppress_install_dialog = False
+        self.is_batch_mode = False
         # Ensure window close/minimize behavior can use tray if enabled
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.bind("<Unmap>", self._on_unmap)
@@ -530,7 +665,346 @@ class App(customtkinter.CTk):
                 self.console_button.grid(row=0, column=5, padx=10, pady=5)
         except Exception:
             pass
+    # endregion
         
+    # region --- Drag & Drop Logic (Doesn't work btw, haven't figured out why) ---
+    def _create_dnd_window(self):
+        if self.dnd_window is None or not self.dnd_window.winfo_exists():
+            self.dnd_window = customtkinter.CTkToplevel(self)
+            self.dnd_window = DnDCTkToplevel(self)
+            self.dnd_window.overrideredirect(True)
+            self.dnd_window.attributes('-alpha', 0.85) # Transparencia real
+            self.dnd_window.configure(fg_color=("gray90", "gray10"))
+            self.dnd_window.withdraw()
+            
+            # Layout centrado
+            self.dnd_window.grid_columnconfigure(0, weight=1)
+            self.dnd_window.grid_rowconfigure(0, weight=1)
+            
+            frame = customtkinter.CTkFrame(self.dnd_window, fg_color="transparent")
+            frame.grid(row=0, column=0)
+            
+            if self.dnd_icon:
+                l = customtkinter.CTkLabel(frame, text="", image=self.dnd_icon)
+                l.pack(pady=10)
+                l.drop_target_register(DND_ALL)
+                l.dnd_bind('<<Drop>>', self.on_drop)
+            
+            self.dnd_label = customtkinter.CTkLabel(frame, text="Drag & Drop Files", font=("Arial", 24, "bold"))
+            self.dnd_label.pack(pady=5)
+            self.dnd_label.drop_target_register(DND_ALL)
+            self.dnd_label.dnd_bind('<<Drop>>', self.on_drop)
+            
+            self.dnd_sublabel = customtkinter.CTkLabel(frame, text="Supported: .pak, .zip, Folders", font=("Arial", 14), text_color="gray60")
+            self.dnd_sublabel.pack(pady=5)
+            self.dnd_sublabel.drop_target_register(DND_ALL)
+            self.dnd_sublabel.dnd_bind('<<Drop>>', self.on_drop)
+            
+            # Registrar la ventana flotante también para que no parpadee
+            self.dnd_window.drop_target_register(DND_ALL)
+            self.dnd_window.dnd_bind('<<Drop>>', self.on_drop)
+            self.dnd_window.dnd_bind('<<DragLeave>>', self.on_dnd_leave)
+
+    def on_drag_enter_main(self, event):
+        self._create_dnd_window()
+        # Posicionar exactamente sobre la ventana principal
+        x, y = self.winfo_rootx(), self.winfo_rooty()
+        w, h = self.winfo_width(), self.winfo_height()
+        self.dnd_window.geometry(f"{w}x{h}+{x}+{y}")
+        self.dnd_label.configure(text="Drag & Drop Files", text_color=dynamic_text_color)
+        self.dnd_sublabel.configure(text="Supported: .pak, .zip, Folders")
+        self.dnd_window.deiconify()
+        self.dnd_window.lift()
+
+    def on_dnd_leave(self, event):
+        if self.dnd_window:
+            self.dnd_window.withdraw()
+
+    def on_drop(self, event):
+        # Parse dropped files
+        if hasattr(event, 'data'):
+            # tkinterdnd2 returns paths in curly braces if they have spaces
+            if event.data.startswith('{'):
+                files = self.tk.splitlist(event.data)
+            else:
+                files = self.tk.splitlist(event.data)
+            
+            self.suppress_install_dialog = False # Reiniciar flag para esta nueva carga
+            self.is_batch_mode = len(files) > 1
+            
+            any_processed = False
+            unsupported = False
+            
+            for f in files:
+                path = Path(f)
+                if path.is_dir():
+                    if self.install_mod_from_folder(path): any_processed = True
+                elif path.suffix.lower() == ".pak":
+                    if self.install_pak(path): any_processed = True
+                elif path.suffix.lower() == ".rar":
+                    if self.install_rar(path): 
+                        any_processed = True
+                    else:
+                        print("RAR extraction failed. Please install 7-Zip or WinRAR.")
+                        unsupported = False # Handled explicitly
+                elif path.suffix.lower() == ".zip":
+                    if self.install_archive(path): any_processed = True
+                else:
+                    unsupported = True
+            
+            if unsupported and not any_processed:
+                print("File extension not supported! Supported: .pak, .zip, Folders")
+            else:
+                if any_processed:
+                    self.refresh_logic()
+    # endregion
+
+    # region --- Installation Logic ---
+    def ask_collision_action(self, mod_name):
+        dialog = customtkinter.CTkToplevel(self)
+        dialog.title(t("collision_title"))
+        dialog.geometry("400x220")
+        dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        dialog.attributes("-topmost", True)
+        dialog.resizable(False, False)
+        dialog.geometry(f"+{self.winfo_x() + 100}+{self.winfo_y() + 100}")
+
+        msg = t("collision_prompt", name=mod_name)
+        customtkinter.CTkLabel(dialog, text=msg, font=("Arial", 12), wraplength=380).pack(pady=20)
+
+        self.collision_result = "cancel"
+
+        def set_overwrite():
+            self.collision_result = "overwrite"
+            dialog.destroy()
+
+        def set_copy():
+            self.collision_result = "copy"
+            dialog.destroy()
+
+        btn_frame = customtkinter.CTkFrame(dialog, fg_color="transparent")
+        btn_frame.pack(pady=10)
+
+        customtkinter.CTkButton(btn_frame, text=t("btn_overwrite"), fg_color="#a51f45", hover_color="#8b132d", command=set_overwrite).pack(side="left", padx=5)
+        customtkinter.CTkButton(btn_frame, text=t("btn_copy"), fg_color="#1a9f84", hover_color="#13775c", command=set_copy).pack(side="left", padx=5)
+        
+        customtkinter.CTkButton(dialog, text=t("btn_cancel"), fg_color="gray50", hover_color="gray30", width=80, command=dialog.destroy).pack(pady=10)
+
+        self.wait_window(dialog)
+        return self.collision_result
+
+    def ask_install_confirmation(self, mod_info):
+        # Verificar ajuste persistente
+        if not self.app_settings.get("confirm_installs", True):
+            return True
+
+        if self.suppress_install_dialog:
+            return True
+
+        # Crear ventana modal
+        dialog = customtkinter.CTkToplevel(self)
+        dialog.title(t("install_mod_title"))
+        dialog.geometry("400x300")
+        dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        dialog.attributes("-topmost", True)
+        dialog.resizable(False, False)
+        
+        # Centrar en pantalla (aprox)
+        dialog.geometry(f"+{self.winfo_x() + 100}+{self.winfo_y() + 100}")
+
+        customtkinter.CTkLabel(dialog, text=t("install_mod_confirm"), font=("Arial", 14, "bold"), wraplength=380).pack(pady=(20, 10))
+        
+        details = f"{t('editor_mod_name')}: {mod_info.get('name', '???')}\n{t('editor_mod_author')}: {mod_info.get('author', '???')}\n{t('editor_mod_version')}: {mod_info.get('version', '???')}"
+        customtkinter.CTkLabel(dialog, text=details, justify="left", text_color="gray70", wraplength=380).pack(pady=5)
+
+        # Checkbox para no volver a preguntar en esta tanda
+        dont_ask_var = customtkinter.BooleanVar(value=False)
+        if self.is_batch_mode:
+            customtkinter.CTkCheckBox(dialog, text=t("install_mod_dont_ask"), variable=dont_ask_var).pack(pady=(10, 0))
+
+        # Checkbox para no volver a preguntar nunca (persistente)
+        never_ask_var = customtkinter.BooleanVar(value=False)
+        customtkinter.CTkCheckBox(dialog, text=t("install_mod_never_ask"), variable=never_ask_var).pack(pady=(5, 0))
+
+        self.install_confirmed = False
+        def on_yes():
+            self.install_confirmed = True
+            if dont_ask_var.get():
+                self.suppress_install_dialog = True
+            
+            if never_ask_var.get():
+                self.app_settings["confirm_installs"] = False
+                # Guardar ajuste inmediatamente
+                current_selection = [mod["mod_info"]["name"] for mod in self.mod_checkboxes if mod["variable"].get() == 1]
+                save_config(self.current_path, current_selection, self.mod_options, self.app_settings)
+
+            dialog.destroy()
+        
+        btn_frame = customtkinter.CTkFrame(dialog, fg_color="transparent")
+        btn_frame.pack(pady=20)
+        customtkinter.CTkButton(btn_frame, text=t("btn_install"), fg_color="#1a9f84", hover_color="#13775c", width=100, command=on_yes).pack(side="left", padx=10)
+        customtkinter.CTkButton(btn_frame, text=t("btn_cancel"), fg_color="#a51f45", hover_color="#8b132d", width=100, command=dialog.destroy).pack(side="left", padx=10)
+
+        self.wait_window(dialog)
+        return self.install_confirmed
+
+    def install_pak(self, path):
+        try:
+            mod_name = path.stem
+            # Remove _P if present for the folder name to be clean
+            if mod_name.endswith("_P"): mod_name = mod_name[:-2]
+            
+            # Preparar info para confirmación
+            info = {
+                "name": mod_name,
+                "version": "1.0",
+                "author": "Unknown",
+                "description": f"Imported from {path.name}",
+                "category": "Other"
+            }
+            
+            if not self.ask_install_confirmation(info):
+                return False
+
+            dest_dir = Path("./mods") / mod_name
+            
+            if dest_dir.exists():
+                action = self.ask_collision_action(mod_name)
+                if action == "cancel":
+                    return False
+                elif action == "copy":
+                    mod_name = f"{mod_name}_{int(time.time())}"
+                    dest_dir = Path("./mods") / mod_name
+                elif action == "overwrite":
+                    try: shutil.rmtree(dest_dir)
+                    except: pass
+
+            assets_dir = dest_dir / "assets"
+            assets_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Ensure _P for the file
+            dest_filename = path.name
+            if not path.stem.endswith("_P"):
+                dest_filename = f"{path.stem}_P{path.suffix}"
+            
+            shutil.copy(path, assets_dir / dest_filename)
+            
+            # Create modinfo
+            with open(dest_dir / "modinfo.json", "w") as f:
+                json.dump(info, f, indent=4)
+            return True
+        except Exception as e:
+            print(f"Error installing pak: {e}")
+            return False
+
+    def install_mod_from_folder(self, path, fallback_name=None):
+        # Recursive search for modinfo.json
+        for root, dirs, files in os.walk(path):
+            if "modinfo.json" in files and "assets" in dirs:
+                # Found a valid mod root
+                source = Path(root)
+                
+                # Leer info para confirmación
+                info = {"name": source.name, "author": "Unknown", "version": "1.0"}
+                try:
+                    with open(source / "modinfo.json", "r", encoding="utf-8") as f:
+                        info.update(json.load(f))
+                except: pass
+
+                if not self.ask_install_confirmation(info):
+                    return False
+
+                mod_name = source.name
+                # If source is a temp dir (random name), use fallback
+                if fallback_name and (len(mod_name) > 20 or "tmp" in mod_name):
+                    mod_name = fallback_name
+
+                dest = Path("./mods") / mod_name
+                if dest.exists():
+                    action = self.ask_collision_action(mod_name)
+                    if action == "cancel":
+                        return False
+                    elif action == "copy":
+                        dest = Path("./mods") / f"{mod_name}_{int(time.time())}"
+                    elif action == "overwrite":
+                        try: shutil.rmtree(dest)
+                        except: pass
+
+                shutil.copytree(source, dest)
+                return True
+        return False
+
+    def install_archive(self, path):
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                with zipfile.ZipFile(path, 'r') as zip_ref:
+                    zip_ref.extractall(tmpdir)
+                
+                tmp_path = Path(tmpdir)
+                # Try to find a structured mod first
+                if self.install_mod_from_folder(tmp_path, fallback_name=path.stem):
+                    return True
+                
+                # If not found, look for loose .pak files and install them
+                paks = list(tmp_path.rglob("*.pak"))
+                if len(paks) > 1: self.is_batch_mode = True
+                any_paks = False
+                for pak in paks:
+                    if self.install_pak(pak): any_paks = True
+                return any_paks
+
+        except Exception as e:
+            print(f"Error installing archive: {e}")
+            return False
+
+    def install_rar(self, path):
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                if self.extract_rar_external(path, tmpdir):
+                    tmp_path = Path(tmpdir)
+                    # Try to find a structured mod first
+                    if self.install_mod_from_folder(tmp_path, fallback_name=path.stem):
+                        return True
+                    
+                    # If not found, look for loose .pak files and install them
+                    paks = list(tmp_path.rglob("*.pak"))
+                    if len(paks) > 1: self.is_batch_mode = True
+                    any_paks = False
+                    for pak in paks:
+                        if self.install_pak(pak): any_paks = True
+                    return any_paks
+                return False
+        except Exception as e:
+            print(f"Error installing RAR: {e}")
+            return False
+
+    def extract_rar_external(self, rar_path, out_dir):
+        # Common paths for 7-Zip and WinRAR
+        seven_zip_paths = [r"C:\Program Files\7-Zip\7z.exe", r"C:\Program Files (x86)\7-Zip\7z.exe"]
+        winrar_paths = [r"C:\Program Files\WinRAR\WinRAR.exe", r"C:\Program Files (x86)\WinRAR\WinRAR.exe"]
+        
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+        # Try 7-Zip
+        exe = next((p for p in seven_zip_paths if os.path.exists(p)), None)
+        if exe:
+            try:
+                subprocess.run([exe, "x", str(rar_path), f"-o{str(out_dir)}", "-y"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, startupinfo=startupinfo)
+                return True
+            except: pass
+
+        # Try WinRAR
+        exe = next((p for p in winrar_paths if os.path.exists(p)), None)
+        if exe:
+            try:
+                subprocess.run([exe, "x", "-ibck", "-y", str(rar_path), str(out_dir) + "\\"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, startupinfo=startupinfo)
+                return True
+            except: pass
+        return False
+    # endregion
+
+    # region --- Preview Renderer ---
     def render_preview(self, mod):
         img_path = Path(mod["folder_path"]) / mod.get("screenshot", "preview.png")
         
@@ -551,7 +1025,9 @@ class App(customtkinter.CTk):
             except Exception:
                 placeholder = customtkinter.CTkLabel(self.config_frame, text=t("no_description"), width=320, height=180, fg_color="gray20")
                 placeholder.grid(row=1, column=0, padx=10, pady=10)
+    # endregion
 
+    # region --- Integrated Console ---
     # --- Integrated Console ---
     def open_console_window(self):
         if self.console_window is not None and self.console_window.winfo_exists():
@@ -620,7 +1096,96 @@ class App(customtkinter.CTk):
                 sys.stderr = ConsoleRedirector(self._write_to_console)
         except Exception:
             pass
+    # endregion
 
+    # region --- Profile Management ---
+    def save_current_profile(self):
+        # Pedir nombre para un NUEVO perfil
+        dialog = customtkinter.CTkInputDialog(text="Enter new profile name:", title="New Profile")
+        name = dialog.get_input()
+        
+        if name and name.strip() != "":
+            active_mods = [item["mod_info"]["name"] for item in self.mod_checkboxes if item["variable"].get() == 1]
+            profile_path = os.path.join("profiles", f"{name}.json")
+            
+            with open(profile_path, "w") as f:
+                json.dump(active_mods, f)
+            
+            # Refrescar menú y seleccionar el nuevo
+            self.profile_menu.configure(values=self.get_saved_profiles())
+            self.profile_var.set(name)
+    
+    def save_to_active_profile(self):
+        ##Guarda la selección actual en el archivo del perfil seleccionado en el OptionMenu
+        current_profile = self.profile_var.get()
+        profile_path = os.path.join("profiles", f"{current_profile}.json")
+        
+        # Obtenemos los nombres de los mods marcados
+        active_mods = [item["mod_info"]["name"] for item in self.mod_checkboxes if item["variable"].get() == 1]
+        
+        with open(profile_path, "w") as f:
+            json.dump(active_mods, f)
+
+    def load_profile_event(self, profile_name):
+        profile_path = os.path.join("profiles", f"{profile_name}.json")
+        
+        if os.path.exists(profile_path):
+            with open(profile_path, "r") as f:
+                selected_names = json.load(f)
+            
+            # Actualizamos los checkboxes visualmente
+            for item in self.mod_checkboxes:
+                if item["mod_info"]["name"] in selected_names:
+                    item["variable"].set(1)
+                else:
+                    item["variable"].set(0)
+            
+            # Aplicamos los cambios al sistema de mods (y esto a su vez llamará a update_select)
+            self.update_select()
+
+    def get_saved_profiles(self):
+        profiles_dir = "profiles"
+        default_file = os.path.join(profiles_dir, "Default Profile.json")
+        
+        if not os.path.exists(profiles_dir):
+            os.makedirs(profiles_dir)
+        
+        # Si no existe el archivo físico del Default Profile, creamos uno vacío
+        if not os.path.exists(default_file):
+            with open(default_file, "w") as f:
+                json.dump([], f)
+        
+        # Leemos los archivos .json, asegurando que Default Profile sea el primero
+        files = [f.replace(".json", "") for f in os.listdir(profiles_dir) if f.endswith(".json")]
+        
+        # Ordenamos para que "Default Profile" siempre esté arriba
+        if "Default Profile" in files:
+            files.remove("Default Profile")
+            return ["Default Profile"] + sorted(files)
+            
+        return ["Default Profile"]
+    
+    def delete_current_profile(self):
+        current_profile = self.profile_var.get()
+        
+        # No permitimos borrar el perfil por defecto por seguridad
+        if current_profile == "Default Profile":
+            return
+            
+        # Confirmación simple
+        import tkinter.messagebox as messagebox
+        if messagebox.askyesno(t("delete_title"), f"{t('delete_confirm')} '{current_profile}'?"):
+            profile_path = os.path.join("profiles", f"{current_profile}.json")
+            if os.path.exists(profile_path):
+                os.remove(profile_path)
+            
+            # Refrescar y volver al perfil por defecto
+            self.profile_menu.configure(values=self.get_saved_profiles())
+            self.profile_var.set("Default Profile")
+            self.load_profile_event("Default Profile")
+    # endregion
+
+    # region --- Console Cleanup ---
     def _stop_console(self):
         try:
             if self._stdout_orig is not None:
@@ -647,7 +1212,9 @@ class App(customtkinter.CTk):
                 self.console_textbox = None
         except Exception:
             pass
+    # endregion
     
+    # region --- Mod Details & Actions ---
     def show_mod_details(self, mod):
 
         self.focused_mod = mod
@@ -742,7 +1309,35 @@ class App(customtkinter.CTk):
         
         # Actualizamos el guardado automático
         self.update_select()
+    # endregion
+    
+    # region --- Context Menu ---
+    def show_context_menu(self, event, mod):
+        menu = tkinter.Menu(self, tearoff=0)
+        menu.add_command(label=t("ctx_open_folder"), command=lambda: os.startfile(mod["folder_path"]))
+        menu.add_command(label=t("edit_mod_info"), command=lambda: self.open_metadata_editor_direct(mod))
+        menu.add_separator()
+        menu.add_command(label=t("ctx_delete_mod"), command=lambda: self.delete_mod(mod), foreground="red")
+        menu.tk_popup(event.x_root, event.y_root)
 
+    def open_metadata_editor_direct(self, mod):
+        self.show_mod_details(mod)
+        self.open_metadata_editor()
+
+    def delete_mod(self, mod):
+        if tkinter.messagebox.askyesno(t("delete_mod_title"), t("delete_mod_confirm", name=mod["name"])):
+            try:
+                shutil.rmtree(mod["folder_path"])
+                if self.focused_mod and self.focused_mod["name"] == mod["name"]:
+                    self.focused_mod = None
+                    for widget in self.config_frame.winfo_children():
+                        widget.destroy()
+                self.refresh_logic()
+            except Exception as e:
+                print(f"Error deleting mod: {e}")
+    # endregion
+
+    # region --- Refresh & Selection Logic ---
     def refresh_logic(self):
         # Limpiar UI
         for widget in self.modlist_frame.winfo_children():
@@ -752,6 +1347,30 @@ class App(customtkinter.CTk):
         # Recargar datos
         _, saved_selected_mods, _ = load_config()
         loaded_mods = mod_info()
+
+        # Aplicar estadísticas
+        self.update_stats_display()
+
+        # --- HEADERS ---
+        # Name Header
+        name_txt = t("editor_mod_name")
+        if self.sort_key == "name":
+            name_txt += " ▼" if self.sort_order == "A-Z" else " ▲"
+        btn_name = customtkinter.CTkButton(self.modlist_frame, text=name_txt, font=("Arial", 11, "bold"), 
+                                           text_color="gray60", fg_color="transparent", hover_color=("gray80", "gray25"),
+                                           anchor="w", height=20, command=lambda: self.sort_by("name"))
+        btn_name.grid(row=0, column=1, padx=5, pady=(5,2), sticky="ew")
+
+        # Author Header
+        auth_txt = t("editor_mod_author")
+        if self.sort_key == "author":
+            auth_txt += " ▼" if self.sort_order == "A-Z" else " ▲"
+        btn_auth = customtkinter.CTkButton(self.modlist_frame, text=auth_txt, font=("Arial", 11, "bold"), 
+                                           text_color="gray60", fg_color="transparent", hover_color=("gray80", "gray25"),
+                                           anchor="w", height=20, command=lambda: self.sort_by("author"))
+        btn_auth.grid(row=0, column=2, padx=5, pady=(5,2), sticky="ew")
+
+        customtkinter.CTkLabel(self.modlist_frame, text=t("editor_mod_version"), font=("Arial", 11, "bold"), text_color="gray60", anchor="w").grid(row=0, column=3, padx=5, pady=(5,2), sticky="ew")
 
         # --- APLICAR FILTROS ---
         search_term = self.search_var.get().lower()
@@ -772,9 +1391,10 @@ class App(customtkinter.CTk):
                 filtered_mods.append(mod)
 
         # --- APLICAR ORDEN ---
-        filtered_mods.sort(key=lambda x: x["name"].lower(), reverse=(self.sort_order == "Z-A"))
+        filtered_mods.sort(key=lambda x: str(x.get(self.sort_key, "")).lower(), reverse=(self.sort_order == "Z-A"))
 
         for i, mod in enumerate(filtered_mods):
+            row_idx = i + 1
             # Aquí usamos la permanencia
             val_inicial = 1 if mod["name"] in saved_selected_mods else 0
             var = customtkinter.Variable(value=val_inicial)
@@ -791,23 +1411,65 @@ class App(customtkinter.CTk):
                 command=lambda name=mod['name']: self.update_select(changed_mod=name) # Guarda cada vez que haces clic
                 
             )
-            cb.grid(row=i, column=0, padx=(2,0), pady=(5, 0), sticky="w")
+            cb.grid(row=row_idx, column=0, padx=(2,0), pady=(2, 0), sticky="w")
 
-            # Botón con el nombre del mod, autor y versión del mod
-            display_text = f"{mod['name']}  |  {mod.get('author', '???')}  |   (v{mod.get('version', '1.0')})"
+            # Color de hover unificado para la fila
+            row_hover_color = ("gray80", "gray25")
 
-            mod_btn = customtkinter.CTkButton(
+            # 1. Nombre
+            btn_name = customtkinter.CTkButton(
                 self.modlist_frame, 
-                text=display_text, 
+                text=mod['name'], 
                 fg_color="transparent",
-                hover_color=("gray80", "gray25"),
+                hover=False, # Desactivamos hover individual
                 text_color=dynamic_text_color,
                 anchor="w",
-                width=5,
-                corner_radius=2,
+                height=24,
                 command=lambda m=mod: self.show_mod_details(m)
             )
-            mod_btn.grid(row=i, column=1, padx=10, pady=(5, 0), sticky="nsew")
+            btn_name.grid(row=row_idx, column=1, padx=(5, 5), pady=(2, 0), sticky="ew")
+
+            # 2. Autor
+            btn_author = customtkinter.CTkButton(
+                self.modlist_frame, 
+                text=mod.get('author', '???'), 
+                fg_color="transparent",
+                hover=False,
+                text_color="gray60",
+                anchor="w",
+                height=24,
+                command=lambda m=mod: self.show_mod_details(m)
+            )
+            btn_author.grid(row=row_idx, column=2, padx=(5, 5), pady=(2, 0), sticky="ew")
+
+            # 3. Versión
+            btn_ver = customtkinter.CTkButton(
+                self.modlist_frame, 
+                text=f"v{mod.get('version', '1.0')}", 
+                fg_color="transparent",
+                hover=False,
+                text_color="gray60",
+                anchor="w",
+                height=24,
+                width=60,
+                command=lambda m=mod: self.show_mod_details(m)
+            )
+            btn_ver.grid(row=row_idx, column=3, padx=(5, 5), pady=(2, 0), sticky="ew")
+
+            # Lógica para iluminar toda la fila al pasar el mouse
+            row_btns = [btn_name, btn_author, btn_ver]
+            def on_enter(e, btns=row_btns):
+                for b in btns: b.configure(fg_color=row_hover_color)
+            def on_leave(e, btns=row_btns):
+                for b in btns: b.configure(fg_color="transparent")
+            
+            def on_right_click(e, m=mod):
+                self.show_context_menu(e, m)
+
+            for b in row_btns:
+                b.bind("<Enter>", on_enter)
+                b.bind("<Leave>", on_leave)
+                b.bind("<Button-3>", on_right_click)
 
             self.mod_checkboxes.append({"mod_info": mod, "variable": var})
         print(t("mod_list_refreshed"))
@@ -816,6 +1478,10 @@ class App(customtkinter.CTk):
         # Guardar correctamente sin anidar listas
         current_selection = [mod["mod_info"]["name"] for mod in self.mod_checkboxes if mod["variable"].get() == 1]
         save_config(self.current_path, current_selection, self.mod_options)
+        self.save_to_active_profile()
+
+        # Aplicar estadísticas
+        self.update_stats_display()
 
         # Sincronización Checkbox - Botón de Enable/Disable
         if self.focused_mod:
@@ -856,6 +1522,9 @@ class App(customtkinter.CTk):
             # o poner algo como "Select Remaining"
             self.select_all.configure(text=t("select_all"))
 
+    # endregion
+
+    # region --- Path & Deployment ---
     def select_path_callback(self):
         folder_selected = filedialog.askdirectory(title=t("select_paks_folder"))
         if folder_selected:
@@ -889,15 +1558,25 @@ class App(customtkinter.CTk):
                 for file_name in selected_files:
                     file_path = source / file_name
                     if file_path.exists():
-                        shutil.copy(file_path, target)
+                        # Ensure _P suffix for Unreal Engine mods
+                        dest_name = file_path.name
+                        if not file_path.stem.endswith("_P"):
+                            dest_name = f"{file_path.stem}_P{file_path.suffix}"
+                        shutil.copy(file_path, target / dest_name)
             else:
                 # Si no tiene opciones, comportamiento por defecto: copiar todo assets
                 if source.exists():
                     for item in source.glob("*.pak"):
-                        shutil.copy(item, target)
+                        # Ensure _P suffix for Unreal Engine mods
+                        dest_name = item.name
+                        if not item.stem.endswith("_P"):
+                            dest_name = f"{item.stem}_P{item.suffix}"
+                        shutil.copy(item, target / dest_name)
         print(t("deploy_success"))
         return True
+    # endregion
     
+    # region --- Mod Configuration ---
     def open_config_window(self, mod):
         # Si ya hay una ventana abierta, la traemos al frente y no creamos otra
         if self.config_window is not None and self.config_window.winfo_exists():
@@ -976,6 +1655,143 @@ class App(customtkinter.CTk):
             except Exception:
                 pass
             print(t("options_saved_for", mod=mod_name, files=','.join(selected_files)))
+    # endregion
+
+    # region --- Metadata Editor ---
+    def open_metadata_editor(self):
+        if not self.focused_mod:
+            return
+
+        editor = customtkinter.CTkToplevel(self)
+        editor.title(t("edit_mod_info"))
+        editor.geometry("400x600")
+        editor.after(200, lambda: editor.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        
+        editor.attributes("-topmost", True)
+        editor.after(50, lambda: editor.attributes("-topmost", False))
+        editor.focus_force()
+
+        # --- Image Preview Editor ---
+        # Etiqueta para la previsualización
+        self.editor_preview_label = customtkinter.CTkLabel(editor, text="", width=320, height=180, fg_color="gray20", corner_radius=5)
+        self.editor_preview_label.pack(pady=(10, 0))
+
+        def update_preview():
+            img_path = Path(self.focused_mod["folder_path"]) / self.focused_mod.get("screenshot", "preview.png")
+            if img_path.exists() and img_path.is_file():
+                try:
+                    img = Image.open(img_path)
+                    ctk_img = customtkinter.CTkImage(light_image=img, dark_image=img, size=(320, 180))
+                    self.editor_preview_label.configure(image=ctk_img, text="")
+                except:
+                    self.editor_preview_label.configure(image=None, text=t("no_description"))
+            else:
+                try:
+                    def_img = Image.open(ASSETS_DIR / "default_preview.png")
+                    ctk_img = customtkinter.CTkImage(light_image=def_img, dark_image=def_img, size=(320, 180))
+                    self.editor_preview_label.configure(image=ctk_img, text="")
+                except:
+                    self.editor_preview_label.configure(image=None, text=t("no_description"))
+        
+        update_preview()
+
+        def change_img():
+            path = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.jpg;*.jpeg;*.bmp")])
+            if path:
+                try:
+                    dest_name = "preview.png"
+                    shutil.copy(path, Path(self.focused_mod["folder_path"]) / dest_name)
+                    self.focused_mod["screenshot"] = dest_name
+                    img_btn.configure(text=t("editor_img_success"))
+                    update_preview() # Actualizar vista
+                except Exception as e:
+                    print(e)
+
+        img_btn = customtkinter.CTkButton(editor, text=t("editor_change_img"), fg_color="#da8938", hover_color="#c05b17", command=change_img)
+        img_btn.pack(pady=(10, 5))
+
+        frame = customtkinter.CTkScrollableFrame(editor)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        entries = {}
+        fields = [(t("editor_mod_name"), "name"), (t("editor_mod_author"), "author"), (t("editor_mod_version"), "version"), ("URL", "url")]
+
+        for label_text, key in fields:
+            customtkinter.CTkLabel(frame, text=label_text, anchor="w").pack(fill="x", pady=(5,0))
+            entry = customtkinter.CTkEntry(frame)
+            entry.insert(0, self.focused_mod.get(key, ""))
+            entry.pack(fill="x", pady=(0,5))
+            entries[key] = entry
+
+        customtkinter.CTkLabel(frame, text=t("editor_mod_category"), anchor="w").pack(fill="x", pady=(5,0))
+        cat_options = [c for c in self.cat_canonical if c != "All Categories"]
+        current_cat = self.focused_mod.get("category", "Other")
+        if current_cat not in cat_options: current_cat = "Other"
+        cat_var = customtkinter.StringVar(value=current_cat)
+        customtkinter.CTkOptionMenu(frame, values=cat_options, fg_color="#1a9f84", button_color="#208d6f", button_hover_color="#13775c", variable=cat_var).pack(fill="x", pady=(0,5))
+
+        # --- Options Editor ---
+        customtkinter.CTkLabel(frame, text=t("editor_mod_options"), anchor="w", font=("Arial", 12, "bold")).pack(fill="x", pady=(15,5))
+        
+        has_opts_var = customtkinter.BooleanVar(value=self.focused_mod.get("has_options", False))
+        customtkinter.CTkCheckBox(frame, text=t("editor_mod_enable_opt"), variable=has_opts_var).pack(anchor="w", pady=(0, 5))
+
+        opts_frame = customtkinter.CTkFrame(frame)
+        opts_frame.pack(fill="x", pady=5)
+
+        mod_assets = Path(self.focused_mod["folder_path"]) / "assets"
+        pak_files = [f.name for f in mod_assets.glob("*.pak")] if mod_assets.exists() else []
+        
+        existing_opts_map = {opt["file"]: opt["name"] for opt in self.focused_mod.get("options", [])}
+        opt_entries = {}
+
+        if not pak_files:
+             customtkinter.CTkLabel(opts_frame, text=t("editor_mod_no_pak"), text_color="gray").pack(pady=5)
+        else:
+            for pak in pak_files:
+                row = customtkinter.CTkFrame(opts_frame, fg_color="transparent")
+                row.pack(fill="x", pady=2)
+                customtkinter.CTkLabel(row, text=pak, width=120, anchor="w").pack(side="left", padx=5)
+                entry = customtkinter.CTkEntry(row, placeholder_text=(t("editor_mod_opt_name")))
+                entry.pack(side="right", fill="x", expand=True, padx=(0,5))
+                entry.insert(0, existing_opts_map.get(pak, pak))
+                opt_entries[pak] = entry
+
+        customtkinter.CTkLabel(frame, text=t("editor_mod_desc"), anchor="w").pack(fill="x", pady=(5,0))
+        desc_text = customtkinter.CTkTextbox(frame, height=100)
+        desc_text.insert("0.0", self.focused_mod.get("description", ""))
+        desc_text.pack(fill="x", pady=(0,5))
+
+        def save():
+            new_options = []
+            if has_opts_var.get():
+                for pak, entry in opt_entries.items():
+                    name = entry.get().strip()
+                    if not name: name = pak
+                    new_options.append({"name": name, "file": pak})
+
+            new_vals = {
+                "name": entries["name"].get(),
+                "author": entries["author"].get(),
+                "version": entries["version"].get(),
+                "url": entries["url"].get(),
+                "category": cat_var.get(),
+                "has_options": has_opts_var.get(),
+                "options": new_options,
+                "description": desc_text.get("0.0", "end").strip()
+            }
+            self.focused_mod.update(new_vals)
+            try:
+                json_path = Path(self.focused_mod["folder_path"]) / "modinfo.json"
+                # Excluir folder_path al guardar en disco
+                to_save = {k: v for k, v in self.focused_mod.items() if k != "folder_path"}
+                with open(json_path, "w", encoding="utf-8") as f: json.dump(to_save, f, indent=4, ensure_ascii=False)
+                self.show_mod_details(self.focused_mod)
+                self.refresh_logic()
+                editor.destroy()
+            except Exception as e: print(t("editor_mod_metaerr"),f": {e}")
+
+        customtkinter.CTkButton(frame, text=t("editor_mod_save"), fg_color="#1a9f84", hover_color="#13775c", command=save).pack(pady=20)
 
     def open_settings(self):
         if self.setting_window is not None and self.setting_window.winfo_exists():
@@ -1014,17 +1830,27 @@ class App(customtkinter.CTk):
         appearance_container.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
         label_app = customtkinter.CTkLabel(appearance_container, text=t("appearance"), font=("Arial", 12, "bold"))
         label_app.pack(anchor="w")
+        
+        # Crear mapa de traducción inversa: Nombre Mostrado -> Valor Interno
+        dark_label = t("dark_theme")
+        light_label = t("light_theme")
+        self.theme_lookup = {dark_label: "Dark", light_label: "Light"}
+
         theme_menu = customtkinter.CTkOptionMenu(
             appearance_container,
-            values=["Dark", "Light"],
+            values=[dark_label, light_label],
             fg_color="#1a9f84",
-            button_color="#13775c",
+            button_color="#208d6f",
+            button_hover_color="#13775c",
             command=self.change_appearance_mode_event
         )
         theme_menu.pack(pady=6, anchor="w")
         # Set current appearance
         try:
-            theme_menu.set(customtkinter.get_appearance_mode())
+            current_mode = customtkinter.get_appearance_mode()
+            if current_mode == "Dark": theme_menu.set(dark_label)
+            elif current_mode == "Light": theme_menu.set(light_label)
+            else: theme_menu.set(current_mode)
         except Exception:
             pass
 
@@ -1038,7 +1864,8 @@ class App(customtkinter.CTk):
             values=["English", "Español", "Français", "Deutsch", "Italiano", "Português", "Русский", "中文", "日本語"],
             command=self.change_language_event,
             fg_color="#1a9f84",
-            button_color="#13775c"
+            button_color="#208d6f",
+            button_hover_color="#13775c"
         )
         self.lang_menu.pack(pady=6, anchor="w")
         # Restore saved language if exists
@@ -1088,12 +1915,14 @@ class App(customtkinter.CTk):
 
         # Attach helper method for saving app settings to the instance
         def _save_app_settings_inner(show_msg=False):
-            new_app = {
+            # Usar self.app_settings como base para preservar claves ocultas (como confirm_installs)
+            self.app_settings.update({
                 "language": self.lang_menu.get() if hasattr(self.lang_menu, 'get') else None,
                 "check_updates": bool(self.check_updates_var.get()),
                 "minimize_to_tray": bool(self.minimize_tray_var.get()),
                 "enable_console": bool(self.console_var.get())
-            }
+            })
+            new_app = self.app_settings
             # Save while preserving other config keys
             save_config(self.current_path, [m["mod_info"]["name"] for m in self.mod_checkboxes if m["variable"].get() == 1], self.mod_options, app_settings=new_app)
             # Update runtime settings so changes take effect immediately
@@ -1140,8 +1969,12 @@ class App(customtkinter.CTk):
         self._save_app_settings = _save_app_settings_inner
 
     def change_appearance_mode_event(self, new_appearance_mode: str):
-        customtkinter.set_appearance_mode(new_appearance_mode)
-        print(f"Appearance mode changed to: {new_appearance_mode}")
+        # Traducir el valor mostrado al valor interno ("Dark"/"Light")
+        mode = new_appearance_mode
+        if hasattr(self, "theme_lookup"):
+            mode = self.theme_lookup.get(new_appearance_mode, new_appearance_mode)
+        customtkinter.set_appearance_mode(mode)
+        print(f"Appearance mode changed to: {mode}")
 
     def change_language_event(self, new_lang):
         print(t("language_changed", lang=new_lang))
@@ -1168,6 +2001,7 @@ class App(customtkinter.CTk):
                     self.sort_btn.configure(text=t("sort_AZ") if self.sort_order == "A-Z" else t("sort_ZA"))
                 except Exception:
                     pass
+                self.edit_info_btn.configure(text=t("edit_mod_info"))
             except Exception:
                 pass
 
@@ -1241,7 +2075,12 @@ class App(customtkinter.CTk):
                 pass
         except Exception:
             pass
+        
+        # Actualizar la lista de mods para regenerar los encabezados en el nuevo idioma
+        self.refresh_logic()
+    # endregion
 
+    # region --- Update UI ---
     def open_update_window(self, update_data):
         update_win = customtkinter.CTkToplevel(self)
         update_win.title(t("update_available") + " - Plus Ultra Manager")
@@ -1290,7 +2129,9 @@ class App(customtkinter.CTk):
             command=update_win.destroy
         )
         close_btn.pack(side="right", padx=20)
+    # endregion
 
+    # region --- Credits UI ---
     def open_credits(self):
         if self.credits_window is not None and self.credits_window.winfo_exists():
             self.credits_window.focus()
@@ -1341,8 +2182,9 @@ class App(customtkinter.CTk):
 
         close_btn = customtkinter.CTkButton(self.credits_window, text=t("close_button"),fg_color="#1a9f84",hover_color="#13775c", command=self.credits_window.destroy)
         close_btn.pack(pady=10)
+    # endregion
 
-    # --- Tray / Minimize to tray support ---
+    # region --- Tray / Minimize to tray support ---
     def _on_unmap(self, event):
         try:
             # If the window is being minimized (iconic) and tray setting enabled
@@ -1350,7 +2192,26 @@ class App(customtkinter.CTk):
                 self._minimize_to_tray()
         except Exception:
             pass
+    # endregion
 
+# region --- Stats Display ---
+    def update_stats_display(self):
+        # Contar total de mods escaneando carpetas con modinfo.json
+        total_mods = 0
+        mods_path = Path("./mods")
+        if mods_path.exists():
+            for item in mods_path.iterdir():
+                if item.is_dir() and (item / "modinfo.json").exists():
+                    total_mods += 1
+
+        # Contar mods activos desde la configuración (global)
+        _, saved_mods, _ = load_config()
+        active_mods = len(saved_mods)
+
+        self.stats_label.configure(text=f"{t('active_mods')}: {active_mods} | {t('total_mods')}: {total_mods}")
+# endregion
+
+# region --- On Close Handler ---
     def _on_close(self):
         # Close should quit the app fully; ensure tray icon is stopped first
         try:
@@ -1361,7 +2222,8 @@ class App(customtkinter.CTk):
                 self.destroy()
             except Exception:
                 pass
-
+# endregion
+# region --- Minimize to tray ---
     def _minimize_to_tray(self):
         # If already have a tray icon, do nothing
         if self.tray_icon is not None:
@@ -1386,10 +2248,12 @@ class App(customtkinter.CTk):
                 icon_img = PILImage.open("icon.ico").convert("RGBA")
             except Exception:
                 icon_img = PILImage.new("RGBA", (64, 64), (0, 0, 0, 0))
-
+# endregion
+# region --- Tray on open ---
         def on_open(icon, item):
             self.after(0, self._restore_from_tray)
-
+# endregion
+# region --- Tray on quit ---
         def on_quit(icon, item):
             self.after(0, self._quit_from_tray)
 
@@ -1420,7 +2284,8 @@ class App(customtkinter.CTk):
                 pass
         except Exception:
             pass
-
+# endregion
+# region --- Start tray icon ---
         def run_icon():
             try:
                 icon.run()
@@ -1430,7 +2295,8 @@ class App(customtkinter.CTk):
         self._tray_thread = threading.Thread(target=run_icon, daemon=True)
         self._tray_thread.start()
         self.withdraw()
-
+# endregion
+# region --- Restore from tray ---
     def _restore_from_tray(self):
         try:
             if self.tray_icon:
@@ -1444,7 +2310,8 @@ class App(customtkinter.CTk):
             self.focus_force()
         except Exception:
             pass
-
+# endregion
+# region --- Quit from tray ---
     def _quit_from_tray(self):
         try:
             if self.tray_icon:
@@ -1455,7 +2322,9 @@ class App(customtkinter.CTk):
                 self.tray_icon = None
         finally:
             self.destroy()
+# endregion
 
+# region --- Console Log rotation ---
     def _rotate_logs(self, keep=5):
         # Compress older .log files in logs/ keeping the newest `keep` logs uncompressed
         try:
@@ -1484,6 +2353,19 @@ class App(customtkinter.CTk):
                     pass
         except Exception:
             pass
+# endregion
+
+# region -- Sorting A-Z / Z-A --
+    def sort_by(self, key):
+        if self.sort_key == key:
+            self.sort_order = "Z-A" if self.sort_order == "A-Z" else "A-Z"
+        else:
+            self.sort_key = key
+            self.sort_order = "A-Z"
+        
+        try: self.sort_btn.configure(text=t("sort_ZA") if self.sort_order == "Z-A" else t("sort_AZ"))
+        except: pass
+        self.refresh_logic()
 
     def toggle_sort(self):
         self.sort_order = "Z-A" if self.sort_order == "A-Z" else "A-Z"
@@ -1493,15 +2375,19 @@ class App(customtkinter.CTk):
         except Exception:
             self.sort_btn.configure(text=self.sort_order)
         self.refresh_logic()
-
+# endregion
+# region -- Game Launch --
     def game_callback(self):
         if self.deploy_mods():
             print(t("launch_game"))
             os.startfile("steam://rungameid/1607250")
+# endregion
 
+# region Main loop
 if __name__ == "__main__":
     myappid = 'bacrian.pum.modmanager' 
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     app = App()
     app.mainloop()
+# endregion

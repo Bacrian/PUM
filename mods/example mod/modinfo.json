@@ -1,20 +1,11 @@
 {
-  "name": "Example Mod",
-  "version": "1.0",
-  "author": "Author name",
-  "screenshot":"preview.png",
-  "description": "Example mod template.",
-  "category": "Skin",
-  "url": "",
-  "has_options": false,
-  "options": [
-    {
-      "name": "Base",
-      "file": "base.pak"
-    },
-    {
-      "name": "Extra",
-      "file": "extra.pak"
-    }
-  ]
+    "name": "Example Mod",
+    "version": "1.0",
+    "author": "Author name",
+    "screenshot": "preview.png",
+    "description": "Example mod template.",
+    "category": "Skin",
+    "url": "",
+    "has_options": false,
+    "options": []
 }
