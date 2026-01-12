@@ -1,5 +1,5 @@
 {
-"version": "1.1.1",
+"version": "1.2.0",
   "download_url": "https://gamebanana.com/tools/21625",
-  "changelog": "- Fixed mods not updating correctly."
+  "changelog": "- Improved path finding for game installations.\n- Fixed minor bugs related to UI/UX elements.\n- Added mod list auto refresh.\n- Added Favorite mods feature.\n- Added GameBanana downloads.\n-Added preferences dropdown menu. (still working on the layout, may still be a little weird to use)"
 }
