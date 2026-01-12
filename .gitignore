@@ -1,1 +1,4 @@
 config.json
+__init__.py
+__pycache__/
+scripts/__pycache__/
