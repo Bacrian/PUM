@@ -1,0 +1,7 @@
+{
+  "backups": [],
+  "settings": {
+    "max_backups_per_game": 10,
+    "max_backup_age_days": 30
+  }
+}

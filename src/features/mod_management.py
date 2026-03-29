@@ -9,10 +9,13 @@ import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
+from io import BytesIO
 import customtkinter
+import requests
 
 from src.core.localization import t
 from src.core.config import save_config
+from src.ui.animations import ToastNotification
 
 def sanitize_filename(name: str) -> str:
     """Sanitize a string to be a valid Windows filename."""
@@ -30,6 +33,27 @@ def sanitize_filename(name: str) -> str:
     if name.upper() in reserved:
         name = name + "_mod"
     return name
+
+def download_preview_image(image_url: str, dest_path: Path) -> bool:
+    """Download preview image from URL and save to destination."""
+    if not image_url:
+        return False
+    try:
+        from PIL import Image
+        response = requests.get(image_url, timeout=15, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        if response.status_code == 200:
+            img = Image.open(BytesIO(response.content))
+            # Convert to RGB if necessary
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            # Save as PNG
+            img.save(dest_path, 'PNG')
+            return True
+    except Exception as e:
+        print(f"DEBUG: Failed to download preview image: {e}")
+    return False
 
 class ModManager:
     def __init__(self, app_instance):
@@ -134,7 +158,8 @@ class ModManager:
                         "category": mod_info.get('category', 'Other'),
                         "install_date": int(time.time()),
                         "source_url": mod_info.get('source_url', ''),
-                        "image_url": mod_info.get('image_url', '')
+                        "image_url": mod_info.get('image_url', ''),
+                        "screenshot": "preview.png"  # Set screenshot field for UI
                     }
                 else:
                     info = {
@@ -143,10 +168,28 @@ class ModManager:
                         "author": "Unknown",
                         "description": f"Imported from {mod_path.name}",
                         "category": "Other",
-                        "install_date": int(time.time())
+                        "install_date": int(time.time()),
+                        "screenshot": "preview.png"
                     }
                 with open(dest_dir / "modinfo.json", "w", encoding="utf-8") as f:
                     json.dump(info, f, indent=4)
+                
+                # Download and save preview image if available
+                if mod_info and mod_info.get('image_url'):
+                    preview_path = dest_dir / "preview.png"
+                    print(f"DEBUG: Attempting to download preview from {mod_info.get('image_url')} to {preview_path}")
+                    if download_preview_image(mod_info.get('image_url'), preview_path):
+                        print(f"DEBUG: Preview image saved successfully to {preview_path}")
+                    else:
+                        print(f"DEBUG: Failed to save preview image from {mod_info.get('image_url')}")
+                else:
+                    print(f"DEBUG: No image_url in mod_info: {mod_info}")
+                
+                # Show success notification
+                if hasattr(self.app, 'winfo_exists') and self.app.winfo_exists():
+                    toast = ToastNotification(self.app, f"Mod '{mod_name}' installed successfully!", type_="success", duration=3000)
+                    toast.show()
+                
                 return True
 
             elif mod_path.suffix.lower() == '.zip':

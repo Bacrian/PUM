@@ -11,6 +11,7 @@ from pathlib import Path
 from src.core.mod_scanner import mod_info
 from src.core.localization import t
 from src.features.conflict_detector import show_conflict_detector
+from src.ui.animations import HoverEffect, AnimationHelper
 
 class MarqueeLabel(customtkinter.CTkFrame):
     """Custom widget that scrolls text slowly if it exceeds its width."""
@@ -40,8 +41,8 @@ class MarqueeLabel(customtkinter.CTkFrame):
         for w in (self, self.label):
             w.bind("<Button-1>", on_click)
             w.bind("<Button-3>", on_context)
-            w.bind("<Enter>", lambda e: row_frame.event_generate("<Enter>"))
-            w.bind("<Leave>", lambda e: row_frame.event_generate("<Leave>"))
+            w.bind("<Enter>", lambda e=None: row_frame.event_generate("<Enter>"))
+            w.bind("<Leave>", lambda e=None: row_frame.event_generate("<Leave>"))
 
     def start_scrolling(self):
         curr_width = self.winfo_width()
@@ -215,11 +216,11 @@ class ModListController:
         star_btn.grid(row=0, column=2, padx=2, pady=10)
         
         name_marquee = MarqueeLabel(row_frame, text=mod.get('name', 'Unknown'), font=("Arial", 13, "bold"), row_frame=row_frame,
-                                    on_click=lambda e, m=mod: self._on_mod_select(m), on_context=lambda e, m=mod: self.show_context_menu(e, m))
+                                    on_click=lambda e=None, m=mod: self._on_mod_select(m), on_context=lambda e=None, m=mod: self.show_context_menu(e, m))
         name_marquee.grid(row=0, column=3, padx=5, sticky="ew")
         
         author_marquee = MarqueeLabel(row_frame, text=mod.get('author', 'Unknown'), font=("Arial", 12), row_frame=row_frame,
-                                      on_click=lambda e, m=mod: self._on_mod_select(m), on_context=lambda e, m=mod: self.show_context_menu(e, m))
+                                      on_click=lambda e=None, m=mod: self._on_mod_select(m), on_context=lambda e=None, m=mod: self.show_context_menu(e, m))
         author_marquee.configure(width=100)
         author_marquee.label.configure(text_color="gray50")
         author_marquee.grid(row=0, column=4, padx=5)
@@ -229,8 +230,10 @@ class ModListController:
 
         def on_enter(e):
             if row_frame.cget("fg_color") != "gray20":
+                # Smooth color transition
                 row_frame.configure(fg_color="gray20", cursor="hand2")
                 name_marquee.start_scrolling(); author_marquee.start_scrolling()
+                
         def on_leave(e):
             x, y = row_frame.winfo_pointerxy()
             x1, y1 = row_frame.winfo_rootx(), row_frame.winfo_rooty()
@@ -239,13 +242,16 @@ class ModListController:
                 row_frame.configure(fg_color="transparent", cursor="")
                 name_marquee.stop_scrolling(); author_marquee.stop_scrolling()
 
+        # Apply enhanced hover effects
+        HoverEffect.apply(row_frame, normal_color="transparent", hover_color="gray20")
+        
         row_frame.bind("<Enter>", on_enter)
         row_frame.bind("<Leave>", on_leave)
         for w in (version_label,):
-            w.bind("<Button-1>", lambda e, m=mod: self._on_mod_select(m))
-            w.bind("<Button-3>", lambda e, m=mod: self.show_context_menu(e, m))
-            w.bind("<Enter>", lambda e: row_frame.event_generate("<Enter>"))
-            w.bind("<Leave>", lambda e: row_frame.event_generate("<Leave>"))
+            w.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
+            w.bind("<Button-3>", lambda e=None, m=mod: self.show_context_menu(e, m))
+            w.bind("<Enter>", lambda e=None: row_frame.event_generate("<Enter>"))
+            w.bind("<Leave>", lambda e=None: row_frame.event_generate("<Leave>"))
 
     def _on_header_click(self, key):
         self.app.app_state.set_sort_key(key)
@@ -258,7 +264,14 @@ class ModListController:
         if mod.get("url"): menu.add_command(label="View Online", command=lambda: os.startfile(mod["url"]))
         menu.add_separator()
         menu.add_command(label="Delete Mod", command=lambda: self.delete_mod(mod), foreground="red")
-        menu.tk_popup(event.x_root, event.y_root)
+        # Handle None event by using cursor position
+        if event is None:
+            x = self.app.winfo_pointerx()
+            y = self.app.winfo_pointery()
+        else:
+            x = event.x_root
+            y = event.y_root
+        menu.tk_popup(x, y)
 
     def delete_mod(self, mod):
         if tkinter.messagebox.askyesno("Delete Mod", f"Are you sure you want to delete '{mod['name']}'?"):

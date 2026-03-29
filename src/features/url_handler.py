@@ -13,6 +13,7 @@ from src.core.localization import t
 from src.core.constants import ASSETS_DIR
 from src.helpers import fetch_mod_from_url
 from src.features.mod_management import sanitize_filename
+from src.ui.animations import LoadingSpinner, ToastNotification
 
 class URLHandler:
     def __init__(self, app_instance):
@@ -145,22 +146,19 @@ Do you want to continue downloading anyway?"""
             self._show_download_dialog(mod_data)
     
     def _show_download_dialog(self, mod_data):
-        """Show download dialog with mod information - restructured for better visibility"""
+        """Show download dialog with visible buttons"""
         if self.loading_win:
             self.loading_win.destroy()
             self.loading_win = None
         
-        # Mark download as in progress
         self.download_in_progress = True
         
         dialog = customtkinter.CTkToplevel(self.app)
         dialog.title(t("download_mod"))
-        dialog.geometry("600x550")  # Larger window
+        dialog.geometry("560x400")
         dialog.transient(self.app)
         dialog.grab_set()
-        dialog.resizable(False, False)  # Prevent resizing to keep buttons visible
         
-        # Store reference and handle closing
         self.download_dialog = dialog
         def on_dialog_close():
             self.download_in_progress = False
@@ -168,21 +166,14 @@ Do you want to continue downloading anyway?"""
             dialog.destroy()
         dialog.protocol("WM_DELETE_WINDOW", on_dialog_close)
         
-        # Main container with fixed height
-        main_frame = customtkinter.CTkFrame(dialog, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        # Simple container frame
+        container = customtkinter.CTkFrame(dialog, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # === HEADER SECTION (fixed height) ===
-        header_frame = customtkinter.CTkFrame(main_frame, fg_color="gray15", height=170)
-        header_frame.pack(fill="x", pady=(0, 10))
-        header_frame.pack_propagate(False)  # Maintain fixed height
-        
-        # Preview image (left side)
+        # Preview image
         img_url = mod_data.get('image_url')
-        image_label = None
         if img_url:
             try:
-                print(f"DEBUG: Loading preview image from: {img_url}")
                 from PIL import Image
                 from io import BytesIO
                 r = requests.get(img_url, timeout=10, headers={
@@ -192,168 +183,71 @@ Do you want to continue downloading anyway?"""
                     img = Image.open(BytesIO(r.content))
                     if img.mode in ('RGBA', 'P'):
                         img = img.convert('RGB')
-                    img.thumbnail((180, 140))
-                    ctk_img = customtkinter.CTkImage(light_image=img, dark_image=img, size=(180, 140))
-                    image_label = customtkinter.CTkLabel(header_frame, image=ctk_img, text="")
-                    image_label.pack(side="left", padx=10, pady=10)
-                    print(f"DEBUG: Preview image loaded successfully")
-                else:
-                    print(f"DEBUG: Failed to load image, status: {r.status_code}")
-            except Exception as e:
-                print(f"DEBUG: Error loading preview image: {e}")
+                    img.thumbnail((140, 100))
+                    ctk_img = customtkinter.CTkImage(light_image=img, dark_image=img, size=(140, 100))
+                    customtkinter.CTkLabel(container, image=ctk_img, text="").pack(anchor="w", pady=(0, 5))
+            except:
+                pass
         
-        # Show placeholder if no image loaded
-        if not image_label:
-            placeholder = customtkinter.CTkLabel(
-                header_frame, 
-                text="[No Preview]", 
-                width=180, 
-                height=140,
-                fg_color="gray20",
-                font=("Arial", 12)
-            )
-            placeholder.pack(side="left", padx=10, pady=10)
-        
-        # Mod info (right side of header)
-        info_frame = customtkinter.CTkFrame(header_frame, fg_color="transparent")
-        info_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
-        
-        # Name (truncated if too long)
+        # Mod name
         mod_name = mod_data.get('name', 'Unknown')
-        if len(mod_name) > 40:
-            mod_name = mod_name[:37] + "..."
-        
-        name_label = customtkinter.CTkLabel(
-            info_frame,
-            text=mod_name,
-            font=("Arial", 14, "bold"),
-            wraplength=350
-        )
-        name_label.pack(anchor="w", pady=(0, 5))
+        customtkinter.CTkLabel(container, text=mod_name, font=("Arial", 14, "bold"),
+                              wraplength=500).pack(anchor="w", pady=(5, 2))
         
         # Author
-        author_label = customtkinter.CTkLabel(
-            info_frame,
-            text=f"By: {mod_data.get('author', 'Unknown')}",
-            font=("Arial", 11),
-            text_color="gray60"
-        )
-        author_label.pack(anchor="w", pady=2)
+        author = mod_data.get('author', 'Unknown')
+        customtkinter.CTkLabel(container, text=f"By: {author}", font=("Arial", 11),
+                              text_color="gray60").pack(anchor="w", pady=2)
         
-        # Game info (if available)
-        game_name = mod_data.get('game_name')
-        if game_name:
-            if len(game_name) > 35:
-                game_name = game_name[:32] + "..."
-            game_label = customtkinter.CTkLabel(
-                info_frame,
-                text=f"Game: {game_name}",
-                font=("Arial", 10),
-                text_color="#1a9f84"
-            )
-            game_label.pack(anchor="w", pady=2)
-        
-        # === SCROLLABLE CONTENT AREA ===
-        content_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
-        content_frame.pack(fill="both", expand=True, pady=10)
-        
-        # Description (compact, max 2 lines)
-        desc_text = mod_data.get('description', 'No description')
-        if len(desc_text) > 150:
-            desc_text = desc_text[:147] + "..."
-        
-        desc_label = customtkinter.CTkLabel(
-            content_frame,
-            text=desc_text,
-            wraplength=550,
-            justify="left",
-            font=("Arial", 10),
-            text_color="gray70"
-        )
-        desc_label.pack(anchor="w", pady=(0, 10))
-        
-        # Game selection (compact row)
-        game_select_frame = customtkinter.CTkFrame(content_frame, fg_color="gray15")
-        game_select_frame.pack(fill="x", pady=(0, 10))
-        
-        customtkinter.CTkLabel(
-            game_select_frame,
-            text="Install to:",
-            font=("Arial", 11, "bold")
-        ).pack(side="left", padx=10, pady=8)
-        
-        # Get available games from app
+        # Game selection
         available_games = self._get_available_games()
         default_game = self._determine_default_game(mod_data, available_games)
         game_var = tkinter.StringVar(value=default_game)
         
+        game_frame = customtkinter.CTkFrame(container, fg_color="gray15")
+        game_frame.pack(fill="x", pady=10)
+        
+        customtkinter.CTkLabel(game_frame, text="Install to:", font=("Arial", 11, "bold")).pack(side="left", padx=10, pady=8)
+        
         if len(available_games) <= 1:
-            game_label = customtkinter.CTkLabel(
-                game_select_frame,
-                text=default_game if default_game else "General Mods",
-                font=("Arial", 11)
-            )
-            game_label.pack(side="left", padx=10, pady=8)
+            customtkinter.CTkLabel(game_frame, text=default_game or "General Mods", 
+                                 font=("Arial", 11)).pack(side="left", padx=10, pady=8)
         else:
-            game_dropdown = customtkinter.CTkOptionMenu(
-                game_select_frame,
-                values=available_games,
-                variable=game_var,
-                width=200,
-                font=("Arial", 11)
-            )
-            game_dropdown.pack(side="left", padx=10, pady=8)
+            customtkinter.CTkOptionMenu(game_frame, values=available_games, variable=game_var,
+                                       width=200).pack(side="left", padx=10, pady=8)
         
-        # Files section with scrollable area if many files
-        files_label = customtkinter.CTkLabel(
-            content_frame,
-            text="Available Files:",
-            font=("Arial", 12, "bold")
-        )
-        files_label.pack(anchor="w", pady=(0, 5))
-        
-        # Scrollable frame for files (max height to prevent overflow)
-        files_container = customtkinter.CTkScrollableFrame(
-            content_frame,
-            fg_color="gray15",
-            height=120,
-            scrollbar_button_color="gray40"
-        )
-        files_container.pack(fill="x", expand=True)
-        
-        # Create checkboxes for each file
-        file_vars = []
+        # Files section
         files = mod_data.get('files', [])
+        if files:
+            customtkinter.CTkLabel(container, text="Files:", font=("Arial", 11, "bold")).pack(anchor="w", pady=(5, 2))
+            
+            file_vars = []
+            files_frame = customtkinter.CTkFrame(container, fg_color="gray12")
+            files_frame.pack(fill="x", pady=5)
+            
+            for i, file_info in enumerate(files[:5]):  # Max 5 files
+                var = tkinter.BooleanVar(value=(i == 0))
+                file_vars.append((var, file_info))
+                
+                fname = file_info.get('filename', f'File {i+1}')
+                if len(fname) > 50:
+                    fname = fname[:47] + "..."
+                
+                customtkinter.CTkCheckBox(files_frame, text=fname, variable=var,
+                                          font=("Arial", 10)).pack(anchor="w", padx=10, pady=3)
+        else:
+            file_vars = []
         
-        for i, file_info in enumerate(files[:10]):  # Show up to 10 files with scrolling
-            var = tkinter.BooleanVar(value=(i == 0))
-            file_vars.append((var, file_info))
-            
-            file_frame = customtkinter.CTkFrame(files_container, fg_color="transparent")
-            file_frame.pack(fill="x", padx=5, pady=2)
-            
-            # Truncate filename if too long
-            filename = file_info.get('filename', f'File {i+1}')
-            if len(filename) > 50:
-                filename = filename[:47] + "..."
-            
-            cb = customtkinter.CTkCheckBox(
-                file_frame,
-                text=filename,
-                variable=var,
-                font=("Arial", 10)
-            )
-            cb.pack(side="left")
-        
-        # === BUTTONS SECTION (fixed at bottom) ===
-        button_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
-        button_frame.pack(fill="x", pady=(10, 0))
+        # Buttons at bottom
+        btn_frame = customtkinter.CTkFrame(container, fg_color="transparent")
+        btn_frame.pack(fill="x", side="bottom", pady=(10, 0))
         
         def download():
-            selected_files = [f for var, f in file_vars if var.get()]
-            if selected_files:
-                selected_game = game_var.get()
-                self._download_mod_files(selected_files, mod_data, selected_game)
+            selected = [f for var, f in file_vars if var.get()]
+            if not selected and not files:
+                selected = []  # No files to select
+            if selected or not files:
+                self._download_mod_files(selected, mod_data, game_var.get())
                 self.download_in_progress = False
                 self.download_dialog = None
                 dialog.destroy()
@@ -365,31 +259,18 @@ Do you want to continue downloading anyway?"""
             self.download_dialog = None
             dialog.destroy()
         
-        # Center the buttons
-        button_container = customtkinter.CTkFrame(button_frame, fg_color="transparent")
-        button_container.pack(expand=True)
+        # Download button
+        dl_btn = customtkinter.CTkButton(btn_frame, text=t("download"), command=download,
+                                        width=130, height=32, fg_color=self.app._accent_color(),
+                                        hover_color=self.app._hover_color(),
+                                        font=("Arial", 12, "bold"))
+        dl_btn.pack(side="left", padx=20)
         
-        customtkinter.CTkButton(
-            button_container,
-            text=t("download"),
-            command=download,
-            width=130,
-            height=35,
-            fg_color=self.app._accent_color(),
-            hover_color=self.app._hover_color(),
-            font=("Arial", 12, "bold")
-        ).pack(side="left", padx=10)
-        
-        customtkinter.CTkButton(
-            button_container,
-            text=t("cancel"),
-            command=cancel,
-            width=130,
-            height=35,
-            fg_color="gray25",
-            hover_color="gray35",
-            font=("Arial", 12)
-        ).pack(side="left", padx=10)
+        # Cancel button  
+        cncl_btn = customtkinter.CTkButton(btn_frame, text=t("cancel"), command=cancel,
+                                          width=130, height=32, fg_color="gray35",
+                                          hover_color="gray45", font=("Arial", 12))
+        cncl_btn.pack(side="right", padx=20)
     
     def _get_available_games(self):
         """Get list of available games from app configuration."""
@@ -481,6 +362,9 @@ Do you want to continue downloading anyway?"""
                 'game': selected_game
             }
             
+            print(f"DEBUG URL HANDLER: image_url in mod_data = {mod_data.get('image_url')}")
+            print(f"DEBUG URL HANDLER: install_metadata = {install_metadata}")
+            
             for file_info in files:
                 download_url = file_info.get('downloadUrl', '')
                 filename = file_info.get('filename', 'mod.zip')
@@ -555,6 +439,11 @@ Do you want to continue downloading anyway?"""
         )
         self.progress_label.pack(pady=(15, 5))
         
+        # Add animated loading spinner
+        self.spinner = LoadingSpinner(self.loading_win, size=50, color=self.app._accent_color())
+        self.spinner.create().pack(pady=10)
+        self.spinner.start()
+        
         self.progress_bar = customtkinter.CTkProgressBar(self.loading_win, width=300)
         self.progress_bar.pack(pady=10)
         self.progress_bar.set(0)
@@ -568,6 +457,10 @@ Do you want to continue downloading anyway?"""
         """Update download progress"""
         if self.loading_win and hasattr(self, 'progress_bar'):
             self.progress_bar.set(percent / 100)
+        
+        # Stop spinner when download completes
+        if percent >= 100 and hasattr(self, 'spinner'):
+            self.spinner.stop()
     
     def _show_error(self, message):
         """Show error message"""

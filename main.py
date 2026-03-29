@@ -34,7 +34,7 @@ from src.core.constants import (
     DEFAULT_ACCENT_COLOR, AUTO_REFRESH_INTERVAL, PROTOCOL_CHECK_DELAY,
     UPDATE_CHECK_DELAY, CONFIG_FILE
 )
-from src.core.config import save_config, load_config, load_app_settings
+from src.core.config import get_game_registry, save_config, load_config, load_app_settings
 from src.core.localization import init_translations, t
 from src.core.mod_scanner import mod_info
 from src.core.app_state import AppState
@@ -58,6 +58,8 @@ from src.ui.visual_components import VisualComponents
 from src.ui.home_page import HomePage
 from src.ui.game_library import GameLibraryPage
 from src.ui.backup_manager_ui import BackupManagerWindow
+from src.ui.animations import AnimationHelper
+from src.ui.collapsible_menu import SidebarMenuManager, CollapsibleMenu
 
 # Initialize
 customtkinter.set_appearance_mode("dark")
@@ -70,6 +72,9 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
     def __init__(self):
         super().__init__()
         self.TkdndVersion = TkinterDnD._require(self)
+        
+        # Track fade animation
+        self._fade_animation_id = None
         
         # Register pum:// protocol handler (requires admin on first run)
         self._register_protocol_handler()
@@ -95,7 +100,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         
         # Window setup
         self.title(t("app_title"))
-        self.geometry("1100x750")
+        self.geometry("1300x750")
         try:
             self.iconbitmap(default=str(ASSETS_DIR / "icon.ico"))
         except Exception:
@@ -108,6 +113,12 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
              self.app_settings = load_app_settings()
         else:
              self.current_path = self.app_settings.get('game_path', '')
+
+        # Set default game from registry if not set
+        if not hasattr(self, 'active_game_name') or not self.active_game_name:
+            if get_game_registry():
+                self.active_game_name = get_game_registry()[0]["name"]
+                self.current_path = get_game_registry()[0]["path"]
 
         # Auto-detect game path (Legacy support for MHUR)
         if not self.current_path:
@@ -163,7 +174,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         # --- Sidebar ---
         self.sidebar_frame = customtkinter.CTkFrame(self, width=240, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(15, weight=1) # Spacer
+        self.sidebar_frame.grid_rowconfigure(12, weight=1) # Spacer
 
         # App Identity
         self.brand_label = customtkinter.CTkLabel(
@@ -181,7 +192,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         # --- Primary Navigation ---
         self._sidebar_header(row=2, text="NAVIGATION")
         self._sidebar_btn(row=3, text="Home Dashboard", command=self.show_home)
-        self._sidebar_btn(row=4, text="My Game Library", command=self.show_library)
+        self._sidebar_btn(row=4, text="Mod Library", command=self.show_mod_manager_default)
 
         # Filters (Only used in Mod Manager)
         self._sidebar_header(row=5, text="FILTERS")
@@ -210,16 +221,33 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self._btn(self.prof_btns, "Save", self.save_current_profile, width=60).pack(side="left", padx=2)
         self._btn(self.prof_btns, "Delete", self.delete_current_profile, width=60, fg="#8c1c1c").pack(side="left", padx=2)
 
-        # Tools
+        # Tools Section - Collapsible Menus
         self._sidebar_header(row=10, text="TOOLS")
-        self._sidebar_btn(row=11, text=t("open_mods_folder"), command=lambda: os.startfile(Path("mods")))
-        self._sidebar_btn(row=12, text="Download Mods", command=self.download_url_callback)
-        self._sidebar_btn(row=13, text="Check Conflicts", command=self.open_conflict_detector)
-        self._sidebar_btn(row=14, text="Check Updates", command=lambda: self.auto_updater.manual_check())
-        self._sidebar_btn(row=15, text="Backup Manager", command=self.open_backup_manager)
-        # self._sidebar_btn(row=16, text="Marketplace", command=self.open_marketplace)  # Disabled temporarily
-        self._sidebar_btn(row=16, text="Settings", command=self.open_settings)
-        self._sidebar_btn(row=17, text="Credits", command=self.open_credits)
+        
+        # Create collapsible menu container
+        self.tools_menu_frame = customtkinter.CTkFrame(self.sidebar_frame, fg_color="transparent")
+        self.tools_menu_frame.grid(row=11, column=0, padx=10, pady=5, sticky="ew")
+        
+        # Quick Actions (always visible)
+        self._sidebar_btn_direct(self.tools_menu_frame, "📁 Mods Folder", lambda: os.startfile(Path("mods")))
+        self._sidebar_btn_direct(self.tools_menu_frame, "⬇ Download Mods", self.download_url_callback)
+        
+        # Collapsible: System
+        self.system_menu = CollapsibleMenu(self.tools_menu_frame, title="System", default_open=False, accent_color=self._accent_color())
+        self.system_menu.pack(fill="x", pady=2)
+        self.system_menu.add_item("Settings", self.open_settings, "⚙")
+        self.system_menu.add_item("Backup", self.open_backup_manager, "📦")
+        
+        # Collapsible: Utilities
+        self.utilities_menu = CollapsibleMenu(self.tools_menu_frame, title="Utilities", default_open=False, accent_color=self._accent_color())
+        self.utilities_menu.pack(fill="x", pady=2)
+        self.utilities_menu.add_item("Check Updates", lambda: self.auto_updater.manual_check(), "⚡")
+        self.utilities_menu.add_item("Conflicts", self.open_conflict_detector, "🔍")
+        
+        # Collapsible: About
+        self.about_menu = CollapsibleMenu(self.tools_menu_frame, title="About", default_open=False, accent_color=self._accent_color())
+        self.about_menu.pack(fill="x", pady=2)
+        self.about_menu.add_item("Credits", self.open_credits, "❓")
 
         # --- VIEW CONTAINER ---
         self.view_container = customtkinter.CTkFrame(self, fg_color="transparent")
@@ -231,6 +259,31 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self._clear_view()
         self.home_page = HomePage(self.view_container, self)
         self.home_page.grid(row=0, column=0, sticky="nsew")
+
+    def show_mod_manager_default(self):
+        """Show mod manager for the currently selected game."""
+        if hasattr(self, 'active_game_name') and self.active_game_name:
+            # Find the game object
+            for game in get_game_registry():
+                if game["name"] == self.active_game_name:
+                    self.show_mod_manager(game)
+                    break
+        else:
+            # Fallback to first game if no game is selected
+            games = get_game_registry()
+            if games:
+                self.show_mod_manager(games[0])
+    
+    def switch_game(self, game_name):
+        """Switch to a different game."""
+        for game in get_game_registry():
+            if game["name"] == game_name:
+                self.active_game_name = game["name"]
+                self.current_path = game["path"]
+                # Refresh mod manager if it's currently visible
+                if hasattr(self, 'mod_manager_root') and self.mod_manager_root.winfo_exists():
+                    self.show_mod_manager(game)
+                break
 
     def show_library(self):
         """Show the Steam-style game selection library."""
@@ -254,10 +307,25 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.mod_manager_root.grid_columnconfigure(0, weight=1)
         self.mod_manager_root.grid_rowconfigure(1, weight=1)
 
-        # Header
+        # Header with game selector
         header = customtkinter.CTkFrame(self.mod_manager_root, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", pady=(0, 20))
-        customtkinter.CTkLabel(header, text=self.active_game_name, font=("Arial", 32, "bold")).pack(side="left")
+        
+        # Game title
+        customtkinter.CTkLabel(
+            header, text=self.active_game_name, font=("Arial", 32, "bold")
+        ).pack(side="left")
+        
+        # Game selector dropdown
+        game_selector_header = customtkinter.CTkOptionMenu(
+            header,
+            values=[game["name"] for game in get_game_registry()],
+            command=self.switch_game,
+            fg_color="gray25", button_color="gray30",
+            width=200
+        )
+        game_selector_header.set(self.active_game_name)
+        game_selector_header.pack(side="right", padx=(20, 0))
 
         self.play_btn = customtkinter.CTkButton(
             header, text="RUN GAME", width=200, height=55, font=("Arial", 18, "bold"),
@@ -299,14 +367,33 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         
         self.refresh_logic()
 
-    def _clear_view(self):
+    def _clear_view(self, animate=True):
+        """Clear view with optional fade animation."""
+        # Cancel any pending fade animation
+        if self._fade_animation_id:
+            self.after_cancel(self._fade_animation_id)
+            self._fade_animation_id = None
+        
         self.stats_label = None
+        
+        # Simply destroy widgets without animation to avoid rendering issues
         for widget in self.view_container.winfo_children():
             widget.destroy()
+    
+    def _fade_out_view(self, alpha=1.0, steps=10):
+        """Fade out current view before clearing - DISABLED for stability."""
+        # Disabled due to rendering issues with CTk
+        # Simply clear the view immediately
+        self._clear_view(animate=False)
 
     def _sidebar_header(self, row, text):
         lbl = customtkinter.CTkLabel(self.sidebar_frame, text=text, font=("Arial", 11, "bold"), text_color="gray40")
         lbl.grid(row=row, column=0, padx=20, pady=(20, 5), sticky="w")
+
+    def _sidebar_subheader(self, row, text):
+        """Smaller subheader for grouping items under Tools."""
+        lbl = customtkinter.CTkLabel(self.sidebar_frame, text=text, font=("Arial", 10), text_color="gray60")
+        lbl.grid(row=row, column=0, padx=25, pady=(10, 2), sticky="w")
 
     def _sidebar_btn(self, row, text, command):
         btn = customtkinter.CTkButton(
@@ -315,6 +402,16 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             height=35, command=command
         )
         btn.grid(row=row, column=0, padx=10, pady=2, sticky="ew")
+        return btn
+
+    def _sidebar_btn_direct(self, master, text, command):
+        """Create a sidebar button for use in collapsible menus (uses pack)."""
+        btn = customtkinter.CTkButton(
+            master, text=text, anchor="w", 
+            fg_color="transparent", text_color="gray80", hover_color="gray25",
+            height=35, command=command
+        )
+        btn.pack(fill="x", padx=5, pady=2)
         return btn
 
     def _btn(self, master, text, command, width=80, fg=None):
@@ -367,6 +464,26 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
             return f"#{max(0,int(r*(1-pct))):02x}{max(0,int(g*(1-pct))):02x}{max(0,int(b*(1-pct))):02x}"
         except Exception: return "#13775c"
+
+    def _blend_color(self, color, alpha):
+        """Blend a color with transparency for fade effect."""
+        if not color or color == "transparent":
+            return color
+        try:
+            # Handle hex colors
+            if color.startswith('#'):
+                h = color.lstrip('#')
+                if len(h) == 6:
+                    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+                    # Blend with background (assuming dark gray ~#2a2a2a)
+                    bg_r, bg_g, bg_b = 26, 26, 26
+                    new_r = int(r * alpha + bg_r * (1 - alpha))
+                    new_g = int(g * alpha + bg_g * (1 - alpha))
+                    new_b = int(b * alpha + bg_b * (1 - alpha))
+                    return f"#{new_r:02x}{new_g:02x}{new_b:02x}"
+        except:
+            pass
+        return color
 
     # --- Callbacks ---
     def open_settings(self): self.settings_manager.open_settings()

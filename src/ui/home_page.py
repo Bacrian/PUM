@@ -30,7 +30,7 @@ class HomePage(customtkinter.CTkScrollableFrame):
         welcome_text = customtkinter.CTkFrame(inner, fg_color="transparent")
         welcome_text.pack(side="left")
         customtkinter.CTkLabel(welcome_text, text="Plus Ultra Manager", font=("Arial", 28, "bold")).pack(anchor="w")
-        customtkinter.CTkLabel(welcome_text, text="Mod managing made simple, for fans by fans.", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
+        customtkinter.CTkLabel(welcome_text, text="Version 1.3.0 - 29-03-2026 quirk-testing build", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
 
         # 2. Game Library Section
         title_row = customtkinter.CTkFrame(self, fg_color="transparent")
