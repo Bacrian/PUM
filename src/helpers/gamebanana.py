@@ -22,6 +22,11 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 
 
 def _parse_gb_url(url: str) -> Tuple[str, str]:
+    # Handle both https:// and pum:// URLs
+    if url.startswith("pum://"):
+        # Convert pum:// to https:// for parsing
+        url = url.replace("pum://", "https://")
+    
     m = re.search(r"gamebanana\.com/(mods|sounds|skins|guis|gamefiles)/(\d+)", url)
     if not m:
         raise ValueError("Invalid GameBanana URL")
@@ -197,7 +202,7 @@ def fetch_mod_from_url(url: str) -> Tuple[Dict, Optional[str], List[Dict]]:
             if api_data is not None:
                 break
 
-    meta = {'name': f'GB_{item_id}', 'description': '', 'version': '1.0', 'author': 'Unknown', 'category': 'Other'}
+    meta = {'name': f'GB_{item_id}', 'description': '', 'version': '1.0', 'author': 'Unknown', 'category': 'Other', 'game_id': None, 'game_name': None}
     img_url = None
     files = []
 
@@ -227,6 +232,11 @@ def fetch_mod_from_url(url: str) -> Tuple[Dict, Optional[str], List[Dict]]:
             submit = api_data.get('_aSubmitter') or api_data.get('_aSubmitter')
             if isinstance(submit, dict):
                 meta['author'] = submit.get('_sName') or meta['author']
+            # game info - check if mod is for correct game
+            game_data = api_data.get('_aGame') or api_data.get('_aGame')
+            if isinstance(game_data, dict):
+                meta['game_id'] = game_data.get('_idRow')
+                meta['game_name'] = game_data.get('_sName')
             # preview media may be array
             pm = api_data.get('_aPreviewMedia') or api_data.get('_aPreviewMedia') or api_data.get('_aPreviewMedia')
             if isinstance(pm, list) and pm:

@@ -1,6 +1,13 @@
 <div align="center">
 <h1>PUM - PLUS ULTRA MANAGER</h1>
 
+## QUIRK TESTING VERSIONS
+### WARNING!
+This is a VERY unstable testing version of PUM
+consider it's not the final result of final releases.
+I do NOT recommend using these versions as primary source.
+Please consider using _main_ branch releases.
+
 <img width="150" height="150" alt="icon" src="https://github.com/user-attachments/assets/a6d36bba-13aa-4b53-8f3a-f33e385c4f1e" />
 
 _Based on Python_
