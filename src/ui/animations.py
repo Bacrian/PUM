@@ -141,7 +141,7 @@ class AnimationHelper:
 class LoadingSpinner:
     """Animated loading spinner widget."""
     
-    def __init__(self, master, size=40, color=None, bg_color="transparent"):
+    def __init__(self, master, size=40, color=None, bg_color=""):
         self.master = master
         self.size = size
         self.color = color or "#1a9f84"

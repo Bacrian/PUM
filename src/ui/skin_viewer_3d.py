@@ -1,8 +1,7 @@
 # region --- 3D Skin Viewer ---
 """
 3D Model Viewer for PUM - Displays character skins and models.
-Supports .obj, .fbx, and common 3D formats.
-Uses matplotlib for basic 3D visualization or pygame for advanced rendering.
+Custom UE4 parser with OpenGL rendering - no external dependencies.
 """
 import customtkinter
 import tkinter
@@ -22,6 +21,25 @@ try:
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
+
+try:
+    from OpenGL.GL import *
+    from OpenGL.GLU import *
+    OPENGL_AVAILABLE = True
+except ImportError:
+    OPENGL_AVAILABLE = False
+
+try:
+    from .ue4_parser import UE4ModelParser
+    UE4_PARSER_AVAILABLE = True
+except ImportError:
+    UE4_PARSER_AVAILABLE = False
+
+try:
+    from .opengl_viewer import OpenGLModelViewer
+    OPENGL_VIEWER_AVAILABLE = True
+except ImportError:
+    OPENGL_VIEWER_AVAILABLE = False
 
 
 class SkinViewer3D(customtkinter.CTkToplevel):
@@ -150,6 +168,8 @@ class SkinViewer3D(customtkinter.CTkToplevel):
         # Support different formats
         if path.suffix.lower() == '.obj':
             self._load_obj(path)
+        elif path.suffix.lower() == '.psk':
+            self._load_psk(path)
         elif path.suffix.lower() in ['.ply', '.stl']:
             self._load_mesh(path)
         else:
@@ -158,8 +178,11 @@ class SkinViewer3D(customtkinter.CTkToplevel):
     
     def load_model_from_data(self, model_data):
         """Load model from dict data extracted from pak."""
-        if not MATPLOTLIB_AVAILABLE:
-            return
+        if MATPLOTLIB_AVAILABLE:
+            # Use matplotlib viewer
+            self._load_with_matplotlib(model_data)
+        else:
+            self._show_error("No 3D viewer available")
         
         self.ax.clear()
         
@@ -170,6 +193,12 @@ class SkinViewer3D(customtkinter.CTkToplevel):
         model_files = model_data.get('model_files', [])
         pak_path = model_data.get('pak_path')
         
+        # Debug: Show detected files
+        print(f"Model data: {model_name}, Type: {model_type}")
+        print(f"Model files found: {model_files}")
+        print(f"PSK files: {[f for f in model_files if f.endswith('.psk')]}")
+        print(f"UASSET files: {[f for f in model_files if f.endswith('.uasset')]}")
+        
         # Try to extract and parse the actual model
         model_loaded = False
         if pak_path and model_files:
@@ -177,30 +206,86 @@ class SkinViewer3D(customtkinter.CTkToplevel):
                 from PyPAKParser import PakParser
                 parser = PakParser(pak_path)
                 
-                # Try to extract the first model file
+                # Try to extract PSK files first (better format)
                 for model_file in model_files:
-                    if model_file.endswith('.uasset'):
+                    if model_file.endswith('.psk'):
                         try:
-                            # Extract the .uasset file
+                            # Extract the .psk file using Unpack
                             extracted_data = parser.Unpack(model_file, decode=False)
                             
                             # Handle different return types from PyPAKParser
                             if isinstance(extracted_data, str):
                                 # Unpack returned a string directly, convert to bytes
-                                model_bytes = extracted_data.encode('latin-1')
-                                self._parse_uasset_mesh(model_bytes, model_name)
-                                model_loaded = True
+                                psk_bytes = extracted_data.encode('latin-1')
+                                # Save to temp file and load
+                                temp_psk = Path("temp_model.psk")
+                                temp_psk.write_bytes(psk_bytes)
+                                
+                                # Use UE4 parser
+                                if UE4_PARSER_AVAILABLE:
+                                    ue4_parser = UE4ModelParser()
+                                    if ue4_parser.parse_file(temp_psk):
+                                        mesh_data = ue4_parser.get_mesh_data()
+                                        if hasattr(self, 'use_opengl') and self.use_opengl:
+                                            self.opengl_viewer.load_model_data(mesh_data)
+                                            self.info_label.configure(text=f"UE4 PSK: {model_name}")
+                                        else:
+                                            self._load_with_matplotlib(mesh_data)
+                                        model_loaded = True
+                                
+                                temp_psk.unlink()  # Clean up
                                 break
                             elif extracted_data and hasattr(extracted_data, 'Data'):
                                 # Unpack returned a Record object with Data attribute
-                                self._parse_uasset_mesh(extracted_data.Data, model_name)
-                                model_loaded = True
+                                psk_bytes = extracted_data.Data
+                                temp_psk = Path("temp_model.psk")
+                                temp_psk.write_bytes(psk_bytes)
+                                
+                                # Use UE4 parser
+                                if UE4_PARSER_AVAILABLE:
+                                    ue4_parser = UE4ModelParser()
+                                    if ue4_parser.parse_file(temp_psk):
+                                        mesh_data = ue4_parser.get_mesh_data()
+                                        if hasattr(self, 'use_opengl') and self.use_opengl:
+                                            self.opengl_viewer.load_model_data(mesh_data)
+                                            self.info_label.configure(text=f"UE4 PSK: {model_name}")
+                                        else:
+                                            self._load_with_matplotlib(mesh_data)
+                                        model_loaded = True
+                                
+                                temp_psk.unlink()  # Clean up
                                 break
                             else:
                                 print(f"Unexpected data type from Unpack: {type(extracted_data)}")
                         except Exception as e:
-                            print(f"Error parsing {model_file}: {e}")
+                            print(f"Error parsing PSK {model_file}: {e}")
                             continue
+                
+                # If no PSK found, try .uasset files
+                if not model_loaded:
+                    for model_file in model_files:
+                        if model_file.endswith('.uasset'):
+                            try:
+                                # Extract the .uasset file
+                                extracted_data = parser.Unpack(model_file, decode=False)
+                                
+                                # Handle different return types from PyPAKParser
+                                if isinstance(extracted_data, str):
+                                    # Unpack returned a string directly, convert to bytes
+                                    model_bytes = extracted_data.encode('latin-1')
+                                    self._parse_uasset_mesh(model_bytes, model_name)
+                                    model_loaded = True
+                                    break
+                                elif extracted_data and hasattr(extracted_data, 'Data'):
+                                    # Unpack returned a Record object with Data attribute
+                                    self._parse_uasset_mesh(extracted_data.Data, model_name)
+                                    model_loaded = True
+                                    break
+                                else:
+                                    print(f"Unexpected data type from Unpack: {type(extracted_data)}")
+                            except Exception as e:
+                                print(f"Error parsing {model_file}: {e}")
+                                continue
             except ImportError:
                 print("PyPAKParser not available")
             except Exception as e:
@@ -342,6 +427,73 @@ class SkinViewer3D(customtkinter.CTkToplevel):
         self.ax.set_xlabel('X')
         self.ax.set_ylabel('Y')
         self.ax.set_zlabel('Z')
+
+    def _load_psk(self, filepath):
+        """Load and display a PSK file."""
+        if not MATPLOTLIB_AVAILABLE or not PSK_READER_AVAILABLE:
+            self._show_error("PSK reader not available")
+            return
+        
+        try:
+            reader = PSKReader(str(filepath))
+            if not reader.read():
+                self._show_error(f"Failed to read PSK file: {filepath}")
+                return
+            
+            # Get mesh data
+            mesh_data = reader.get_mesh_data()
+            vertices = mesh_data['vertices']
+            faces = mesh_data['faces']
+            
+            if len(vertices) == 0:
+                self._show_error("No vertices found in PSK file")
+                return
+            
+            # Clear and setup axes
+            self.ax.clear()
+            
+            # Plot vertices
+            if len(vertices) > 0:
+                self.ax.scatter(vertices[:, 0], vertices[:, 1], vertices[:, 2], 
+                              c='#00ff88', s=20, alpha=0.8)
+                
+                # Plot faces as lines
+                if len(faces) > 0:
+                    for face in faces[:500]:  # Limit for performance
+                        if len(face) >= 3:
+                            triangle = vertices[face[:3]]
+                            # Draw triangle edges
+                            for i in range(3):
+                                start = triangle[i]
+                                end = triangle[(i+1) % 3]
+                                self.ax.plot([start[0], end[0]], 
+                                           [start[1], end[1]], 
+                                           [start[2], end[2]], 
+                                           'w-', alpha=0.3, linewidth=0.5)
+            
+            # Set labels and title
+            self.ax.set_title(f'PSK Model: {filepath.name}', 
+                             color='white', fontsize=14, pad=20)
+            self.ax.set_xlabel('X')
+            self.ax.set_ylabel('Y')
+            self.ax.set_zlabel('Z')
+            
+            # Add info text
+            info_text = f"Vertices: {len(vertices)}\nFaces: {len(faces)}"
+            if mesh_data['bones']:
+                info_text += f"\nBones: {len(mesh_data['bones'])}"
+            
+            self.ax.text2D(0.02, 0.98, info_text, transform=self.ax.transAxes,
+                          fontsize=10, color='white', verticalalignment='top',
+                          bbox=dict(boxstyle='round', facecolor='#333333', alpha=0.8))
+            
+            self.canvas.draw()
+            
+            # Update info label
+            self.info_label.configure(text=f"PSK Model: {filepath.name} | {len(vertices)} vertices")
+            
+        except Exception as e:
+            self._show_error(f"Error loading PSK: {e}")
 
     def _load_obj(self, filepath):
         """Load and display an OBJ file."""

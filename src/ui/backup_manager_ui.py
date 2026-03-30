@@ -234,11 +234,29 @@ Description: {backup.get('description', 'No description')}"""
         def create():
             description = desc_entry.get().strip()
             game_name = getattr(self.app, 'active_game_name', 'Unknown')
-            target_path = str(Path(self.app.current_path) / "~mods")
+            
+            # Use the correct path where ~mods folder exists
+            # Check both possible paths and use the one where ~mods exists
+            base_path = Path(self.app.current_path)
+            target_path = base_path.parent / "~mods"
+            
+            # If ~mods doesn't exist at this location, try the other common location
+            if not target_path.exists():
+                # Try HerovsGame/Content/Paks/~mods as fallback
+                if "CrashReportClient" in str(base_path):
+                    # Navigate from CrashReportClient to game root, then to HerovsGame
+                    game_root = base_path.parent.parent.parent.parent.parent  # Go up 5 levels to game root
+                    fallback = game_root / "HerovsGame" / "Content" / "Paks" / "~mods"
+                    if fallback.exists():
+                        target_path = fallback
+            
+            # Final check - if still doesn't exist, create it
+            if not target_path.exists():
+                target_path.mkdir(parents=True, exist_ok=True)
             
             backup_path = self.app.backup_manager.create_backup(
                 game_name=game_name,
-                mods_path=target_path,
+                mods_path=str(target_path),
                 description=description or "Manual backup"
             )
             
@@ -278,9 +296,25 @@ Description: {backup.get('description', 'No description')}"""
             "Confirm Restore",
             f"Restore backup '{self.selected_backup['name']}'?\n\nThis will replace current mods."
         ):
-            target_path = str(Path(self.app.current_path) / "~mods")
+            # Use the correct path where ~mods folder exists
+            base_path = Path(self.app.current_path)
+            target_path = base_path.parent / "~mods"
+            
+            # If ~mods doesn't exist at this location, try the other common location
+            if not target_path.exists():
+                # Try HerovsGame/Content/Paks/~mods as fallback
+                if "CrashReportClient" in str(base_path):
+                    # Navigate from CrashReportClient to game root, then to HerovsGame
+                    game_root = base_path.parent.parent.parent.parent.parent  # Go up 5 levels to game root
+                    fallback = game_root / "HerovsGame" / "Content" / "Paks" / "~mods"
+                    if fallback.exists():
+                        target_path = fallback
+            
+            # Ensure the target directory exists
+            target_path.mkdir(parents=True, exist_ok=True)
+            
             success = self.app.backup_manager.restore_backup(
-                self.selected_backup['name'], target_path
+                self.selected_backup['name'], str(target_path)
             )
             
             if success:

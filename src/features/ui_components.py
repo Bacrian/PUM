@@ -19,7 +19,7 @@ from PIL import Image
 
 from src.core.localization import t
 from src.core.constants import ASSETS_DIR, PREVIEW_SIZE
-from src.ui.skin_viewer_3d import SkinViewer3D
+from src.ui.simple_viewer import SimpleModelViewer
 
 class PreviewRenderer:
     def __init__(self, app_instance):
@@ -99,6 +99,10 @@ class PreviewRenderer:
                 text_color="gray60"
             ).pack(pady=5)
             
+            # Get the pak_file and model_files in the correct scope
+            pak_file = model_data.get('pak_path')
+            model_files = model_data.get('model_files', [])
+            
             # Open full viewer button
             open_btn = customtkinter.CTkButton(
                 viewer_frame,
@@ -106,7 +110,7 @@ class PreviewRenderer:
                 font=("Arial", 10),
                 fg_color=self.app._accent_color(),
                 hover_color=self.app._hover_color(),
-                command=lambda: SkinViewer3D(self.app, model_data, mod.get("name", "Unknown"))
+                command=lambda p=pak_file, m=model_files: self._open_3d_viewer(mod, p, m)
             )
             open_btn.pack(pady=10)
         else:
@@ -146,20 +150,40 @@ class PreviewRenderer:
                 
                 for f in contents:
                     f_lower = f.lower()
-                    # Check for skeletal/static meshes
-                    if any(x in f_lower for x in ['sk_', 'sm_', 'mesh']):
-                        if f_lower.endswith('.uasset') or f_lower.endswith('.uexp'):
+                    # Check for skeletal meshes - prioritize SK_ prefix
+                    if 'sk_' in f_lower or 'sm_' in f_lower:
+                        # Skip PhysicsAsset files
+                        if '_physicsasset' in f_lower:
+                            continue
+                        # Include .psk, .uasset, and .uexp files
+                        if f_lower.endswith('.psk') or f_lower.endswith('.uasset') or f_lower.endswith('.uexp'):
                             model_files.append(f)
                     # Check for textures
                     elif any(x in f_lower for x in ['_d.', '_n.', '_diffuse.', '_normal.', 'tex_', 'texture']):
                         if f_lower.endswith('.uasset') or f_lower.endswith('.ubulk') or f_lower.endswith('.uexp'):
                             texture_files.append(f)
                 
+                # Sort model files: PSK first, then SK_ .uasset files (non-PhysicsAsset)
+                def sort_priority(file):
+                    f_lower = file.lower()
+                    if f_lower.endswith('.psk'):
+                        return 0  # Highest priority
+                    elif 'sk_' in f_lower and not '_physicsasset' in f_lower:
+                        return 1  # Second priority
+                    else:
+                        return 2  # Lowest priority
+                
+                model_files.sort(key=sort_priority)
+                
                 if model_files:
+                    # Determine type based on first (highest priority) file
+                    first_file = model_files[0].lower()
+                    model_type = 'Skeletal PSK' if first_file.endswith('.psk') else ('Skeletal' if 'sk_' in first_file else 'Static')
+                    
                     return {
                         'pak_path': str(pak_file),
                         'name': Path(model_files[0]).stem,
-                        'type': 'Skeletal' if 'sk_' in model_files[0].lower() else 'Static',
+                        'type': model_type,
                         'model_files': model_files,
                         'textures': texture_files,
                         'all_contents': contents
@@ -354,6 +378,11 @@ class PreviewRenderer:
             ).pack(side="left", padx=(5, 0), expand=True, fill="x")
         
         return info_frame
+    
+    def _open_3d_viewer(self, mod, pak_file, model_files):
+        """Open 3D viewer with PAK loading."""
+        viewer = SimpleModelViewer(self.app, None, mod.get("name", "Unknown"))
+        viewer.load_from_pak(str(pak_file), model_files, mod.get("name", "Unknown"))
     
     def render_preview(self, mod):
         """Render mod preview in the preview frame with new split layout"""

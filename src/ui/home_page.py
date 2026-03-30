@@ -63,9 +63,9 @@ class HomePage(customtkinter.CTkScrollableFrame):
         tools_grid.pack(fill="x", padx=20, pady=10)
         tools_grid.grid_columnconfigure((0, 1, 2), weight=1)
 
-        self._tool_card(tools_grid, 0, "Clean Cache", "Remove temporary files", self._placeholder)
-        self._tool_card(tools_grid, 1, "Backup All", "Secure all mod configs", self._placeholder)
-        self._tool_card(tools_grid, 2, "Diagnostics", "Check system health", self._placeholder)
+        self._tool_card(tools_grid, 0, "Check for Updates", "Get latest app version", self._check_updates)
+        self._tool_card(tools_grid, 1, "Detect Conflicts", "Scan all games for issues", self._detect_conflicts)
+        self._tool_card(tools_grid, 2, "View Backups", "Manage saved backups", self._open_backups)
 
         self.refresh_games()
 
@@ -189,6 +189,51 @@ class HomePage(customtkinter.CTkScrollableFrame):
         customtkinter.CTkLabel(card, text=title, font=("Arial", 13, "bold")).pack(pady=(15, 0))
         customtkinter.CTkLabel(card, text=sub, font=("Arial", 10), text_color="gray50").pack(pady=(0, 10))
         customtkinter.CTkButton(card, text="Run", height=24, fg_color="gray25", hover_color="gray35", command=cmd).pack(pady=(0, 15), padx=20)
+
+    def _check_updates(self):
+        """Check for app updates."""
+        from src.features.auto_updater import AutoUpdater
+        updater = AutoUpdater(self.app)
+        updater.check_for_updates(show_no_update=True, force=True)
+
+    def _detect_conflicts(self):
+        """Scan all games for mod conflicts."""
+        from src.features.pak_analyzer import PakAnalyzer
+        from src.features.conflict_detector import ConflictDetectorWindow
+        from pathlib import Path
+        
+        games = get_game_registry()
+        analyzer = PakAnalyzer()
+        all_conflicts = []
+        all_mods = []
+        
+        for game in games:
+            mods_path = Path(game['path'])
+            if not mods_path.exists():
+                continue
+                
+            # Scan for mods in the ~mods folder
+            mods_dir = mods_path / "~mods"
+            if mods_dir.exists():
+                for mod_folder in mods_dir.iterdir():
+                    if mod_folder.is_dir():
+                        all_mods.append({
+                            "folder_path": str(mod_folder),
+                            "name": mod_folder.name
+                        })
+        
+        # Check conflicts using the analyzer
+        if all_mods and analyzer.is_available():
+            all_conflicts = analyzer.detect_conflicts(all_mods)
+        
+        detector = ConflictDetectorWindow(self.app, all_conflicts, all_mods)
+        detector.show()
+
+    def _open_backups(self):
+        """Open backup manager window."""
+        from src.ui.backup_manager_ui import BackupManagerWindow
+        manager = BackupManagerWindow(self.app)
+        manager.open()
 
     def _placeholder(self): pass
     

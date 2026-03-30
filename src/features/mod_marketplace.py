@@ -86,7 +86,7 @@ class ModMarketplace:
         ).pack(side="left", padx=20, pady=15)
         
         # Platform selector
-        platform_frame = customtkinter.CTkFrame(header_frame, fg_color="transparent")
+        platform_frame = customtkinter.CTkFrame(header_frame, fg_color="")
         platform_frame.pack(side="right", padx=20, pady=10)
         
         self.platform_var = customtkinter.StringVar(value="gamebanana")
@@ -117,7 +117,7 @@ class ModMarketplace:
         search_entry.pack(side="left", padx=20, pady=7)
         
         # Game filter
-        game_frame = customtkinter.CTkFrame(search_frame, fg_color="transparent")
+        game_frame = customtkinter.CTkFrame(search_frame, fg_color="")
         game_frame.pack(side="left", padx=20, pady=7)
         
         customtkinter.CTkLabel(
@@ -133,7 +133,7 @@ class ModMarketplace:
         self.game_menu.pack(side="left")
         
         # Category filter
-        cat_frame = customtkinter.CTkFrame(search_frame, fg_color="transparent")
+        cat_frame = customtkinter.CTkFrame(search_frame, fg_color="")
         cat_frame.pack(side="left", padx=20, pady=7)
         
         customtkinter.CTkLabel(
@@ -172,7 +172,7 @@ class ModMarketplace:
         self.results_label.pack(side="left", padx=15, pady=10)
         
         # Sort options
-        sort_frame = customtkinter.CTkFrame(results_header, fg_color="transparent")
+        sort_frame = customtkinter.CTkFrame(results_header, fg_color="")
         sort_frame.pack(side="right", padx=15, pady=10)
         
         customtkinter.CTkLabel(
@@ -585,11 +585,11 @@ class ModMarketplace:
             ).pack(expand=True)
         
         # Mod info
-        info_frame = customtkinter.CTkFrame(item_frame, fg_color="transparent")
+        info_frame = customtkinter.CTkFrame(item_frame, fg_color="")
         info_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
         
         # Title and platform
-        title_frame = customtkinter.CTkFrame(info_frame, fg_color="transparent")
+        title_frame = customtkinter.CTkFrame(info_frame, fg_color="")
         title_frame.pack(fill="x", pady=(0, 5))
         
         platform_color = self.platforms[mod_data["platform"]]["color"]
@@ -611,7 +611,7 @@ class ModMarketplace:
         ).pack(fill="x", pady=(0, 5))
         
         # Metadata
-        meta_frame = customtkinter.CTkFrame(info_frame, fg_color="transparent")
+        meta_frame = customtkinter.CTkFrame(info_frame, fg_color="")
         meta_frame.pack(fill="x")
         
         customtkinter.CTkLabel(
@@ -620,7 +620,7 @@ class ModMarketplace:
         ).pack(side="left")
         
         # Action buttons
-        button_frame = customtkinter.CTkFrame(item_frame, fg_color="transparent")
+        button_frame = customtkinter.CTkFrame(item_frame, fg_color="")
         button_frame.pack(side="right", padx=10, pady=10)
         
         # Download button

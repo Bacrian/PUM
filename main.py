@@ -544,7 +544,20 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
 
     def deploy_mods(self):
         if not self.current_path: return False
-        target = Path(self.current_path) / "~mods"
+        
+        # Use the correct path where ~mods folder exists
+        base_path = Path(self.current_path)
+        target = base_path.parent / "~mods"
+        
+        # If ~mods doesn't exist at this location, try the other common location
+        if not target.exists():
+            # Try HerovsGame/Content/Paks/~mods as fallback
+            if "CrashReportClient" in str(base_path):
+                # Navigate from CrashReportClient to game root, then to HerovsGame
+                game_root = base_path.parent.parent.parent.parent.parent  # Go up 5 levels to game root
+                fallback = game_root / "HerovsGame" / "Content" / "Paks" / "~mods"
+                if fallback.exists():
+                    target = fallback
         
         # Enhanced backup system
         if self.app_settings.get("backup_mods", False) and target.exists():
@@ -935,7 +948,7 @@ Available commands:
             return
         self.editor_window = customtkinter.CTkToplevel(self)
         self.editor_window.title(f"Editing Mod Info: {self.focused_mod['name']}")
-        self.editor_window.geometry("900x600")
+        self.editor_window.geometry("950x650")
         self.editor_window.transient(self)
         self.editor_window.grid_columnconfigure(0, weight=1)
         self.editor_window.grid_columnconfigure(1, weight=1)
@@ -987,26 +1000,34 @@ Available commands:
         right_frame = customtkinter.CTkFrame(self.editor_window, fg_color="transparent")
         right_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
         entries = {}
-        fields = [("Mod Display Name", "name"), ("Author", "author"), ("Version", "version"), ("Source URL", "url")]
+        fields = [("Mod Display Name", "name"), ("Author", "author"), ("Version", "version"), ("Category", "category"), ("Source URL", "url")]
         for label_text, key in fields:
-            customtkinter.CTkLabel(right_frame, text=label_text, font=("Arial", 12, "bold"), anchor="w").pack(fill="x")
-            entry = customtkinter.CTkEntry(right_frame, height=32); entry.insert(0, self.focused_mod.get(key, ""))
-            entry.pack(fill="x", pady=(2, 12)); entries[key] = entry
+            if key == "category":
+                customtkinter.CTkLabel(right_frame, text=label_text, font=("Arial", 12, "bold"), anchor="w").pack(fill="x")
+                category_var = customtkinter.StringVar(value=self.focused_mod.get("category", "Other"))
+                category_menu = customtkinter.CTkOptionMenu(right_frame, variable=category_var, values=["Skin", "Voice", "UI", "Music", "Other"], width=200)
+                category_menu.pack(fill="x", pady=(2, 12))
+                entries[key] = category_var
+            else:
+                customtkinter.CTkLabel(right_frame, text=label_text, font=("Arial", 12, "bold"), anchor="w").pack(fill="x")
+                entry = customtkinter.CTkEntry(right_frame, height=32); entry.insert(0, self.focused_mod.get(key, ""))
+                entry.pack(fill="x", pady=(2, 12)); entries[key] = entry
         customtkinter.CTkLabel(right_frame, text="Description", font=("Arial", 12, "bold"), anchor="w").pack(fill="x")
         desc_text = customtkinter.CTkTextbox(right_frame, height=150, fg_color="gray18"); desc_text.insert("0.0", self.focused_mod.get("description", "")); desc_text.pack(fill="x", pady=(2, 10))
         def save():
             new_options = []
             if has_opts_var.get():
                 for pak, entry in opt_entries.items(): new_options.append({"name": entry.get() or pak, "file": pak})
-            self.focused_mod.update({"name": entries["name"].get(), "author": entries["author"].get(), "version": entries["version"].get(), "url": entries["url"].get(), "has_options": has_opts_var.get(), "options": new_options, "description": desc_text.get("0.0", "end").strip()})
+            self.focused_mod.update({"name": entries["name"].get(), "author": entries["author"].get(), "version": entries["version"].get(), "category": entries["category"].get(), "url": entries["url"].get(), "has_options": has_opts_var.get(), "options": new_options, "description": desc_text.get("0.0", "end").strip()})
             try:
                 json_path = Path(self.focused_mod["folder_path"]) / "modinfo.json"
                 with open(json_path, "w", encoding="utf-8") as f: json.dump({k: v for k, v in self.focused_mod.items() if k != "folder_path"}, f, indent=4, ensure_ascii=False)
                 self.refresh_logic(); self.preview_renderer.render_preview(self.focused_mod); self.editor_window.destroy()
             except: pass
-        btn_row = customtkinter.CTkFrame(right_frame, fg_color="transparent"); btn_row.pack(fill="x", side="bottom")
-        customtkinter.CTkButton(btn_row, text="Cancel", fg_color="gray30", command=self.editor_window.destroy).pack(side="left")
-        customtkinter.CTkButton(btn_row, text="Save Mod Info", fg_color=self._accent_color(), command=save).pack(side="right", fill="x", expand=True, padx=(10, 0))
+        btn_row = customtkinter.CTkFrame(right_frame, fg_color="transparent"); 
+        btn_row.pack(fill="x", side="bottom", pady=(20, 0))
+        customtkinter.CTkButton(btn_row, text="Cancel", fg_color="gray30", command=self.editor_window.destroy, width=120).pack(side="left", padx=(0, 10))
+        customtkinter.CTkButton(btn_row, text="Save Mod Info", fg_color=self._accent_color(), command=save, width=200).pack(side="right")
 
     def open_mod_config(self, mod):
         if self.config_parts_window and self.config_parts_window.winfo_exists():
