@@ -21,6 +21,9 @@ from src.core.localization import t
 from src.core.constants import ASSETS_DIR, PREVIEW_SIZE
 from src.ui.simple_viewer import SimpleModelViewer
 
+# Feature flag to disable 3D viewer (set to False to hide the button)
+ENABLE_3D_VIEWER = False
+
 class PreviewRenderer:
     def __init__(self, app_instance):
         self.app = app_instance
@@ -103,16 +106,17 @@ class PreviewRenderer:
             pak_file = model_data.get('pak_path')
             model_files = model_data.get('model_files', [])
             
-            # Open full viewer button
-            open_btn = customtkinter.CTkButton(
-                viewer_frame,
-                text="Open Full 3D Viewer",
-                font=("Arial", 10),
-                fg_color=self.app._accent_color(),
-                hover_color=self.app._hover_color(),
-                command=lambda p=pak_file, m=model_files: self._open_3d_viewer(mod, p, m)
-            )
-            open_btn.pack(pady=10)
+            # Open full viewer button (only if enabled)
+            if ENABLE_3D_VIEWER:
+                open_btn = customtkinter.CTkButton(
+                    viewer_frame,
+                    text="Open Full 3D Viewer",
+                    font=("Arial", 10),
+                    fg_color=self.app._accent_color(),
+                    hover_color=self.app._hover_color(),
+                    command=lambda p=pak_file, m=model_files: self._open_3d_viewer(mod, p, m)
+                )
+                open_btn.pack(pady=10)
         else:
             # No model found in pak
             customtkinter.CTkLabel(
@@ -408,7 +412,7 @@ class PreviewRenderer:
         # Configure content frame based on view mode
         if self.view_mode == "split":
             # 2-column layout:
-            # - Left column: model viewer uses ALL available height
+            # - Left column: model viewer (if enabled) uses ALL available height
             # - Right column: preview (top) + info/actions (bottom)
             content_frame.grid_columnconfigure(0, weight=2)
             content_frame.grid_columnconfigure(1, weight=3)
@@ -418,7 +422,19 @@ class PreviewRenderer:
             left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 4))
             left_frame.grid_rowconfigure(0, weight=1)
             left_frame.grid_columnconfigure(0, weight=1)
-            self._create_model_viewer(left_frame, mod)
+            
+            # Only create model viewer if enabled
+            if ENABLE_3D_VIEWER:
+                self._create_model_viewer(left_frame, mod)
+            else:
+                # Show placeholder or empty frame when disabled
+                placeholder = customtkinter.CTkLabel(
+                    left_frame,
+                    text="3D Viewer Disabled",
+                    font=("Arial", 11),
+                    text_color="gray40"
+                )
+                placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
             right_col = customtkinter.CTkFrame(content_frame, fg_color="transparent")
             right_col.grid(row=0, column=1, sticky="nsew", padx=(4, 0))
@@ -435,14 +451,24 @@ class PreviewRenderer:
             self._create_info_section(info_host, mod)
 
         elif self.view_mode == "model_only":
-            # Full 3D model view + info/actions at bottom
-            content_frame.grid_columnconfigure(0, weight=1)
-            content_frame.grid_rowconfigure(0, weight=1)
-            self._create_model_viewer(content_frame, mod)
+            # Full 3D model view + info/actions at bottom (only if enabled)
+            if ENABLE_3D_VIEWER:
+                content_frame.grid_columnconfigure(0, weight=1)
+                content_frame.grid_rowconfigure(0, weight=1)
+                self._create_model_viewer(content_frame, mod)
 
-            info_section = customtkinter.CTkFrame(self.app.preview_frame, fg_color="transparent")
-            info_section.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
-            self._create_info_section(info_section, mod)
+                info_section = customtkinter.CTkFrame(self.app.preview_frame, fg_color="transparent")
+                info_section.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
+                self._create_info_section(info_section, mod)
+            else:
+                # Fallback to preview only if 3D viewer is disabled
+                content_frame.grid_columnconfigure(0, weight=1)
+                content_frame.grid_rowconfigure(0, weight=1)
+                self._create_preview_image_section(content_frame, mod)
+                
+                info_section = customtkinter.CTkFrame(self.app.preview_frame, fg_color="transparent")
+                info_section.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
+                self._create_info_section(info_section, mod)
 
         else:  # preview_only
             # Full preview image view + info/actions at bottom

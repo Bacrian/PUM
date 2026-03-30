@@ -38,6 +38,9 @@ def _find_umodel() -> Optional[str]:
     if umodel_path and Path(umodel_path).exists():
         return str(Path(umodel_path).resolve())
     
+    # Get project root (assume we're in src/ui/)
+    project_root = Path(__file__).parent.parent.parent
+    
     # Common locations to check
     common_paths = [
         "umodel.exe",  # In PATH
@@ -47,10 +50,15 @@ def _find_umodel() -> Optional[str]:
         "C:/tools/umodel.exe",
         str(Path.home() / "umodel" / "umodel.exe"),
         str(Path.home() / "tools" / "umodel.exe"),
+        # Project-relative paths
+        str(project_root / "src" / "external" / "UModel" / "umodel.exe"),
+        str(project_root / "external" / "UModel" / "umodel.exe"),
+        str(project_root / "umodel.exe"),
     ]
     
     for path in common_paths:
         if Path(path).exists():
+            print(f"Found UModel at: {path}")
             return str(Path(path).resolve())
     
     # Try to find in PATH
@@ -391,15 +399,46 @@ class SimpleModelViewer(customtkinter.CTkToplevel):
                 for mesh_file in gltf_files + obj_files + psk_files:
                     try:
                         print(f"Loading extracted file: {mesh_file}")
-                        # Try to load using our existing parsers
-                        # For now, just show success
-                        self.info_label.configure(
-                            text=f"Model extracted with UModel\nFile: {mesh_file.name}\n"
-                                 f"Open in external viewer or implement loader"
-                        )
-                        return True
+                        
+                        # For PSK files, load and parse them
+                        if mesh_file.suffix.lower() == '.psk':
+                            with open(mesh_file, 'rb') as f:
+                                psk_data = f.read()
+                            print(f"PSK file size: {len(psk_data)} bytes")
+                            
+                            # Parse with UE4 parser
+                            ue4_parser = UE4ModelParser()
+                            if ue4_parser.parse_file(psk_data):
+                                vertex_count = len(ue4_parser.vertices) if hasattr(ue4_parser, 'vertices') else 0
+                                face_count = len(ue4_parser.faces) if hasattr(ue4_parser, 'faces') else 0
+                                print(f"Successfully parsed PSK: {vertex_count} vertices, {face_count} faces")
+                                mesh_data = {
+                                    'name': model_name,
+                                    'vertices': ue4_parser.vertices if hasattr(ue4_parser, 'vertices') else [],
+                                    'faces': ue4_parser.faces if hasattr(ue4_parser, 'faces') else [],
+                                    'normals': ue4_parser.normals if hasattr(ue4_parser, 'normals') else [],
+                                    'bones': ue4_parser.bones if hasattr(ue4_parser, 'bones') else [],
+                                    'weights': [],
+                                    'materials': ue4_parser.materials if hasattr(ue4_parser, 'materials') else [],
+                                    'skeleton': ue4_parser.skeleton if hasattr(ue4_parser, 'skeleton') else None
+                                }
+                                self.load_model_data(mesh_data)
+                                return True
+                            else:
+                                print("Failed to parse extracted PSK file")
+                                continue
+                        else:
+                            # For other formats, just show success for now
+                            self.info_label.configure(
+                                text=f"Model extracted with UModel\nFile: {mesh_file.name}\n"
+                                     f"Format not yet implemented for viewing"
+                            )
+                            return True
+                            
                     except Exception as e:
                         print(f"Error loading {mesh_file}: {e}")
+                        import traceback
+                        traceback.print_exc()
                         continue
                 
                 return False
