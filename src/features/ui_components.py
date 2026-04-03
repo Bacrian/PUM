@@ -27,7 +27,7 @@ ENABLE_3D_VIEWER = False
 class PreviewRenderer:
     def __init__(self, app_instance):
         self.app = app_instance
-        self.view_mode = "split"  # "split", "model_only", "preview_only"
+        self.view_mode = "preview_only" if not ENABLE_3D_VIEWER else "split"  # "split", "model_only", "preview_only"
     
     def _create_toggle_button(self, parent):
         """Create floating toggle slider in top-right corner."""
@@ -40,10 +40,14 @@ class PreviewRenderer:
         
         # Create slider-like segmented button
         modes = [
-            ("🖼", "preview_only", "Preview"),
-            ("⚡", "split", "Split"),
-            ("🧊", "model_only", "3D Model")
+            ("🖼", "preview_only", "Preview")
         ]
+        
+        if ENABLE_3D_VIEWER:
+            modes.extend([
+                ("⚡", "split", "Split"),
+                ("🧊", "model_only", "3D Model")
+            ])
         
         for icon, mode, tooltip in modes:
             is_active = self.view_mode == mode
@@ -199,19 +203,24 @@ class PreviewRenderer:
             print(f"Error extracting model from pak: {e}")
             return None
     
-    def _create_preview_image_section(self, parent, mod):
+    def _create_preview_image_section(self, parent, mod, show_title=True, max_size=None):
         """Create the mod preview image section."""
         preview_frame = customtkinter.CTkFrame(parent, fg_color="gray15", corner_radius=10)
         preview_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
-        # Header
-        header = customtkinter.CTkLabel(
-            preview_frame,
-            text="🖼 Mod Preview",
-            font=("Arial", 12, "bold"),
-            text_color=self.app._accent_color()
-        )
-        header.pack(pady=(10, 5))
+        # Header (only if enabled and 3D viewer is active)
+        if show_title and ENABLE_3D_VIEWER:
+            header = customtkinter.CTkLabel(
+                preview_frame,
+                text="🖼 Mod Preview",
+                font=("Arial", 12, "bold"),
+                text_color=self.app._accent_color()
+            )
+            header.pack(pady=(10, 5))
+        
+        # Container for the image (will expand to fill available space)
+        img_container = customtkinter.CTkFrame(preview_frame, fg_color="transparent")
+        img_container.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Load image
         screenshot = mod.get("screenshot", "")
@@ -225,19 +234,54 @@ class PreviewRenderer:
                 if img.mode in ('RGBA', 'P'):
                     img = img.convert('RGB')
                 
-                # Calculate size to fit frame
-                aspect = img.width / img.height
-                if aspect > 16/9:
-                    width = 280
-                    height = int(280 / aspect)
-                else:
-                    height = 157
-                    width = int(157 * aspect)
+                # Get container size after it's rendered
+                def resize_image(event=None):
+                    # Get available space
+                    container_width = img_container.winfo_width()
+                    container_height = img_container.winfo_height()
+                    
+                    if container_width < 50 or container_height < 50:
+                        # Container not ready yet, try again later
+                        preview_frame.after(100, resize_image)
+                        return
+                    
+                    # Calculate size maintaining aspect ratio
+                    aspect = img.width / img.height
+                    container_aspect = container_width / container_height
+                    
+                    if aspect > container_aspect:
+                        # Image is wider relative to container - fit to width
+                        new_width = container_width
+                        new_height = int(container_width / aspect)
+                    else:
+                        # Image is taller - fit to height
+                        new_height = container_height
+                        new_width = int(container_height * aspect)
+                    
+                    # Create resized image
+                    resized_img = customtkinter.CTkImage(
+                        light_image=img, 
+                        dark_image=img, 
+                        size=(new_width, new_height)
+                    )
+                    
+                    # Update or create label
+                    if hasattr(img_container, '_img_label'):
+                        img_container._img_label.configure(image=resized_img)
+                        img_container._img_label.image = resized_img
+                    else:
+                        img_container._img_label = customtkinter.CTkLabel(
+                            img_container, 
+                            image=resized_img, 
+                            text=""
+                        )
+                        img_container._img_label.place(relx=0.5, rely=0.5, anchor="center")
+                        img_container._img_label.image = resized_img
                 
-                preview_img = customtkinter.CTkImage(light_image=img, dark_image=img, size=(width, height))
-                img_label = customtkinter.CTkLabel(preview_frame, image=preview_img, text="")
-                img_label.pack(expand=True, pady=10)
-                img_label.image = preview_img  # Keep reference
+                # Bind to resize events and schedule initial resize
+                img_container.bind("<Configure>", resize_image)
+                preview_frame.after(100, resize_image)
+                
             else:
                 customtkinter.CTkLabel(
                     preview_frame,
@@ -410,7 +454,7 @@ class PreviewRenderer:
         content_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=(10, 5))
 
         # Configure content frame based on view mode
-        if self.view_mode == "split":
+        if self.view_mode == "split" and ENABLE_3D_VIEWER:
             # 2-column layout:
             # - Left column: model viewer (if enabled) uses ALL available height
             # - Right column: preview (top) + info/actions (bottom)
@@ -444,13 +488,13 @@ class PreviewRenderer:
 
             preview_host = customtkinter.CTkFrame(right_col, fg_color="transparent")
             preview_host.grid(row=0, column=0, sticky="nsew")
-            self._create_preview_image_section(preview_host, mod)
+            self._create_preview_image_section(preview_host, mod, show_title=True)
 
             info_host = customtkinter.CTkFrame(right_col, fg_color="transparent")
             info_host.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
             self._create_info_section(info_host, mod)
 
-        elif self.view_mode == "model_only":
+        elif self.view_mode == "model_only" and ENABLE_3D_VIEWER:
             # Full 3D model view + info/actions at bottom (only if enabled)
             if ENABLE_3D_VIEWER:
                 content_frame.grid_columnconfigure(0, weight=1)
@@ -464,7 +508,7 @@ class PreviewRenderer:
                 # Fallback to preview only if 3D viewer is disabled
                 content_frame.grid_columnconfigure(0, weight=1)
                 content_frame.grid_rowconfigure(0, weight=1)
-                self._create_preview_image_section(content_frame, mod)
+                self._create_preview_image_section(content_frame, mod, show_title=False)
                 
                 info_section = customtkinter.CTkFrame(self.app.preview_frame, fg_color="transparent")
                 info_section.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
@@ -474,7 +518,7 @@ class PreviewRenderer:
             # Full preview image view + info/actions at bottom
             content_frame.grid_columnconfigure(0, weight=1)
             content_frame.grid_rowconfigure(0, weight=1)
-            self._create_preview_image_section(content_frame, mod)
+            self._create_preview_image_section(content_frame, mod, show_title=False)
 
             info_section = customtkinter.CTkFrame(self.app.preview_frame, fg_color="transparent")
             info_section.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))

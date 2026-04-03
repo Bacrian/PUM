@@ -83,6 +83,8 @@ class SimpleModelViewer(customtkinter.CTkToplevel):
         self.title(f"3D Model Viewer - {skin_name}")
         self.geometry("900x700")
         self.resizable(True, True)
+        self.transient(master)
+        self.grab_set()
         
         # Configure grid
         self.grid_columnconfigure(0, weight=1)

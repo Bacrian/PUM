@@ -59,7 +59,7 @@ from src.ui.home_page import HomePage
 from src.ui.game_library import GameLibraryPage
 from src.ui.backup_manager_ui import BackupManagerWindow
 from src.ui.animations import AnimationHelper
-from src.ui.collapsible_menu import SidebarMenuManager, CollapsibleMenu
+from src.ui.collapsible_menu import SidebarMenuManager, CollapsibleMenu, FloatingMenuSection
 
 # Initialize
 customtkinter.set_appearance_mode("dark")
@@ -138,8 +138,8 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         # Build Base Layout
         self._setup_base_layout()
         
-        # Show Home by default
-        self.show_home()
+        # Show startup page based on settings
+        self._show_startup_page()
         
         # Window behavior
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -149,9 +149,9 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.drop_target_register(DND_ALL)
         self.dnd_bind('<<Drop>>', self._on_drop)
         
-        # Console setup
+        # Console setup - delay to ensure main window is visible first
         if self.app_settings.get("enable_console", False):
-            self.start_console()
+            self.after(500, self.start_console)
 
         # Initial refresh
         self.refresh_logic()
@@ -228,26 +228,29 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.tools_menu_frame = customtkinter.CTkFrame(self.sidebar_frame, fg_color="transparent")
         self.tools_menu_frame.grid(row=11, column=0, padx=10, pady=5, sticky="ew")
         
-        # Quick Actions (always visible)
-        self._sidebar_btn_direct(self.tools_menu_frame, "📁 Mods Folder", lambda: os.startfile(Path("mods")))
-        self._sidebar_btn_direct(self.tools_menu_frame, "⬇ Download Mods", self.download_url_callback)
+        # Mods tools (panel flotante, auto-ajuste de ancho)
+        self.mods_tools_menu = FloatingMenuSection(self.tools_menu_frame, self, title="Mods", accent_color=self._accent_color(), width="auto")
+        self.mods_tools_menu.pack(fill="x", pady=2)
+        self.mods_tools_menu.add_item("Mods Folder", lambda: os.startfile(Path("mods")), "📁")
+        self.mods_tools_menu.add_item("Download Mods", self.download_url_callback, "⬇")
         
-        # Collapsible: System
-        self.system_menu = CollapsibleMenu(self.tools_menu_frame, title="System", default_open=False, accent_color=self._accent_color())
+        # Floating: System (auto-ajuste de ancho)
+        self.system_menu = FloatingMenuSection(self.tools_menu_frame, self, title="System", accent_color=self._accent_color(), width="auto")
         self.system_menu.pack(fill="x", pady=2)
         self.system_menu.add_item("Settings", self.open_settings, "⚙")
         self.system_menu.add_item("Backup", self.open_backup_manager, "📦")
+        self.system_menu.add_item("Console", self.toggle_console, "⌨")
         
-        # Collapsible: Utilities
-        self.utilities_menu = CollapsibleMenu(self.tools_menu_frame, title="Utilities", default_open=False, accent_color=self._accent_color())
+        # Floating: Utilities (auto-ajuste de ancho)
+        self.utilities_menu = FloatingMenuSection(self.tools_menu_frame, self, title="Utilities", accent_color=self._accent_color(), width="auto")
         self.utilities_menu.pack(fill="x", pady=2)
         self.utilities_menu.add_item("Check Updates", lambda: self.auto_updater.manual_check(), "⚡")
         self.utilities_menu.add_item("Conflicts", self.open_conflict_detector, "🔍")
+        self.utilities_menu.add_item("Export Profile", self.export_profile, "📤")
+        self.utilities_menu.add_item("Import Profile", self.import_profile, "📥")
         
-        # Collapsible: About
-        self.about_menu = CollapsibleMenu(self.tools_menu_frame, title="About", default_open=False, accent_color=self._accent_color())
-        self.about_menu.pack(fill="x", pady=2)
-        self.about_menu.add_item("Credits", self.open_credits, "❓")
+        # Botón Credits directo (sin sección About)
+        self._sidebar_btn_direct(self.tools_menu_frame, "❓ Credits", self.open_credits)
 
         # --- VIEW CONTAINER ---
         self.view_container = customtkinter.CTkFrame(self, fg_color="transparent")
@@ -255,7 +258,35 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.view_container.grid_columnconfigure(0, weight=1)
         self.view_container.grid_rowconfigure(0, weight=1)
 
+    def _show_startup_page(self):
+        """Show the configured startup page."""
+        startup_page = self.app_settings.get("startup_page", "Home Dashboard")
+        
+        if startup_page == "Mod Library":
+            # Get the default game for mod library
+            default_game = self.app_settings.get("default_startup_game", "")
+            games = get_game_registry()
+            
+            if default_game and games:
+                # Find the specified default game
+                for game in games:
+                    if game.get("name") == default_game:
+                        self.active_game_name = game["name"]
+                        self.current_path = game["path"]
+                        self.show_mod_manager(game)
+                        return
+            
+            # Fallback to first game if default not found
+            if games:
+                self.show_mod_manager(games[0])
+            else:
+                self.show_home()  # Fallback to home if no games
+        else:
+            # Default to Home Dashboard
+            self.show_home()
+
     def show_home(self):
+        """Show the home dashboard."""
         self._clear_view()
         self.home_page = HomePage(self.view_container, self)
         self.home_page.grid(row=0, column=0, sticky="nsew")
@@ -280,6 +311,8 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             if game["name"] == game_name:
                 self.active_game_name = game["name"]
                 self.current_path = game["path"]
+                # Ensure Default Profile exists for this game
+                self.profile_manager.ensure_default_profile_exists(game_name)
                 # Refresh mod manager if it's currently visible
                 if hasattr(self, 'mod_manager_root') and self.mod_manager_root.winfo_exists():
                     self.show_mod_manager(game)
@@ -349,8 +382,14 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self._btn(tools, "Select All", self.toggle_all_mods, width=100).pack(side="left", padx=5)
         self.sort_btn = self._btn(tools, f"Sort: {self.app_state.sort_order}", self.toggle_sort, width=100)
         self.sort_btn.pack(side="left", padx=5)
+        
+        # View toggle button (list/grid)
+        view_mode = getattr(self.app_state, 'view_mode', 'list')
+        view_icon = "⊞" if view_mode == "list" else "≣"
+        self.view_toggle_btn = self._btn(tools, view_icon, self.toggle_view_mode, width=40)
+        self.view_toggle_btn.pack(side="right", padx=5)
 
-        self.modlist_frame = customtkinter.CTkScrollableFrame(self.list_container, fg_color="transparent")
+        self.modlist_frame = customtkinter.CTkFrame(self.list_container, fg_color="transparent")
         self.modlist_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 10))
 
         self.config_frame = customtkinter.CTkFrame(self.paned_view, fg_color="gray12", corner_radius=15)
@@ -455,6 +494,9 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         
         # Migrate old profiles to new format
         self.profile_manager.migrate_old_profiles()
+        
+        # Ensure Default Profile exists for all games
+        self.profile_manager.ensure_default_profile_exists()
 
     # --- UI Helpers ---
     def _accent_color(self): return self.app_settings.get("accent_color", DEFAULT_ACCENT_COLOR)
@@ -525,7 +567,16 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         if not self.mod_list_controller.mod_checkboxes: return
         any_sel = any(item['variable'].get() == 0 for item in self.mod_list_controller.mod_checkboxes)
         new_val = 1 if any_sel else 0
-        for item in self.mod_list_controller.mod_checkboxes: item['variable'].set(new_val)
+        for item in self.mod_list_controller.mod_checkboxes:
+            item['variable'].set(new_val)
+            # Update saved_mods list to match
+            mod_name = item['mod_info'].get('name')
+            if new_val == 1:
+                if mod_name not in self.saved_mods:
+                    self.saved_mods.append(mod_name)
+            else:
+                if mod_name in self.saved_mods:
+                    self.saved_mods.remove(mod_name)
         self.refresh_logic()
 
     def game_callback(self):
@@ -731,8 +782,38 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
                 self._clear_console()
             elif command == "mods":
                 self._list_mods_info()
+            elif command == "modinfo":
+                self._write_to_console("Usage: modinfo <mod_name>\n  Shows detailed info for a specific mod\n")
+            elif command.startswith("modinfo "):
+                self._show_mod_details(command[8:].strip())
             elif command == "games":
                 self._list_games_info()
+            elif command == "active":
+                self._show_active_game()
+            elif command == "path":
+                self._show_game_path()
+            elif command == "refresh":
+                self._refresh_mods()
+            elif command == "reload":
+                self._reload_mods()
+            elif command == "profiles":
+                self._list_profiles()
+            elif command == "deploy":
+                self._deploy_mods()
+            elif command == "backup":
+                self._create_backup()
+            elif command == "check":
+                self._check_conflicts()
+            elif command == "version":
+                self._show_version()
+            elif command == "status":
+                self._show_status()
+            elif command.startswith("log "):
+                self._write_to_console(f"[LOG] {command[4:]}\n")
+            elif command == "debug":
+                self._write_to_console("Usage: debug <on|off>\n  Toggle verbose debug logging\n")
+            elif command.startswith("debug "):
+                self._toggle_debug_mode(command[6:].strip())
             elif command == "settings":
                 self._show_settings_info()
             elif command.startswith("eval "):
@@ -749,56 +830,373 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             self._write_to_console(f"Error executing command: {e}\n")
     
     def _show_console_help(self):
-        """Show available console commands."""
+        """Show available console commands with detailed descriptions."""
         help_text = """
-Available commands:
-  help     - Show this help message
-  clear    - Clear the console
-  mods      - List current mods information
-  games     - List registered games
-  settings  - Show current app settings
-  eval <expr> - Evaluate Python expression (use 'app' to access main app)
+═══════════════════════════════════════════════════════════════
+                    PUM DEBUG CONSOLE - COMMAND REFERENCE
+═══════════════════════════════════════════════════════════════
+
+GENERAL COMMANDS
+────────────────
+  help                    Show this help message
+  clear                   Clear the console screen
+  version                 Show app version information
+  status                  Show overall application status
+
+INFORMATION COMMANDS (view data without making changes)
+──────────────────────
+  games                   List all registered games with paths
+  active                  Show currently active game and its path
+  path                    Show current game pak folder path
+  mods                    List all installed mods (enabled + disabled)
+  modinfo <name>          Show detailed info for a specific mod
+                          Example: modinfo "My Cool Skin"
+  profiles                List all saved mod profiles
+  settings                Show all application settings
+
+ACTION COMMANDS (perform operations)
+────────────────
+  refresh                 Refresh the mod list display (UI only)
+  reload                  Reload all mod info from disk (slower, more thorough)
+  deploy                  Deploy enabled mods to game's ~mods folder
+  backup                  Create a manual backup of current mods
+  check                   Run conflict detection on enabled mods
+
+DEBUG COMMANDS (for troubleshooting)
+────────────────
+  log <message>           Write a custom log message to console
+                          Example: log "Starting test..."
+  debug <on|off>          Toggle verbose debug logging
+                          debug on  -> Enable detailed logging
+                          debug off -> Disable detailed logging
+  eval <expression>       Evaluate Python expression (advanced)
+                          'app' variable gives access to main application
+                          Example: eval app.active_game_name
+                          Example: eval len(app.saved_mods)
+
+TIPS
+────
+  • Use TAB in the input field for command history (if supported)
+  • All output is captured - errors will show in red
+  • Commands are case-sensitive - type them exactly as shown
+  • For modinfo, use quotes if the mod name has spaces
+  • Use 'log' to mark important events when debugging issues
+
+═══════════════════════════════════════════════════════════════
 """
         self._write_to_console(help_text)
     
     def _list_mods_info(self):
         """List information about current mods."""
         try:
-            mods = getattr(self, 'saved_mods', [])
-            self._write_to_console(f"Total mods: {len(mods)}\n")
+            from src.core.mod_scanner import mod_info
+            mods = mod_info(game_name=self.active_game_name)
+            self._write_to_console(f"\n📦 Total mods found: {len(mods)}\n")
+            self._write_to_console(f"   Game context: {self.active_game_name or 'None (showing all)'}\n")
+            self._write_to_console("─" * 50 + "\n")
+            
+            if not mods:
+                self._write_to_console("No mods found. Try 'reload' to rescan.\n")
+                return
+                
+            enabled_count = 0
             for i, mod in enumerate(mods, 1):
-                self._write_to_console(f"  {i}. {mod}\n")
+                name = mod.get('name', 'Unknown')
+                category = mod.get('category', 'Other')
+                enabled = mod.get('name') in self.saved_mods
+                status = "✓" if enabled else "○"
+                if enabled:
+                    enabled_count += 1
+                self._write_to_console(f"  {status} {i}. {name} [{category}]\n")
+            
+            self._write_to_console("─" * 50 + "\n")
+            self._write_to_console(f"Enabled: {enabled_count}/{len(mods)}\n")
+            self._write_to_console(f"\nUse 'modinfo <name>' for details on a specific mod\n")
         except Exception as e:
-            self._write_to_console(f"Error listing mods: {e}\n")
+            self._write_to_console(f"❌ Error listing mods: {e}\n")
+            import traceback
+            self._write_to_console(traceback.format_exc() + "\n")
     
     def _list_games_info(self):
         """List information about registered games."""
         try:
             from src.core.config import get_game_registry
             games = get_game_registry()
-            self._write_to_console(f"Total games: {len(games)}\n")
+            self._write_to_console(f"\n🎮 Total games registered: {len(games)}\n")
+            self._write_to_console("─" * 50 + "\n")
+            
+            if not games:
+                self._write_to_console("No games registered. Add games via Game Library.\n")
+                return
+            
             for i, game in enumerate(games, 1):
                 name = game.get('name', 'Unknown')
                 path = game.get('path', 'No path')
-                self._write_to_console(f"  {i}. {name}\n")
+                is_active = (name == self.active_game_name)
+                marker = " ▶" if is_active else ""
+                self._write_to_console(f"  {i}. {name}{marker}\n")
                 self._write_to_console(f"     Path: {path}\n")
+                if is_active:
+                    self._write_to_console(f"     [ACTIVE]\n")
+                self._write_to_console("\n")
         except Exception as e:
-            self._write_to_console(f"Error listing games: {e}\n")
+            self._write_to_console(f"❌ Error listing games: {e}\n")
+            import traceback
+            self._write_to_console(traceback.format_exc() + "\n")
+
+    def _show_active_game(self):
+        """Show currently active game."""
+        if self.active_game_name:
+            self._write_to_console(f"\n🎮 Active Game: {self.active_game_name}\n")
+            self._write_to_console(f"   Pak Path: {self.current_path or 'Not set'}\n")
+            from src.core.config import get_game_registry
+            games = get_game_registry()
+            for game in games:
+                if game.get('name') == self.active_game_name:
+                    self._write_to_console(f"   Registered: Yes\n")
+                    return
+            self._write_to_console(f"   Warning: Game not found in registry\n")
+        else:
+            self._write_to_console("\n⚠ No game currently active\n")
+            self._write_to_console("   Use Game Library to select a game\n")
+
+    def _show_game_path(self):
+        """Show current game path."""
+        if self.current_path:
+            self._write_to_console(f"\n📁 Current Pak Path:\n")
+            self._write_to_console(f"   {self.current_path}\n")
+            # Check if path exists
+            from pathlib import Path
+            p = Path(self.current_path)
+            if p.exists():
+                self._write_to_console(f"   Status: ✓ Path exists\n")
+                # Count paks
+                pak_count = len(list(p.glob("*.pak")))
+                self._write_to_console(f"   Pak files: {pak_count}\n")
+            else:
+                self._write_to_console(f"   Status: ✗ Path does not exist!\n")
+        else:
+            self._write_to_console("\n⚠ No game path configured\n")
+            self._write_to_console("   Use Settings to set the game path\n")
+
+    def _show_mod_details(self, mod_name):
+        """Show detailed info for a specific mod."""
+        try:
+            from src.core.mod_scanner import mod_info
+            mods = mod_info(game_name=self.active_game_name)
+            
+            # Find mod by name (case-insensitive partial match)
+            matching_mods = [m for m in mods if mod_name.lower() in m.get('name', '').lower()]
+            
+            if not matching_mods:
+                self._write_to_console(f"\n⚠ No mod found matching '{mod_name}'\n")
+                self._write_to_console("   Use 'mods' command to see all mod names\n")
+                return
+            
+            for mod in matching_mods:
+                self._write_to_console(f"\n{'─' * 50}\n")
+                self._write_to_console(f"📦 {mod.get('name', 'Unknown')}\n")
+                self._write_to_console(f"{'─' * 50}\n")
+                self._write_to_console(f"  Author:     {mod.get('author', 'Unknown')}\n")
+                self._write_to_console(f"  Version:    {mod.get('version', 'Unknown')}\n")
+                self._write_to_console(f"  Category:   {mod.get('category', 'Other')}\n")
+                self._write_to_console(f"  Has Options: {mod.get('has_options', False)}\n")
+                
+                if mod.get('has_options') and mod.get('options'):
+                    self._write_to_console(f"  Options:\n")
+                    for opt in mod['options']:
+                        self._write_to_console(f"    - {opt.get('name')} ({opt.get('file')})\n")
+                
+                folder = mod.get('folder_path', 'N/A')
+                self._write_to_console(f"  Folder:     {folder}\n")
+                
+                # Check if enabled
+                is_enabled = mod.get('name') in self.saved_mods
+                status = "✓ Enabled" if is_enabled else "○ Disabled"
+                self._write_to_console(f"  Status:     {status}\n")
+                
+        except Exception as e:
+            self._write_to_console(f"❌ Error showing mod details: {e}\n")
+
+    def _refresh_mods(self):
+        """Refresh mod list display."""
+        self._write_to_console("\n🔄 Refreshing mod list display...\n")
+        try:
+            self.refresh_logic()
+            self._write_to_console("✓ Mod list refreshed\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error refreshing: {e}\n")
+
+    def _reload_mods(self):
+        """Reload all mod info from disk."""
+        self._write_to_console("\n🔄 Reloading all mod info from disk...\n")
+        try:
+            from src.core.mod_scanner import mod_info
+            # Clear any cached data
+            self.saved_mods = load_config().get('saved_mods', [])
+            self.mod_options = load_config().get('mod_options', {})
+            self.refresh_logic()
+            self._write_to_console("✓ Mods reloaded from disk\n")
+            self._write_to_console(f"   Current saved mods: {len(self.saved_mods)}\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error reloading: {e}\n")
+            import traceback
+            self._write_to_console(traceback.format_exc() + "\n")
+
+    def _list_profiles(self):
+        """List saved profiles."""
+        try:
+            profiles = self.get_saved_profiles()
+            self._write_to_console(f"\n💾 Saved Profiles: {len(profiles)}\n")
+            self._write_to_console("─" * 50 + "\n")
+            for i, name in enumerate(profiles, 1):
+                is_default = (name == "Default Profile")
+                marker = " (default)" if is_default else ""
+                self._write_to_console(f"  {i}. {name}{marker}\n")
+            if not profiles:
+                self._write_to_console("  No profiles saved yet\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error listing profiles: {e}\n")
+
+    def _deploy_mods(self):
+        """Deploy mods to game folder."""
+        self._write_to_console("\n🚀 Deploying mods to game folder...\n")
+        try:
+            if not self.current_path:
+                self._write_to_console("❌ No game path set! Configure path first.\n")
+                return
+            success = self.deploy_mods()
+            if success:
+                self._write_to_console("✓ Mods deployed successfully\n")
+                # Count what was deployed
+                from pathlib import Path
+                target = Path(self.current_path).parent / "~mods"
+                if target.exists():
+                    paks = list(target.glob("*.pak"))
+                    self._write_to_console(f"   {len(paks)} pak files in ~mods\n")
+            else:
+                self._write_to_console("❌ Deployment failed\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error deploying: {e}\n")
+            import traceback
+            self._write_to_console(traceback.format_exc() + "\n")
+
+    def _create_backup(self):
+        """Create a manual backup."""
+        self._write_to_console("\n📦 Creating backup...\n")
+        try:
+            from pathlib import Path
+            if not self.current_path:
+                self._write_to_console("❌ No game path set!\n")
+                return
+            target = Path(self.current_path).parent / "~mods"
+            if not target.exists():
+                self._write_to_console("❌ ~mods folder doesn't exist yet. Deploy mods first.\n")
+                return
+            
+            backup_path = self.backup_manager.create_backup(
+                game_name=self.active_game_name or "Unknown",
+                mods_path=str(target),
+                description="Manual backup from console"
+            )
+            if backup_path:
+                self._write_to_console(f"✓ Backup created:\n")
+                self._write_to_console(f"   {backup_path}\n")
+            else:
+                self._write_to_console("❌ Backup creation failed\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error creating backup: {e}\n")
+
+    def _check_conflicts(self):
+        """Check for mod conflicts."""
+        self._write_to_console("\n🔍 Checking for mod conflicts...\n")
+        try:
+            self._write_to_console("  (Opening conflict detector window...)\n")
+            self.open_conflict_detector()
+        except Exception as e:
+            self._write_to_console(f"❌ Error checking conflicts: {e}\n")
+
+    def _show_version(self):
+        """Show app version."""
+        from src.core.constants import APP_VERSION
+        self._write_to_console(f"\n📦 Plus Ultra Manager v{APP_VERSION}\n")
+        self._write_to_console(f"   Python: {sys.version.split()[0]}\n")
+        self._write_to_console(f"   CustomTkinter: {customtkinter.__version__}\n")
+        self._write_to_console(f"   Platform: {sys.platform}\n")
+
+    def _show_status(self):
+        """Show overall app status."""
+        self._write_to_console("\n📊 Application Status\n")
+        self._write_to_console("═" * 50 + "\n")
+        
+        from src.core.constants import APP_VERSION
+        self._write_to_console(f"Version:      {APP_VERSION}\n")
+        self._write_to_console(f"Active Game:  {self.active_game_name or 'None'}\n")
+        self._write_to_console(f"Game Path:    {'Set' if self.current_path else 'Not set'}\n")
+        self._write_to_console(f"Saved Mods:   {len(self.saved_mods)}\n")
+        self._write_to_console(f"Profiles:     {len(self.get_saved_profiles())}\n")
+        self._write_to_console(f"View Mode:    {getattr(self.app_state, 'view_mode', 'list')}\n")
+        
+        # Check game path validity
+        if self.current_path:
+            from pathlib import Path
+            p = Path(self.current_path)
+            status = "✓ Exists" if p.exists() else "✗ Missing"
+            self._write_to_console(f"Path Status:  {status}\n")
+        
+        self._write_to_console("═" * 50 + "\n")
+
+    def _toggle_debug_mode(self, state):
+        """Toggle debug mode."""
+        if state.lower() in ('on', 'true', '1', 'yes'):
+            self._write_to_console("\n🔧 Verbose debug logging enabled\n")
+            # Could set a flag here for verbose logging
+        elif state.lower() in ('off', 'false', '0', 'no'):
+            self._write_to_console("\n🔧 Verbose debug logging disabled\n")
+        else:
+            self._write_to_console(f"\n⚠ Unknown debug state '{state}'\n")
+            self._write_to_console("   Use: debug on   or   debug off\n")
     
     def _show_settings_info(self):
         """Show current app settings."""
         try:
             settings = getattr(self, 'app_settings', {})
-            self._write_to_console("Current settings:\n")
-            for key, value in settings.items():
-                self._write_to_console(f"  {key}: {value}\n")
+            self._write_to_console(f"\n⚙ Application Settings ({len(settings)} total)\n")
+            self._write_to_console("─" * 50 + "\n")
+            for key, value in sorted(settings.items()):
+                # Format value nicely
+                if isinstance(value, bool):
+                    val_str = "✓" if value else "○"
+                elif isinstance(value, list):
+                    val_str = f"[{len(value)} items]"
+                elif isinstance(value, dict):
+                    val_str = f"{{{len(value)} keys}}"
+                else:
+                    val_str = str(value)
+                    if len(val_str) > 40:
+                        val_str = val_str[:37] + "..."
+                self._write_to_console(f"  {key}: {val_str}\n")
+            if not settings:
+                self._write_to_console("  No settings configured\n")
         except Exception as e:
-            self._write_to_console(f"Error showing settings: {e}\n")
+            self._write_to_console(f"❌ Error showing settings: {e}\n")
 
     def stop_console(self):
         sys.stdout = self._stdout_orig
         sys.stderr = self._stderr_orig
         if self.console_window: self.console_window.destroy()
+
+    def toggle_console(self):
+        """Toggle console window open/closed."""
+        if self.console_window and self.console_window.winfo_exists():
+            self.console_window.destroy()
+            # Restore stdout/stderr if they were redirected
+            if hasattr(self, '_stdout_orig'):
+                sys.stdout = self._stdout_orig
+            if hasattr(self, '_stderr_orig'):
+                sys.stderr = self._stderr_orig
+        else:
+            self.start_console()
 
     def select_path_callback(self):
         if self.path_dialog and self.path_dialog.winfo_exists():
@@ -808,6 +1206,7 @@ Available commands:
         self.path_dialog.title("Setup Game Path")
         self.path_dialog.geometry("450x300")
         self.path_dialog.transient(self)
+        self.path_dialog.grab_set()
         frame = customtkinter.CTkFrame(self.path_dialog, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=30, pady=30)
         def on_auto():
@@ -895,16 +1294,28 @@ Available commands:
         return self.profile_manager.get_saved_profiles(game_name)
     
     def load_profile_event(self, name):
-        settings, mods, opts = self.profile_manager.load_profile(name)
-        if settings or mods:
-            self.app_settings.update(settings); self.mod_list_controller.set_selected_mods(mods); self.refresh_logic()
+        print(f"DEBUG LOAD: Loading profile: {name}")
+        settings, mods, opts, mod_data = self.profile_manager.load_profile(name)
+        print(f"DEBUG LOAD: Returned mods: {mods}")
+        print(f"DEBUG LOAD: Returned settings keys: {list(settings.keys()) if settings else []}")
+        # Load if settings is not None OR mods is not None (even if empty list)
+        if settings is not None or mods is not None:
+            if settings:
+                self.app_settings.update(settings)
+            print(f"DEBUG LOAD: Calling set_selected_mods with: {mods}")
+            self.mod_list_controller.set_selected_mods(mods if mods else [])
+            self.refresh_logic()
     
     def save_current_profile(self):
         name = self.profile_manager.create_new_profile_dialog()
         if name:
             sel = [item['mod_info']['name'] for item in self.mod_list_controller.mod_checkboxes if item['variable'].get() == 1]
+            print(f"DEBUG SAVE: Selected mods to save: {sel}")
+            print(f"DEBUG SAVE: Total checkboxes: {len(self.mod_list_controller.mod_checkboxes)}")
             game_name = getattr(self, 'active_game_name', 'Default')
-            if self.profile_manager.save_profile(name, sel, self.mod_options, self.app_settings, game_name):
+            result = self.profile_manager.save_profile(name, sel, self.mod_options, self.app_settings, game_name)
+            print(f"DEBUG SAVE: save_profile returned: {result}")
+            if result:
                 self.profile_menu.configure(values=self.get_saved_profiles())
     
     def delete_current_profile(self):
@@ -915,6 +1326,14 @@ Available commands:
     def import_profile(self):
         if self.profile_manager.import_profile(): 
             self.profile_menu.configure(values=self.get_saved_profiles())
+    
+    def export_profile(self):
+        name = self.profile_var.get()
+        if name and name != "Default Profile":
+            self.profile_manager.export_profile(name)
+        else:
+            # Export current state as default profile
+            self.profile_manager.export_profile("Default Profile")
 
     def open_credits(self):
         if self.credits_window and self.credits_window.winfo_exists():
@@ -1028,6 +1447,21 @@ Available commands:
         btn_row.pack(fill="x", side="bottom", pady=(20, 0))
         customtkinter.CTkButton(btn_row, text="Cancel", fg_color="gray30", command=self.editor_window.destroy, width=120).pack(side="left", padx=(0, 10))
         customtkinter.CTkButton(btn_row, text="Save Mod Info", fg_color=self._accent_color(), command=save, width=200).pack(side="right")
+
+    def toggle_view_mode(self):
+        """Toggle between list and grid view modes."""
+        current_mode = getattr(self.app_state, 'view_mode', 'list')
+        new_mode = 'grid' if current_mode == 'list' else 'list'
+        self.app_state.view_mode = new_mode
+        self.app_settings['view_mode'] = new_mode
+        from src.core.config import save_config
+        save_config(self.current_path, self.saved_mods, self.mod_options, self.app_settings)
+        # Update toggle button icon if it exists
+        if hasattr(self, 'view_toggle_btn') and self.view_toggle_btn.winfo_exists():
+            view_icon = "⊞" if new_mode == "list" else "≣"
+            self.view_toggle_btn.configure(text=view_icon)
+        # Refresh the mod list with new view mode
+        self.refresh_logic()
 
     def open_mod_config(self, mod):
         if self.config_parts_window and self.config_parts_window.winfo_exists():

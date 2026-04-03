@@ -141,7 +141,7 @@ class AnimationHelper:
 class LoadingSpinner:
     """Animated loading spinner widget."""
     
-    def __init__(self, master, size=40, color=None, bg_color=""):
+    def __init__(self, master, size=40, color=None, bg_color=None):
         self.master = master
         self.size = size
         self.color = color or "#1a9f84"
@@ -152,13 +152,15 @@ class LoadingSpinner:
         
     def create(self):
         """Create the spinner canvas."""
-        self.canvas = tkinter.Canvas(
-            self.master, 
-            width=self.size, 
-            height=self.size, 
-            bg=self.bg_color,
-            highlightthickness=0
-        )
+        canvas_kwargs = {
+            'width': self.size,
+            'height': self.size,
+            'highlightthickness': 0
+        }
+        if self.bg_color:
+            canvas_kwargs['bg'] = self.bg_color
+            
+        self.canvas = tkinter.Canvas(self.master, **canvas_kwargs)
         return self.canvas
     
     def start(self):

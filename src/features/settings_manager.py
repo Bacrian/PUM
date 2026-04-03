@@ -28,12 +28,12 @@ class SettingsManager:
         self.setting_window.title("System Preferences")
         self.setting_window.geometry("550x500")
         self.setting_window.resizable(False, False)
+        self.setting_window.transient(self.app)
+        self.setting_window.grab_set()
         
         # Window attributes
         try:
             self.setting_window.after(200, lambda: self.setting_window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
-            self.setting_window.attributes("-topmost", True)
-            self.setting_window.after(100, lambda: self.setting_window.attributes("-topmost", False))
         except: pass
 
         # Main Layout
@@ -94,6 +94,43 @@ class SettingsManager:
         self.accent_menu.pack(anchor="w")
 
         # --- TAB 2: BEHAVIOR ---
+        
+        # Startup Page Selection
+        self._add_label(self.tab_sys, "Startup Page")
+        startup_options = ["Home Dashboard", "Mod Library"]
+        current_startup = self.app.app_settings.get("startup_page", "Home Dashboard")
+        
+        self.startup_menu = customtkinter.CTkOptionMenu(
+            self.tab_sys, values=startup_options, width=220,
+            fg_color="gray20", button_color="gray25",
+            command=self._on_startup_page_change
+        )
+        self.startup_menu.set(current_startup)
+        self.startup_menu.pack(anchor="w", pady=(0, 10))
+        
+        # Default Game Selection (only used when Startup Page is Mod Library)
+        self._add_label(self.tab_sys, "Default Game for Mod Library")
+        games = get_game_registry()
+        game_names = [g.get("name", "Unknown") for g in games] if games else ["No games added"]
+        current_default_game = self.app.app_settings.get("default_startup_game", "")
+        
+        self.default_game_menu = customtkinter.CTkOptionMenu(
+            self.tab_sys, values=game_names, width=220,
+            fg_color="gray20", button_color="gray25",
+            command=self._on_default_game_change
+        )
+        if current_default_game and current_default_game in game_names:
+            self.default_game_menu.set(current_default_game)
+        elif game_names and game_names[0] != "No games added":
+            self.default_game_menu.set(game_names[0])
+        else:
+            self.default_game_menu.set("No games added")
+        self.default_game_menu.pack(anchor="w", pady=(0, 20))
+        
+        # Separator
+        separator = customtkinter.CTkFrame(self.tab_sys, height=2, fg_color="gray30")
+        separator.pack(fill="x", pady=10)
+
         self.auto_update_var = customtkinter.BooleanVar(value=self.app.app_settings.get("auto_update_enabled", True))
         self._add_checkbox(self.tab_sys, "Check for updates automatically", self.auto_update_var, self._save_all)
 
@@ -234,6 +271,14 @@ class SettingsManager:
         self.app.refresh_logic()
         self.setting_window.destroy()
         self.open_settings()
+
+    def _on_startup_page_change(self, value):
+        self.app.app_settings["startup_page"] = value
+        self._save_all()
+    
+    def _on_default_game_change(self, value):
+        self.app.app_settings["default_startup_game"] = value
+        self._save_all()
 
     def _on_console_toggle(self):
         enabled = self.console_var.get()

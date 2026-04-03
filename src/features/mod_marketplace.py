@@ -56,6 +56,7 @@ class ModMarketplace:
         self.window.title("Mod Marketplace")
         self.window.geometry("900x700")
         self.window.transient(self.app)
+        self.window.grab_set()
         
         # Main layout
         main_frame = customtkinter.CTkFrame(self.window, fg_color="gray10")

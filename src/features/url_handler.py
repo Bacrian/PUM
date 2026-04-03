@@ -32,6 +32,9 @@ class URLHandler:
             )
             return
         
+        # Close any open floating menus first
+        self._close_floating_menus()
+        
         dialog = customtkinter.CTkInputDialog(
             text=t("enter_url"),
             title=t("download_mod")
@@ -43,6 +46,17 @@ class URLHandler:
             if url.startswith("www."):
                 url = "https://" + url
             self._initiate_url_download(url)
+    
+    def _close_floating_menus(self):
+        """Close any open floating menu popups in the app."""
+        try:
+            # Access the sidebar menu manager if it exists
+            if hasattr(self.app, 'sidebar_menu'):
+                for menu in self.app.sidebar_menu.menus.values():
+                    if hasattr(menu, 'close') and callable(getattr(menu, 'close')):
+                        menu.close()
+        except Exception as e:
+            print(f"DEBUG: Error closing floating menus: {e}")
     
     def _initiate_url_download(self, url):
         """Initiate URL download with loading window"""
@@ -243,6 +257,12 @@ Do you want to continue downloading anyway?"""
         btn_frame.pack(fill="x", side="bottom", pady=(10, 0))
         
         def download():
+            # Disable buttons immediately to prevent multiple clicks
+            if hasattr(self, '_download_btn') and self._download_btn:
+                self._download_btn.configure(state="disabled")
+            if hasattr(self, '_cancel_btn') and self._cancel_btn:
+                self._cancel_btn.configure(state="disabled")
+            
             selected = [f for var, f in file_vars if var.get()]
             if not selected and not files:
                 selected = []  # No files to select
@@ -253,6 +273,11 @@ Do you want to continue downloading anyway?"""
                 dialog.destroy()
             else:
                 tkinter.messagebox.showwarning("Warning", "Please select at least one file")
+                # Re-enable buttons on error
+                if hasattr(self, '_download_btn') and self._download_btn:
+                    self._download_btn.configure(state="normal")
+                if hasattr(self, '_cancel_btn') and self._cancel_btn:
+                    self._cancel_btn.configure(state="normal")
         
         def cancel():
             self.download_in_progress = False
@@ -266,11 +291,17 @@ Do you want to continue downloading anyway?"""
                                         font=("Arial", 12, "bold"))
         dl_btn.pack(side="left", padx=20)
         
+        # Store reference to disable after click
+        self._download_btn = dl_btn
+        
         # Cancel button  
         cncl_btn = customtkinter.CTkButton(btn_frame, text=t("cancel"), command=cancel,
                                           width=130, height=32, fg_color="gray35",
                                           hover_color="gray45", font=("Arial", 12))
         cncl_btn.pack(side="right", padx=20)
+        
+        # Also store cancel button reference
+        self._cancel_btn = cncl_btn
     
     def _get_available_games(self):
         """Get list of available games from app configuration."""
@@ -351,6 +382,8 @@ Do you want to continue downloading anyway?"""
             downloaded_files = []
             
             # Prepare metadata for install_mod
+            # If multiple files, mark as has_options (multi-part mod)
+            has_multiple_files = len(files) > 1
             install_metadata = {
                 'name': mod_data.get('name', 'Unknown Mod'),
                 'version': '1.0',
@@ -359,11 +392,13 @@ Do you want to continue downloading anyway?"""
                 'category': 'Other',
                 'source_url': mod_data.get('source_url', ''),
                 'image_url': mod_data.get('image_url', ''),
-                'game': selected_game
+                'game': selected_game,
+                'has_options': has_multiple_files  # Enable multi-part mod option if multiple files
             }
             
             print(f"DEBUG URL HANDLER: image_url in mod_data = {mod_data.get('image_url')}")
             print(f"DEBUG URL HANDLER: install_metadata = {install_metadata}")
+            print(f"DEBUG URL HANDLER: Multiple files = {has_multiple_files}, count = {len(files)}")
             
             for file_info in files:
                 download_url = file_info.get('downloadUrl', '')

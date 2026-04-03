@@ -1,6 +1,7 @@
 # region --- Dropdown Manager ---
 """Manages the preferences dropdown window behavior including auto-close on window move."""
 import customtkinter
+from src.core.localization import t
 
 class DropdownManager:
     """Manages the preferences dropdown window and its positioning."""
@@ -31,25 +32,37 @@ class DropdownManager:
             
             # Create buttons
             self.buttons['path'] = customtkinter.CTkButton(
-                inner, text="Game Path", corner_radius=2, height=28, 
+                inner, text=t("game_path"), corner_radius=2, height=28, 
                 fg_color="transparent", command=self._on_path_click
             )
             self.buttons['path'].pack(fill="x", padx=8, pady=(6,2))
             
             self.buttons['refresh'] = customtkinter.CTkButton(
-                inner, text="Refresh Mods", corner_radius=2, height=28,
+                inner, text=t("refresh_mods"), corner_radius=2, height=28,
                 fg_color="transparent", command=self._on_refresh_click
             )
             self.buttons['refresh'].pack(fill="x", padx=8, pady=2)
             
             self.buttons['save'] = customtkinter.CTkButton(
-                inner, text="Save Selected", corner_radius=2, height=28,
+                inner, text=t("save_selected"), corner_radius=2, height=28,
                 fg_color="transparent", command=self._on_save_click
             )
             self.buttons['save'].pack(fill="x", padx=8, pady=2)
             
+            self.buttons['export_profile'] = customtkinter.CTkButton(
+                inner, text=t("export_profile"), corner_radius=2, height=28,
+                fg_color="transparent", command=self._on_export_profile_click
+            )
+            self.buttons['export_profile'].pack(fill="x", padx=8, pady=2)
+            
+            self.buttons['import_profile'] = customtkinter.CTkButton(
+                inner, text=t("import_profile"), corner_radius=2, height=28,
+                fg_color="transparent", command=self._on_import_profile_click
+            )
+            self.buttons['import_profile'].pack(fill="x", padx=8, pady=2)
+            
             self.buttons['settings'] = customtkinter.CTkButton(
-                inner, text="Settings", corner_radius=2, height=28,
+                inner, text=t("settings"), corner_radius=2, height=28,
                 fg_color="transparent", command=self._on_settings_click
             )
             self.buttons['settings'].pack(fill="x", padx=8, pady=(2,8))
@@ -65,25 +78,37 @@ class DropdownManager:
             self.pref_dropdown_frame = customtkinter.CTkFrame(self.app, fg_color="#222222")
             self.buttons = {}
             self.buttons['path'] = customtkinter.CTkButton(
-                self.pref_dropdown_frame, text="Game Path", corner_radius=2, height=28,
+                self.pref_dropdown_frame, text=t("game_path"), corner_radius=2, height=28,
                 fg_color="transparent", command=self._on_path_click
             )
             self.buttons['path'].pack(fill="x", padx=8, pady=(6,2))
             
             self.buttons['refresh'] = customtkinter.CTkButton(
-                self.pref_dropdown_frame, text="Refresh Mods", corner_radius=2, height=28,
+                self.pref_dropdown_frame, text=t("refresh_mods"), corner_radius=2, height=28,
                 fg_color="transparent", command=self._on_refresh_click
             )
             self.buttons['refresh'].pack(fill="x", padx=8, pady=2)
             
             self.buttons['save'] = customtkinter.CTkButton(
-                self.pref_dropdown_frame, text="Save Selected", corner_radius=2, height=28,
+                self.pref_dropdown_frame, text=t("save_selected"), corner_radius=2, height=28,
                 fg_color="transparent", command=self._on_save_click
             )
             self.buttons['save'].pack(fill="x", padx=8, pady=2)
             
+            self.buttons['export_profile'] = customtkinter.CTkButton(
+                self.pref_dropdown_frame, text=t("export_profile"), corner_radius=2, height=28,
+                fg_color="transparent", command=self._on_export_profile_click
+            )
+            self.buttons['export_profile'].pack(fill="x", padx=8, pady=2)
+            
+            self.buttons['import_profile'] = customtkinter.CTkButton(
+                self.pref_dropdown_frame, text=t("import_profile"), corner_radius=2, height=28,
+                fg_color="transparent", command=self._on_import_profile_click
+            )
+            self.buttons['import_profile'].pack(fill="x", padx=8, pady=2)
+            
             self.buttons['settings'] = customtkinter.CTkButton(
-                self.pref_dropdown_frame, text="Settings", corner_radius=2, height=28,
+                self.pref_dropdown_frame, text=t("settings"), corner_radius=2, height=28,
                 fg_color="transparent", command=self._on_settings_click
             )
             self.buttons['settings'].pack(fill="x", padx=8, pady=(2,8))
@@ -115,7 +140,7 @@ class DropdownManager:
                     x = self.app.winfo_rootx() + 5
                     y = self.app.winfo_rooty() + 30
                 
-                self.pref_dropdown_win.geometry(f"220x120+{x}+{y}")
+                self.pref_dropdown_win.geometry(f"220x176+{x}+{y}")
                 self.pref_dropdown_win.deiconify()
                 try:
                     self.pref_dropdown_win.focus_force()
@@ -176,5 +201,15 @@ class DropdownManager:
     def _on_settings_click(self):
         if hasattr(self.app, 'open_settings'):
             self.app.open_settings()
+        self.hide()
+    
+    def _on_export_profile_click(self):
+        if hasattr(self.app, 'export_profile'):
+            self.app.export_profile()
+        self.hide()
+    
+    def _on_import_profile_click(self):
+        if hasattr(self.app, 'import_profile'):
+            self.app.import_profile()
         self.hide()
 # endregion

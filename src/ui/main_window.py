@@ -93,7 +93,7 @@ class MainWindowUI:
         self.app.config_frame.grid(row=1, column=1, padx=10, pady=(10,0), sticky="nsew")
 
         # Frame de Lista de Mods (Izquierda)
-        self.app.modlist_frame = customtkinter.CTkScrollableFrame(self.app)
+        self.app.modlist_frame = customtkinter.CTkFrame(self.app, fg_color="transparent")
         self.app.modlist_frame.grid(row=1, column=0, padx=10, pady=(10,0), sticky="nsew")
 
         # Frame de botones de selección (Izquierda abajo)

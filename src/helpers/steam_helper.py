@@ -121,7 +121,7 @@ def list_installed_steam_games():
                     # We check if it has a Paks folder
                     paks_path = None
                     for p in full_path.glob("**/Content/Paks"):
-                        if p.is_dir():
+                        if p.is_dir() and "Engine" not in str(p):
                             paks_path = str(p)
                             break
                     

@@ -157,9 +157,10 @@ class ModManager:
                         "description": mod_info.get('description', f"Downloaded from GameBanana"),
                         "category": mod_info.get('category', 'Other'),
                         "install_date": int(time.time()),
-                        "source_url": mod_info.get('source_url', ''),
+                        "url": mod_info.get('source_url', ''),
                         "image_url": mod_info.get('image_url', ''),
-                        "screenshot": "preview.png"  # Set screenshot field for UI
+                        "screenshot": "preview.png",  # Set screenshot field for UI
+                        "has_options": mod_info.get('has_options', False)  # Enable multi-part mod option if multiple files
                     }
                 else:
                     info = {

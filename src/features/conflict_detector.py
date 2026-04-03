@@ -25,6 +25,7 @@ class ConflictDetectorWindow:
         self.window.title("Mod Conflict Detector")
         self.window.geometry("700x500")
         self.window.transient(self.app)
+        self.window.grab_set()
         
         # Main container
         container = customtkinter.CTkFrame(self.window, fg_color="transparent")

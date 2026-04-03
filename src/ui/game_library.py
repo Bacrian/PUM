@@ -406,6 +406,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         dialog.title("Add Game")
         dialog.geometry("400x200")
         dialog.transient(self.app)
+        dialog.grab_set()
         dialog.configure(fg_color="gray12")
         
         customtkinter.CTkLabel(
@@ -437,6 +438,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         dialog.title("Import from Steam")
         dialog.geometry("500x450")
         dialog.transient(self.app)
+        dialog.grab_set()
         dialog.configure(fg_color="gray12")
         
         customtkinter.CTkLabel(
@@ -485,6 +487,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         dialog.title("Add Game Manually")
         dialog.geometry("450x300")
         dialog.transient(self.app)
+        dialog.grab_set()
         dialog.configure(fg_color="gray12")
         
         customtkinter.CTkLabel(
@@ -538,6 +541,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         dialog.title(f"Settings - {game['name']}")
         dialog.geometry("400x250")
         dialog.transient(self.app)
+        dialog.grab_set()
         dialog.configure(fg_color="gray12")
         
         customtkinter.CTkLabel(

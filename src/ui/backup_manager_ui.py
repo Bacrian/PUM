@@ -25,6 +25,7 @@ class BackupManagerWindow:
         self.window.title("Backup Manager")
         self.window.geometry("800x600")
         self.window.transient(self.app)
+        self.window.grab_set()
         
         # Main layout
         main_frame = customtkinter.CTkFrame(self.window, fg_color="gray10")
@@ -222,6 +223,7 @@ Description: {backup.get('description', 'No description')}"""
         dialog.title("Create Backup")
         dialog.geometry("400x200")
         dialog.transient(self.window)
+        dialog.grab_set()
         
         customtkinter.CTkLabel(
             dialog, text="Backup Description (optional):",
