@@ -9,7 +9,7 @@ from src.core.constants import ASSETS_DIR
 
 class GameLibraryPage(customtkinter.CTkFrame):
     def __init__(self, master, app_instance, **kwargs):
-        super().__init__(master, fg_color="gray10", corner_radius=0, **kwargs)
+        super().__init__(master, fg_color=("gray95", "gray10"), corner_radius=0, **kwargs)
         self.app = app_instance
         self.games = get_game_registry()
         self._setup_ui()
@@ -43,7 +43,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
     
     def _create_game_card(self, parent, game):
         """Create a game card widget."""
-        card = customtkinter.CTkFrame(parent, fg_color="gray15", corner_radius=12)
+        card = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray15"), corner_radius=12)
         card.configure(width=200, height=280)
         card.grid_propagate(False)
         card.grid_columnconfigure(0, weight=1)

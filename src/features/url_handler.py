@@ -1,18 +1,30 @@
-# region --- URL Handler Features ---
 import customtkinter
+import json
+import os
+import re
+import requests
+import shutil
+import subprocess
+import tempfile
+import threading
+import time
 import tkinter
 import tkinter.messagebox
-import threading
-import requests
-import re
-import os
+import zipfile
 from pathlib import Path
 from typing import Optional, Tuple
+
+# Try to import rarfile for RAR support
+try:
+    import rarfile
+    RAR_SUPPORT = True
+except ImportError:
+    RAR_SUPPORT = False
 
 from src.core.localization import t
 from src.core.constants import ASSETS_DIR
 from src.helpers import fetch_mod_from_url
-from src.features.mod_management import sanitize_filename
+from src.features.mod_management import sanitize_filename, download_preview_image
 from src.ui.animations import LoadingSpinner, ToastNotification
 
 class URLHandler:
@@ -47,6 +59,232 @@ class URLHandler:
                 url = "https://" + url
             self._initiate_url_download(url)
     
+    def download_mod_silently(self, url, game_name=None):
+        """Download a mod from URL without showing metadata dialogs.
+        
+        Used for background downloads when importing profiles.
+        
+        Args:
+            url: The mod URL to download from
+            game_name: Optional game name to install to
+        """
+        def download_thread():
+            try:
+                # Fetch mod data
+                meta, img_url, files = fetch_mod_from_url(url)
+                
+                if not files:
+                    print(f"DEBUG: No files found for {url}")
+                    return False
+                
+                print(f"DEBUG: Starting silent download of {len(files)} file(s) for {meta.get('name', 'Unknown')}")
+                
+                # Determine destination
+                if game_name:
+                    destination = Path("mods") / game_name
+                else:
+                    destination = Path("mods")
+                destination.mkdir(parents=True, exist_ok=True)
+                
+                downloads_dir = Path("downloads")
+                downloads_dir.mkdir(exist_ok=True)
+                
+                # Prepare metadata
+                mod_name = meta.get('name', 'Unknown Mod')
+                mod_name_sanitized = sanitize_filename(mod_name)
+                install_metadata = {
+                    'name': mod_name,
+                    'version': meta.get('version', '1.0'),
+                    'author': meta.get('author', 'Unknown'),
+                    'description': meta.get('description', 'Downloaded from GameBanana'),
+                    'category': meta.get('category', 'Other'),
+                    'source_url': url,
+                    'image_url': img_url,
+                    'game': game_name,
+                    'has_options': len(files) > 1  # Enable multi-part mod option if multiple files
+                }
+                
+                # Create mod directory
+                dest_dir = destination / mod_name_sanitized
+                
+                # Check if mod already exists - if so, ask for action on main thread
+                if dest_dir.exists():
+                    # For silent download, we'll overwrite by default since we're importing a profile
+                    print(f"DEBUG: Mod {mod_name} already exists, overwriting...")
+                    shutil.rmtree(dest_dir)
+                
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                assets_dir = dest_dir / "assets"
+                assets_dir.mkdir(exist_ok=True)
+                
+                downloaded_files = []
+                
+                # Download and extract all files first
+                for i, file_info in enumerate(files):
+                    download_url = file_info.get('download_url', '') or file_info.get('downloadUrl', '')
+                    filename = file_info.get('filename', '') or file_info.get('name', f'option_{i}.zip')
+                    filename = sanitize_filename(filename)
+                    option_desc = file_info.get('description', f'Option {i+1}')
+                    
+                    if not download_url:
+                        print(f"DEBUG: No download_url for file {filename}, skipping")
+                        continue
+                    
+                    try:
+                        print(f"DEBUG: Downloading file {i+1}/{len(files)}: {filename}")
+                        response = requests.get(download_url, stream=True, timeout=30)
+                        
+                        if response.status_code == 200:
+                            save_path = downloads_dir / filename
+                            
+                            with open(save_path, 'wb') as f:
+                                for chunk in response.iter_content(chunk_size=8192):
+                                    if chunk:
+                                        f.write(chunk)
+                            
+                            downloaded_files.append({
+                                'path': save_path,
+                                'filename': filename,
+                                'description': option_desc,
+                                'is_first': i == 0
+                            })
+                            print(f"DEBUG: File {filename} downloaded successfully")
+                        else:
+                            print(f"DEBUG: HTTP error {response.status_code} for {filename}")
+                    except Exception as e:
+                        print(f"DEBUG: Error downloading file {filename}: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
+                
+                # Now install all files as options
+                if not downloaded_files:
+                    print(f"DEBUG: No files were downloaded")
+                    return False
+                
+                # Track installed pak files for each option
+                installed_options = []  # List of {name, file, folder}
+                
+                # Install each file - first one as default, rest as options
+                for file_idx, file_info in enumerate(downloaded_files):
+                    zip_path = file_info['path']
+                    option_desc = file_info['description']
+                    
+                    try:
+                        with tempfile.TemporaryDirectory() as tmpdir:
+                            # Extract archive using helper method
+                            try:
+                                self._extract_archive(zip_path, tmpdir)
+                            except Exception as e:
+                                print(f"DEBUG: Failed to extract {zip_path}: {e}")
+                                continue
+                            
+                            # Find .pak files
+                            tmp_path = Path(tmpdir)
+                            pak_files = list(tmp_path.rglob("*.pak"))
+                            
+                            if not pak_files:
+                                print(f"DEBUG: No .pak files found in {zip_path}")
+                                continue
+                            
+                            # For each pak file in this zip
+                            for pak_file in pak_files:
+                                dest_filename = pak_file.name
+                                if not pak_file.stem.endswith("_P"):
+                                    dest_filename = f"{pak_file.stem}_P{pak_file.suffix}"
+                                
+                                if len(files) > 1:
+                                    # Multiple options - store in subdirectories
+                                    option_folder = sanitize_filename(option_desc) if option_desc else f"option_{file_idx}"
+                                    option_dir = assets_dir / option_folder
+                                    option_dir.mkdir(exist_ok=True)
+                                    shutil.copy(pak_file, option_dir / dest_filename)
+                                    print(f"DEBUG: Installed {dest_filename} to {option_dir} (option: {option_desc})")
+                                    
+                                    # Track this option with the folder path
+                                    installed_options.append({
+                                        'name': option_desc or f"Option {file_idx + 1}",
+                                        'file': dest_filename,
+                                        'folder': option_folder
+                                    })
+                                else:
+                                    # Single file - store directly in assets
+                                    shutil.copy(pak_file, assets_dir / dest_filename)
+                                    print(f"DEBUG: Installed {dest_filename} to {assets_dir}")
+                                    
+                                    installed_options.append({
+                                        'name': option_desc or "Default",
+                                        'file': dest_filename,
+                                        'folder': None
+                                    })
+                            
+                            # Clean up after successful extraction
+                            try:
+                                zip_path.unlink()
+                                print(f"DEBUG: Cleaned up {zip_path}")
+                            except:
+                                pass
+                    except Exception as e:
+                        print(f"DEBUG: Error installing file {zip_path}: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
+                
+                # Create modinfo.json with proper options format
+                options_for_json = []
+                for opt in installed_options:
+                    if opt['folder']:
+                        # For options in subfolders, include folder in file path
+                        options_for_json.append({
+                            'name': opt['name'],
+                            'file': f"{opt['folder']}/{opt['file']}"
+                        })
+                    else:
+                        options_for_json.append({
+                            'name': opt['name'],
+                            'file': opt['file']
+                        })
+                
+                info = {
+                    "name": mod_name,
+                    "version": meta.get('version', '1.0'),
+                    "author": meta.get('author', 'Unknown'),
+                    "description": meta.get('description', 'Downloaded from GameBanana'),
+                    "category": meta.get('category', 'Other'),
+                    "install_date": int(time.time()),
+                    "url": url,
+                    "image_url": img_url,
+                    "screenshot": "preview.png",
+                    "has_options": len(files) > 1,
+                    "options": options_for_json
+                }
+                
+                with open(dest_dir / "modinfo.json", "w", encoding="utf-8") as f:
+                    json.dump(info, f, indent=4)
+                
+                # Download preview image
+                if img_url:
+                    preview_path = dest_dir / "preview.png"
+                    if download_preview_image(img_url, preview_path):
+                        print(f"DEBUG: Preview image saved successfully")
+                
+                print(f"DEBUG: Silent download complete. Installed mod '{mod_name}' with {len(downloaded_files)} file(s)")
+                
+                # Refresh UI on main thread
+                self.app.after(0, self.app.refresh_logic)
+                
+                return True
+                
+            except Exception as e:
+                print(f"DEBUG: Silent download error: {e}")
+                import traceback
+                traceback.print_exc()
+                return False
+        
+        # Start download in background thread
+        threading.Thread(target=download_thread, daemon=True).start()
+        return True
+
     def _close_floating_menus(self):
         """Close any open floating menu popups in the app."""
         try:
@@ -57,6 +295,88 @@ class URLHandler:
                         menu.close()
         except Exception as e:
             print(f"DEBUG: Error closing floating menus: {e}")
+    
+    def _extract_archive(self, archive_path, extract_to):
+        """Extract archive file supporting zip, rar, and other formats.
+        
+        Args:
+            archive_path: Path to the archive file
+            extract_to: Directory to extract to
+            
+        Raises:
+            Exception if extraction fails
+        """
+        archive_path = Path(archive_path)
+        ext = archive_path.suffix.lower()
+        
+        # Handle RAR files - try multiple methods
+        if ext == '.rar':
+            # Method 1: Try using system unrar command
+            try:
+                result = subprocess.run(
+                    ['unrar', 'x', '-o+', str(archive_path), str(extract_to) + '\\'],
+                    capture_output=True,
+                    text=True,
+                    timeout=60
+                )
+                if result.returncode == 0:
+                    return
+                print(f"DEBUG: unrar command failed: {result.stderr}")
+            except FileNotFoundError:
+                print("DEBUG: unrar command not found")
+            except Exception as e:
+                print(f"DEBUG: unrar command error: {e}")
+            
+            # Method 2: Try using WinRAR if available
+            try:
+                winrar_paths = [
+                    r"C:\Program Files\WinRAR\WinRAR.exe",
+                    r"C:\Program Files (x86)\WinRAR\WinRAR.exe",
+                ]
+                for winrar_path in winrar_paths:
+                    if os.path.exists(winrar_path):
+                        result = subprocess.run(
+                            [winrar_path, 'x', '-y', str(archive_path), str(extract_to) + '\\'],
+                            capture_output=True,
+                            timeout=60
+                        )
+                        if result.returncode == 0:
+                            return
+            except Exception as e:
+                print(f"DEBUG: WinRAR extraction failed: {e}")
+            
+            # Method 3: Try rarfile library
+            if RAR_SUPPORT:
+                try:
+                    with rarfile.RarFile(archive_path, 'r') as rf:
+                        rf.extractall(extract_to)
+                    return
+                except Exception as e:
+                    print(f"DEBUG: rarfile extraction failed: {e}")
+            
+            raise Exception("Failed to extract RAR file. Please install WinRAR or unrar.")
+        
+        # Handle ZIP files
+        elif ext == '.zip':
+            with zipfile.ZipFile(archive_path, 'r') as zf:
+                zf.extractall(extract_to)
+            return
+        
+        # Try shutil.unpack_archive for other formats
+        else:
+            try:
+                shutil.unpack_archive(archive_path, extract_to)
+                return
+            except Exception as e:
+                print(f"DEBUG: unpack_archive failed: {e}")
+                # Last resort: try zipfile in case it's a zip with wrong extension
+                try:
+                    with zipfile.ZipFile(archive_path, 'r') as zf:
+                        zf.extractall(extract_to)
+                    return
+                except:
+                    pass
+                raise
     
     def _initiate_url_download(self, url):
         """Initiate URL download with loading window"""
@@ -211,20 +531,20 @@ Do you want to continue downloading anyway?"""
         # Author
         author = mod_data.get('author', 'Unknown')
         customtkinter.CTkLabel(container, text=f"By: {author}", font=("Arial", 11),
-                              text_color="gray60").pack(anchor="w", pady=2)
+                              text_color=("gray60", "gray60")).pack(anchor="w", pady=2)
         
         # Game selection
         available_games = self._get_available_games()
         default_game = self._determine_default_game(mod_data, available_games)
         game_var = tkinter.StringVar(value=default_game)
         
-        game_frame = customtkinter.CTkFrame(container, fg_color="gray15")
+        game_frame = customtkinter.CTkFrame(container, fg_color=("gray90", "gray15"))
         game_frame.pack(fill="x", pady=10)
         
-        customtkinter.CTkLabel(game_frame, text="Install to:", font=("Arial", 11, "bold")).pack(side="left", padx=10, pady=8)
+        customtkinter.CTkLabel(game_frame, text=t("install_to"), font=("Arial", 11, "bold")).pack(side="left", padx=10, pady=8)
         
         if len(available_games) <= 1:
-            customtkinter.CTkLabel(game_frame, text=default_game or "General Mods", 
+            customtkinter.CTkLabel(game_frame, text=default_game or t("general_mods"), 
                                  font=("Arial", 11)).pack(side="left", padx=10, pady=8)
         else:
             customtkinter.CTkOptionMenu(game_frame, values=available_games, variable=game_var,
@@ -233,10 +553,10 @@ Do you want to continue downloading anyway?"""
         # Files section
         files = mod_data.get('files', [])
         if files:
-            customtkinter.CTkLabel(container, text="Files:", font=("Arial", 11, "bold")).pack(anchor="w", pady=(5, 2))
+            customtkinter.CTkLabel(container, text=t("files"), font=("Arial", 11, "bold")).pack(anchor="w", pady=(5, 2))
             
             file_vars = []
-            files_frame = customtkinter.CTkFrame(container, fg_color="gray12")
+            files_frame = customtkinter.CTkFrame(container, fg_color=("gray98", "gray12"))
             files_frame.pack(fill="x", pady=5)
             
             for i, file_info in enumerate(files[:5]):  # Max 5 files
@@ -285,7 +605,7 @@ Do you want to continue downloading anyway?"""
             dialog.destroy()
         
         # Download button
-        dl_btn = customtkinter.CTkButton(btn_frame, text=t("download"), command=download,
+        dl_btn = customtkinter.CTkButton(btn_frame, text=t("download_button"), command=download,
                                         width=130, height=32, fg_color=self.app._accent_color(),
                                         hover_color=self.app._hover_color(),
                                         font=("Arial", 12, "bold"))
@@ -296,8 +616,8 @@ Do you want to continue downloading anyway?"""
         
         # Cancel button  
         cncl_btn = customtkinter.CTkButton(btn_frame, text=t("cancel"), command=cancel,
-                                          width=130, height=32, fg_color="gray35",
-                                          hover_color="gray45", font=("Arial", 12))
+                                          width=130, height=32, fg_color=("gray85", "gray35"),
+                                          hover_color=("gray80", "gray45"), font=("Arial", 12))
         cncl_btn.pack(side="right", padx=20)
         
         # Also store cancel button reference
@@ -366,96 +686,212 @@ Do you want to continue downloading anyway?"""
         return available_games[0] if available_games else None
     
     def _download_mod_files(self, files, mod_data, selected_game=None):
-        """Download selected mod files from GameBanana with metadata to specific game folder"""
-        try:
-            # Create downloads directory
-            downloads_dir = Path("downloads")
-            downloads_dir.mkdir(exist_ok=True)
-            
-            # Determine destination folder
-            if selected_game:
-                destination = Path("mods") / selected_game
-            else:
-                destination = Path("mods")
-            destination.mkdir(parents=True, exist_ok=True)
-            
-            downloaded_files = []
-            
-            # Prepare metadata for install_mod
-            # If multiple files, mark as has_options (multi-part mod)
-            has_multiple_files = len(files) > 1
-            install_metadata = {
-                'name': mod_data.get('name', 'Unknown Mod'),
-                'version': '1.0',
-                'author': mod_data.get('author', 'Unknown'),
-                'description': mod_data.get('description', 'Downloaded from GameBanana'),
-                'category': 'Other',
-                'source_url': mod_data.get('source_url', ''),
-                'image_url': mod_data.get('image_url', ''),
-                'game': selected_game,
-                'has_options': has_multiple_files  # Enable multi-part mod option if multiple files
-            }
-            
-            print(f"DEBUG URL HANDLER: image_url in mod_data = {mod_data.get('image_url')}")
-            print(f"DEBUG URL HANDLER: install_metadata = {install_metadata}")
-            print(f"DEBUG URL HANDLER: Multiple files = {has_multiple_files}, count = {len(files)}")
-            
-            for file_info in files:
-                download_url = file_info.get('downloadUrl', '')
-                filename = file_info.get('filename', 'mod.zip')
+        """Download selected mod files from GameBanana with metadata to specific game folder.
+        
+        This method downloads all selected files and installs them as a single mod with options.
+        """
+        def download_thread():
+            try:
+                # Create directories
+                downloads_dir = Path("downloads")
+                downloads_dir.mkdir(exist_ok=True)
                 
-                # Sanitize filename for Windows
-                filename = sanitize_filename(filename)
-                
-                if not download_url:
-                    continue
-                
-                # Download the file with progress
-                self._show_download_progress(filename)
-                
-                response = requests.get(download_url, stream=True, timeout=30)
-                
-                if response.status_code == 200:
-                    # Use sanitized filename with Path for proper handling
-                    save_path = downloads_dir / sanitize_filename(filename)
-                    
-                    total_size = int(response.headers.get('content-length', 0))
-                    downloaded = 0
-                    
-                    with open(save_path, 'wb') as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            if chunk:
-                                f.write(chunk)
-                                downloaded += len(chunk)
-                                if total_size > 0 and self.loading_win:
-                                    percent = int((downloaded / total_size) * 100)
-                                    self.loading_win.after(0, lambda p=percent: self._update_progress(p))
-                    
-                    downloaded_files.append(save_path)
-                    
-                    # Install the downloaded mod with metadata to selected game folder
-                    if self.app.mod_manager.install_mod(save_path, destination=destination, mod_info=install_metadata):
-                        self.app.refresh_logic()
+                # Determine destination
+                if selected_game:
+                    destination = Path("mods") / selected_game
                 else:
-                    self._show_error(f"Failed to download {filename}")
-            
-            if self.loading_win:
-                self.loading_win.destroy()
-                self.loading_win = None
-            
-            if downloaded_files:
-                mod_name = install_metadata['name']
-                game_text = f" in {selected_game}" if selected_game else ""
-                tkinter.messagebox.showinfo(
-                    t("success"), 
-                    f"Successfully downloaded and installed {len(downloaded_files)} file(s) for {mod_name}{game_text}"
-                )
+                    destination = Path("mods")
+                destination.mkdir(parents=True, exist_ok=True)
                 
-        except Exception as e:
-            if self.loading_win:
-                self.loading_win.destroy()
-                self.loading_win = None
-            self._show_error(f"Download error: {e}")
+                # Get mod info
+                meta = {
+                    'name': mod_data.get('name', 'Unknown Mod'),
+                    'author': mod_data.get('author', 'Unknown'),
+                    'version': mod_data.get('version', '1.0'),
+                    'description': mod_data.get('description', 'Downloaded from GameBanana'),
+                    'category': mod_data.get('category', 'Other'),
+                }
+                mod_name = meta['name']
+                mod_name_sanitized = sanitize_filename(mod_name)
+                img_url = mod_data.get('image_url', '')
+                url = mod_data.get('source_url', '')
+                
+                # Create mod directory
+                dest_dir = destination / mod_name_sanitized
+                if dest_dir.exists():
+                    shutil.rmtree(dest_dir)
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                assets_dir = dest_dir / "assets"
+                assets_dir.mkdir(exist_ok=True)
+                
+                print(f"DEBUG: Starting download of {len(files)} file(s) for {mod_name}")
+                
+                downloaded_files = []
+                
+                # Download all files first
+                for i, file_info in enumerate(files):
+                    download_url = file_info.get('downloadUrl', '') or file_info.get('download_url', '')
+                    filename = file_info.get('filename', '') or file_info.get('name', f'option_{i}.zip')
+                    filename = sanitize_filename(filename)
+                    option_desc = file_info.get('description', f'Option {i+1}')
+                    
+                    if not download_url:
+                        print(f"DEBUG: No download_url for file {filename}, skipping")
+                        continue
+                    
+                    try:
+                        print(f"DEBUG: Downloading file {i+1}/{len(files)}: {filename}")
+                        response = requests.get(download_url, stream=True, timeout=30)
+                        
+                        if response.status_code == 200:
+                            save_path = downloads_dir / filename
+                            
+                            with open(save_path, 'wb') as f:
+                                for chunk in response.iter_content(chunk_size=8192):
+                                    if chunk:
+                                        f.write(chunk)
+                            
+                            downloaded_files.append({
+                                'path': save_path,
+                                'filename': filename,
+                                'description': option_desc
+                            })
+                            print(f"DEBUG: File {filename} downloaded successfully")
+                        else:
+                            print(f"DEBUG: HTTP error {response.status_code} for {filename}")
+                    except Exception as e:
+                        print(f"DEBUG: Error downloading file {filename}: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
+                
+                # Now install all files as options
+                if not downloaded_files:
+                    print(f"DEBUG: No files were downloaded")
+                    self.app.after(0, lambda: self._show_error("No files were downloaded"))
+                    return False
+                
+                installed_options = []
+                
+                # Install each file
+                for file_idx, file_info in enumerate(downloaded_files):
+                    zip_path = file_info['path']
+                    option_desc = file_info['description']
+                    
+                    try:
+                        with tempfile.TemporaryDirectory() as tmpdir:
+                            # Extract archive using helper method
+                            try:
+                                self._extract_archive(zip_path, tmpdir)
+                            except Exception as e:
+                                print(f"DEBUG: Failed to extract {zip_path}: {e}")
+                                continue
+                            
+                            # Find .pak files
+                            tmp_path = Path(tmpdir)
+                            pak_files = list(tmp_path.rglob("*.pak"))
+                            
+                            if not pak_files:
+                                print(f"DEBUG: No .pak files found in {zip_path}")
+                                continue
+                            
+                            for pak_file in pak_files:
+                                dest_filename = pak_file.name
+                                if not pak_file.stem.endswith("_P"):
+                                    dest_filename = f"{pak_file.stem}_P{pak_file.suffix}"
+                                
+                                if len(files) > 1:
+                                    # Multiple options - store in subdirectories
+                                    option_folder = sanitize_filename(option_desc) if option_desc else f"option_{file_idx}"
+                                    option_dir = assets_dir / option_folder
+                                    option_dir.mkdir(exist_ok=True)
+                                    shutil.copy(pak_file, option_dir / dest_filename)
+                                    print(f"DEBUG: Installed {dest_filename} to {option_dir} (option: {option_desc})")
+                                    
+                                    installed_options.append({
+                                        'name': option_desc or f"Option {file_idx + 1}",
+                                        'file': dest_filename,
+                                        'folder': option_folder
+                                    })
+                                else:
+                                    # Single file - store directly in assets
+                                    shutil.copy(pak_file, assets_dir / dest_filename)
+                                    print(f"DEBUG: Installed {dest_filename} to {assets_dir}")
+                                    
+                                    installed_options.append({
+                                        'name': option_desc or "Default",
+                                        'file': dest_filename,
+                                        'folder': None
+                                    })
+                            
+                            # Clean up
+                            try:
+                                zip_path.unlink()
+                            except:
+                                pass
+                    except Exception as e:
+                        print(f"DEBUG: Error installing file {zip_path}: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        continue
+                
+                # Create modinfo.json
+                options_for_json = []
+                for opt in installed_options:
+                    if opt['folder']:
+                        options_for_json.append({
+                            'name': opt['name'],
+                            'file': f"{opt['folder']}/{opt['file']}"
+                        })
+                    else:
+                        options_for_json.append({
+                            'name': opt['name'],
+                            'file': opt['file']
+                        })
+                
+                info = {
+                    "name": mod_name,
+                    "version": meta.get('version', '1.0'),
+                    "author": meta.get('author', 'Unknown'),
+                    "description": meta.get('description', 'Downloaded from GameBanana'),
+                    "category": meta.get('category', 'Other'),
+                    "install_date": int(time.time()),
+                    "url": url,
+                    "image_url": img_url,
+                    "screenshot": "preview.png",
+                    "has_options": len(files) > 1,
+                    "options": options_for_json
+                }
+                
+                with open(dest_dir / "modinfo.json", "w", encoding="utf-8") as f:
+                    json.dump(info, f, indent=4)
+                
+                # Download preview image
+                if img_url:
+                    preview_path = dest_dir / "preview.png"
+                    if download_preview_image(img_url, preview_path):
+                        print(f"DEBUG: Preview image saved successfully")
+                
+                print(f"DEBUG: Download complete. Installed mod '{mod_name}' with {len(downloaded_files)} file(s)")
+                
+                # Refresh UI - note: success notification is shown by mod_manager.install_mod()
+                self.app.after(0, self.app.refresh_logic)
+                
+                return True
+                
+            except Exception as e:
+                print(f"DEBUG: Download error: {e}")
+                import traceback
+                traceback.print_exc()
+                self.app.after(0, lambda: self._show_error(f"Download error: {e}"))
+                return False
+            finally:
+                if self.loading_win:
+                    self.app.after(0, self.loading_win.destroy)
+                    self.loading_win = None
+        
+        # Start download in background thread
+        threading.Thread(target=download_thread, daemon=True).start()
     
     def _show_download_progress(self, filename):
         """Show download progress window"""
@@ -716,7 +1152,7 @@ Do you want to continue downloading anyway?"""
             info_dialog.resizable(False, False)
             
             # Content
-            content_frame = customtkinter.CTkFrame(info_dialog, fg_color="gray10")
+            content_frame = customtkinter.CTkFrame(info_dialog, fg_color=("gray95", "gray10"))
             content_frame.pack(fill="both", expand=True, padx=20, pady=20)
             
             # Title
@@ -738,7 +1174,7 @@ Please wait while we fetch the mod information..."""
             
             info_label = customtkinter.CTkLabel(
                 content_frame, text=info_text,
-                font=("Arial", 11), text_color="gray70",
+                font=("Arial", 11), text_color=("gray50", "gray70"),
                 justify="left"
             )
             info_label.pack(pady=(0, 15), padx=10)

@@ -129,14 +129,14 @@ class SimpleModelViewer(customtkinter.CTkToplevel):
     
     def _setup_fallback(self):
         """Setup fallback when matplotlib is not available."""
-        fallback_frame = customtkinter.CTkFrame(self.main_frame, fg_color="gray15")
+        fallback_frame = customtkinter.CTkFrame(self.main_frame, fg_color=("gray90", "gray15"))
         fallback_frame.pack(fill="both", expand=True)
         
         customtkinter.CTkLabel(
             fallback_frame,
             text="3D Viewer not available\nInstall matplotlib:\npip install matplotlib",
             font=("Arial", 14),
-            text_color="gray60"
+            text_color=("gray60", "gray60")
         ).pack(expand=True)
     
     def load_model_data(self, model_data: Dict):

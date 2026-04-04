@@ -190,7 +190,7 @@ class LoadingSpinner:
         self.canvas.create_oval(
             center - radius, center - radius,
             center + radius, center + radius,
-            outline="#333333", width=2
+            outline=("gray70", "gray40"), width=2
         )
         
         # Draw spinning arc
@@ -229,36 +229,46 @@ class ToastNotification:
         self.window = None
         
     def show(self):
-        """Show the toast notification."""
+        """Show the toast notification with auto-adjusted width."""
+        bg_color, hover_color = self.colors.get(self.type, self.colors["info"])
+        
         self.window = customtkinter.CTkToplevel(self.master)
         self.window.overrideredirect(True)  # No window decorations
         self.window.attributes("-topmost", True)
         self.window.attributes("-alpha", 0)  # Start invisible
         
+        # Calculate width based on message length
+        # Approximate: 7px per char + padding
+        text_len = len(self.message)
+        min_width = 180
+        max_width = 500
+        calculated_width = max(min_width, min(text_len * 7 + 60, max_width))
+        height = 60 if text_len < 40 else 80  # More height for long text
+        
         # Calculate position (bottom-right of screen)
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
-        x = screen_width - 320
-        y = screen_height - 100
-        self.window.geometry(f"300x60+{x}+{y}")
+        x = screen_width - calculated_width - 20
+        y = screen_height - height - 40
+        self.window.geometry(f"{calculated_width}x{height}+{x}+{y}")
         
-        # Create content
-        bg_color, hover_color = self.colors.get(self.type, self.colors["info"])
-        
+        # Create content frame with rounded corners
         frame = customtkinter.CTkFrame(
             self.window, 
             fg_color=bg_color,
-            corner_radius=10
+            corner_radius=16,
+            border_width=0
         )
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
+        frame.pack(fill="both", expand=True)
         
         label = customtkinter.CTkLabel(
             frame,
             text=self.message,
             font=("Arial", 12),
-            text_color="white"
+            text_color=("gray10", "gray90"),
+            wraplength=calculated_width - 40  # Wrap text if too long
         )
-        label.pack(padx=15, pady=15)
+        label.pack(padx=20, pady=15, fill="both", expand=True)
         
         # Fade in
         self._fade_in()
@@ -297,7 +307,7 @@ class HoverEffect:
     @staticmethod
     def apply(widget, 
               normal_color="transparent", 
-              hover_color="gray25",
+              hover_color=("gray75", "gray25"),
               normal_scale=1.0,
               hover_scale=1.02,
               transition_duration=150):

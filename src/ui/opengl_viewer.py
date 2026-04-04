@@ -52,14 +52,14 @@ class OpenGLModelViewer(customtkinter.CTkFrame):
         
         if not OPENGL_AVAILABLE:
             # Fallback message
-            fallback_frame = customtkinter.CTkFrame(self, fg_color="gray15")
+            fallback_frame = customtkinter.CTkFrame(self, fg_color=("gray90", "gray15"))
             fallback_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
             
             customtkinter.CTkLabel(
                 fallback_frame,
                 text="OpenGL not available\nPlease install PyOpenGL:\npip install PyOpenGL PyOpenGL_accelerate",
                 font=("Arial", 14),
-                text_color="gray60"
+                text_color=("gray60", "gray60")
             ).pack(expand=True)
             return
         
@@ -138,7 +138,7 @@ class OpenGLModelViewer(customtkinter.CTkFrame):
     
     def _create_controls(self):
         """Create control panel."""
-        control_frame = customtkinter.CTkFrame(self, fg_color="gray15")
+        control_frame = customtkinter.CTkFrame(self, fg_color=("gray90", "gray15"))
         control_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
         
         # Reset button
@@ -174,7 +174,7 @@ class OpenGLModelViewer(customtkinter.CTkFrame):
             control_frame,
             text="No model loaded",
             font=("Arial", 10),
-            text_color="gray60"
+            text_color=("gray60", "gray60")
         )
         self.info_label.pack(side="right", padx=5, pady=5)
     

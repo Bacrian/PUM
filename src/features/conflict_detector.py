@@ -32,7 +32,7 @@ class ConflictDetectorWindow:
         container.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Header
-        header = customtkinter.CTkFrame(container, fg_color="gray15", corner_radius=10)
+        header = customtkinter.CTkFrame(container, fg_color=("gray90", "gray15"), corner_radius=10)
         header.pack(fill="x", pady=(0, 15))
         
         customtkinter.CTkLabel(
@@ -47,7 +47,7 @@ class ConflictDetectorWindow:
                 container,
                 text="No conflicts detected! Your enabled mods are compatible.",
                 font=("Arial", 14),
-                text_color="gray60"
+                text_color=("gray60", "gray60")
             ).pack(expand=True)
             
             customtkinter.CTkButton(
@@ -64,11 +64,11 @@ class ConflictDetectorWindow:
             container,
             text=summary_text,
             font=("Arial", 12),
-            text_color="gray70"
+            text_color=("gray50", "gray70")
         ).pack(anchor="w", pady=(0, 10))
         
         # Scrollable conflict list
-        scroll_frame = customtkinter.CTkScrollableFrame(container, fg_color="gray12")
+        scroll_frame = customtkinter.CTkScrollableFrame(container, fg_color=("gray98", "gray12"))
         scroll_frame.pack(fill="both", expand=True)
         
         for i, conflict in enumerate(self.conflicts[:50], 1):  # Show max 50
@@ -92,12 +92,12 @@ class ConflictDetectorWindow:
             text="Close",
             command=self.window.destroy,
             width=120,
-            fg_color="gray25"
+            fg_color=("gray85", "gray25")
         ).pack(side="right", padx=5)
     
     def _create_conflict_card(self, parent, index: int, conflict: dict):
         """Create a card showing conflict details."""
-        card = customtkinter.CTkFrame(parent, fg_color="gray14", corner_radius=8)
+        card = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray14"), corner_radius=8)
         card.pack(fill="x", pady=5, padx=5)
         
         # Internal file header

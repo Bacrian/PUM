@@ -150,19 +150,19 @@ class ModListController:
         
         btn_name = customtkinter.CTkButton(
             header_row, text=t("editor_mod_name") + (" ▼" if cur_key == "name" and cur_order == "A-Z" else " ▲" if cur_key == "name" else ""), 
-            font=("Arial", 11, "bold"), text_color="gray60", fg_color="transparent", hover_color=("gray80", "gray25"),
+            font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), fg_color="transparent", hover_color=("gray80", "gray25"),
             anchor="w", height=20, width=220, command=lambda: self._on_header_click("name")
         )
         btn_name.grid(row=0, column=3, padx=5, sticky="ew")
         
         btn_author = customtkinter.CTkButton(
             header_row, text=t("editor_mod_author") + (" ▼" if cur_key == "author" and cur_order == "A-Z" else " ▲" if cur_key == "author" else ""), 
-            font=("Arial", 11, "bold"), text_color="gray60", fg_color="transparent", hover_color=("gray80", "gray25"),
+            font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), fg_color="transparent", hover_color=("gray80", "gray25"),
             anchor="w", height=20, width=100, command=lambda: self._on_header_click("author")
         )
         btn_author.grid(row=0, column=4, padx=5)
         
-        customtkinter.CTkLabel(header_row, text="Ver", font=("Arial", 11, "bold"), text_color="gray60", anchor="w", width=50).grid(row=0, column=5, padx=5)
+        customtkinter.CTkLabel(header_row, text=t("ver_header"), font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), anchor="w", width=50).grid(row=0, column=5, padx=5)
         
         return header_row
         
@@ -261,19 +261,19 @@ class ModListController:
         
         btn_name = customtkinter.CTkButton(
             header_row, text=t("editor_mod_name") + (" ▼" if cur_key == "name" and cur_order == "A-Z" else " ▲" if cur_key == "name" else ""), 
-            font=("Arial", 11, "bold"), text_color="gray60", fg_color="transparent", hover_color=("gray80", "gray25"),
+            font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), fg_color="transparent", hover_color=("gray80", "gray25"),
             anchor="w", height=20, width=220, command=lambda: self._on_header_click("name")
         )
         btn_name.grid(row=0, column=3, padx=5, sticky="ew")
         
         btn_author = customtkinter.CTkButton(
             header_row, text=t("editor_mod_author") + (" ▼" if cur_key == "author" and cur_order == "A-Z" else " ▲" if cur_key == "author" else ""), 
-            font=("Arial", 11, "bold"), text_color="gray60", fg_color="transparent", hover_color=("gray80", "gray25"),
+            font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), fg_color="transparent", hover_color=("gray80", "gray25"),
             anchor="w", height=20, width=100, command=lambda: self._on_header_click("author")
         )
         btn_author.grid(row=0, column=4, padx=5)
         
-        customtkinter.CTkLabel(header_row, text="Ver", font=("Arial", 11, "bold"), text_color="gray60", anchor="w", width=50).grid(row=0, column=5, padx=5)
+        customtkinter.CTkLabel(header_row, text=t("ver_header"), font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), anchor="w", width=50).grid(row=0, column=5, padx=5)
     
     def _render_mod_row_virtual(self, item, row_frame, row_idx):
         """Render a single mod row for virtual list. Returns dict of widgets."""
@@ -296,8 +296,8 @@ class ModListController:
         star_btn = customtkinter.CTkButton(
             row_frame, text="★" if mod.get('is_favorite', False) else "☆", 
             width=25, height=25, font=("Arial", 14),
-            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else "gray50",
-            hover_color="gray25",
+            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else ("gray70", "gray50"),
+            hover_color=("gray80", "gray25"),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.grid(row=0, column=2, padx=2, pady=10)
@@ -309,17 +309,17 @@ class ModListController:
         author_marquee = MarqueeLabel(row_frame, text=mod.get('author', 'Unknown'), font=("Arial", 12), row_frame=row_frame,
                                       on_click=lambda e=None, m=mod: self._on_mod_select(m), on_context=lambda e=None, m=mod: self.show_context_menu(e, m))
         author_marquee.configure(width=100)
-        author_marquee.label.configure(text_color="gray50")
+        author_marquee.label.configure(text_color=("gray60", "gray50"))
         author_marquee.grid(row=0, column=4, padx=5)
         
-        version_label = customtkinter.CTkLabel(row_frame, text=mod.get('version', '1.0'), anchor="w", text_color="gray50", width=50)
+        version_label = customtkinter.CTkLabel(row_frame, text=mod.get('version', '1.0'), anchor="w", text_color=("gray60", "gray50"), width=50)
         version_label.grid(row=0, column=5, padx=5)
 
         def on_enter(e, rf=row_frame, nm=name_marquee, am=author_marquee):
             try:
                 if not getattr(rf, '_hover_active', False):
                     rf._hover_active = True
-                    rf.configure(fg_color="gray20", cursor="hand2")
+                    rf.configure(fg_color=("gray85", "gray20"), cursor="hand2")
                     nm.start_scrolling()
                     am.start_scrolling()
             except:
@@ -386,8 +386,8 @@ class ModListController:
         star_btn = customtkinter.CTkButton(
             row_frame, text="★" if mod.get('is_favorite', False) else "☆", 
             width=25, height=25, font=("Arial", 14),
-            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else "gray50",
-            hover_color="gray25",
+            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else ("gray70", "gray50"),
+            hover_color=("gray80", "gray25"),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.grid(row=0, column=2, padx=2, pady=10)
@@ -399,17 +399,17 @@ class ModListController:
         author_marquee = MarqueeLabel(row_frame, text=mod.get('author', 'Unknown'), font=("Arial", 12), row_frame=row_frame,
                                       on_click=lambda e=None, m=mod: self._on_mod_select(m), on_context=lambda e=None, m=mod: self.show_context_menu(e, m))
         author_marquee.configure(width=100)
-        author_marquee.label.configure(text_color="gray50")
+        author_marquee.label.configure(text_color=("gray60", "gray50"))
         author_marquee.grid(row=0, column=4, padx=5)
         
-        version_label = customtkinter.CTkLabel(row_frame, text=mod.get('version', '1.0'), anchor="w", text_color="gray50", width=50)
+        version_label = customtkinter.CTkLabel(row_frame, text=mod.get('version', '1.0'), anchor="w", text_color=("gray60", "gray50"), width=50)
         version_label.grid(row=0, column=5, padx=5)
 
         def on_enter(e, rf=row_frame, nm=name_marquee, am=author_marquee):
             try:
                 if not getattr(rf, '_hover_active', False):
                     rf._hover_active = True
-                    rf.configure(fg_color="gray20", cursor="hand2")
+                    rf.configure(fg_color=("gray85", "gray20"), cursor="hand2")
                     nm.start_scrolling()
                     am.start_scrolling()
             except:
@@ -455,12 +455,12 @@ class ModListController:
         self.refresh_logic(force_rebuild=True)
 
     def show_context_menu(self, event, mod):
-        menu = tkinter.Menu(self.app, tearoff=0, bg="gray12", fg="white", activebackground=self.app._accent_color())
-        menu.add_command(label="Open Folder", command=lambda: os.startfile(mod["folder_path"]))
-        menu.add_command(label="Edit Info", command=lambda: self._on_mod_select(mod) or self.app.open_metadata_editor())
-        if mod.get("url"): menu.add_command(label="View Online", command=lambda: os.startfile(mod["url"]))
+        menu = tkinter.Menu(self.app, tearoff=0, bg="#2a2a2a", fg="white", activebackground=self.app._accent_color())
+        menu.add_command(label=t("ctx_open_folder"), command=lambda: os.startfile(mod["folder_path"]))
+        menu.add_command(label=t("edit_info"), command=lambda: self._on_mod_select(mod) or self.app.open_metadata_editor())
+        if mod.get("url"): menu.add_command(label=t("view_online"), command=lambda: os.startfile(mod["url"]))
         menu.add_separator()
-        menu.add_command(label="Delete Mod", command=lambda: self.delete_mod(mod), foreground="red")
+        menu.add_command(label=t("ctx_delete_mod"), command=lambda: self.delete_mod(mod), foreground="red")
         # Handle None event by using cursor position
         if event is None:
             x = self.app.winfo_pointerx()
@@ -471,7 +471,7 @@ class ModListController:
         menu.tk_popup(x, y)
 
     def delete_mod(self, mod):
-        if tkinter.messagebox.askyesno("Delete Mod", f"Are you sure you want to delete '{mod['name']}'?"):
+        if tkinter.messagebox.askyesno(t("delete_mod_title"), t("delete_mod_confirm").format(name=mod['name'])):
             try:
                 shutil.rmtree(mod["folder_path"])
                 if hasattr(self.app, 'focused_mod') and self.app.focused_mod == mod:
@@ -479,7 +479,7 @@ class ModListController:
                     if hasattr(self.app, 'preview_frame') and self.app.preview_frame.winfo_exists():
                         for widget in self.app.preview_frame.winfo_children(): widget.destroy()
                 self.refresh_logic(force_rebuild=True)
-            except Exception as e: tkinter.messagebox.showerror("Error", str(e))
+            except Exception as e: tkinter.messagebox.showerror(t("error"), str(e))
 
     def _on_checkbox_click(self, mod, var):
         name = mod.get('name')
@@ -491,6 +491,9 @@ class ModListController:
         if hasattr(self.app, 'preview_renderer'):
             if self.app.focused_mod and self.app.focused_mod['folder_path'] == mod['folder_path']:
                 self.app.preview_renderer.render_preview(mod)
+        # Trigger auto-save (similar to Thunderstore behavior)
+        if hasattr(self.app, 'auto_save_profile'):
+            self.app.auto_save_profile()
 
     def _toggle_favorite(self, mod):
         mod['is_favorite'] = not mod.get('is_favorite', False)
@@ -569,12 +572,12 @@ class ModListController:
         var = item['variable']
         
         # Card frame
-        card = customtkinter.CTkFrame(parent, fg_color="gray15", corner_radius=10)
+        card = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray15"), corner_radius=10)
         card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
         
         # Preview image
-        img_frame = customtkinter.CTkFrame(card, fg_color="gray18", corner_radius=8, height=120)
+        img_frame = customtkinter.CTkFrame(card, fg_color=("gray95", "gray18"), corner_radius=8, height=120)
         img_frame.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
         img_frame.grid_propagate(False)
         
@@ -594,7 +597,7 @@ class ModListController:
             img_label = customtkinter.CTkLabel(img_frame, image=ctk_img, text="")
             img_label.place(relx=0.5, rely=0.5, anchor="center")
         except:
-            img_label = customtkinter.CTkLabel(img_frame, text="No Image", text_color="gray50")
+            img_label = customtkinter.CTkLabel(img_frame, text=t("no_image"), text_color=("gray60", "gray50"))
             img_label.place(relx=0.5, rely=0.5, anchor="center")
         
         # Click on image to select mod - bind to both frame and label
@@ -613,7 +616,7 @@ class ModListController:
         author = mod.get('author', 'Unknown')
         if len(author) > 20:
             author = author[:18] + "..."
-        author_lbl = customtkinter.CTkLabel(card, text=f"by {author}", font=("Arial", 10), text_color="gray50")
+        author_lbl = customtkinter.CTkLabel(card, text=f"by {author}", font=("Arial", 10), text_color=("gray60", "gray50"))
         author_lbl.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="w")
         
         # Bottom row with checkbox and favorite
@@ -629,17 +632,17 @@ class ModListController:
         star_btn = customtkinter.CTkButton(
             bottom, text="★" if mod.get('is_favorite', False) else "☆", 
             width=28, height=28, font=("Arial", 12),
-            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else "gray50",
-            hover_color="gray25",
+            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else ("gray70", "gray50"),
+            hover_color=("gray80", "gray25"),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.pack(side="right")
         
         # Hover effect for card
         def on_enter(e, c=card):
-            c.configure(fg_color="gray20", cursor="hand2")
+            c.configure(fg_color=("gray85", "gray20"), cursor="hand2")
         def on_leave(e, c=card):
-            c.configure(fg_color="gray15", cursor="")
+            c.configure(fg_color=("gray90", "gray15"), cursor="")
         
         card.bind("<Enter>", on_enter)
         card.bind("<Leave>", on_leave)

@@ -23,8 +23,9 @@ class ProfileManager:
         self.profiles_dir.mkdir(exist_ok=True)
     
     def get_saved_profiles(self, game_name=None):
-        """Get list of saved profiles for specific game or all profiles."""
-        profiles = ["Default Profile"]
+        """Get list of saved profiles for specific game or all profiles.
+        Returns display names for UI (translated if available)."""
+        profiles = []
         
         try:
             if game_name:
@@ -32,21 +33,222 @@ class ProfileManager:
                 game_profiles_dir = self.profiles_dir / game_name
                 if game_profiles_dir.exists():
                     for file in game_profiles_dir.glob("*.pum"):
-                        profile_name = file.stem
-                        if profile_name != "Default Profile":
-                            profiles.append(profile_name)
+                        try:
+                            with open(file, "r", encoding="utf-8") as f:
+                                data = json.load(f)
+                            display_name_key = data.get("display_name_key")
+                            display_name = t(display_name_key) if display_name_key else file.stem
+                            profiles.append((file.stem, display_name))
+                        except Exception:
+                            profiles.append((file.stem, file.stem))
             else:
                 # Get all profiles from all game directories
                 for game_dir in self.profiles_dir.iterdir():
                     if game_dir.is_dir():
                         for file in game_dir.glob("*.pum"):
-                            profile_name = f"{game_dir.name}/{file.stem}"
-                            if profile_name != "Default Profile":
-                                profiles.append(profile_name)
+                            try:
+                                with open(file, "r", encoding="utf-8") as f:
+                                    data = json.load(f)
+                                display_name_key = data.get("display_name_key")
+                                display_name = t(display_name_key) if display_name_key else file.stem
+                                profiles.append((f"{game_dir.name}/{file.stem}", display_name))
+                            except Exception:
+                                profiles.append((f"{game_dir.name}/{file.stem}", file.stem))
+        except Exception:
+            pass
+        
+        # Store mapping for later lookup and return only display names
+        self._profile_display_to_internal = {display: internal for internal, display in profiles}
+        self._profile_internal_to_display = {internal: display for internal, display in profiles}
+        
+        # Sort profiles: default first, then alphabetically by display name
+        profiles.sort(key=lambda x: (x[0] != "Default Profile", x[1]))
+        return [display for internal, display in profiles]
+    
+    def get_internal_profile_name(self, display_name):
+        """Convert display name back to internal file name."""
+        return self._profile_display_to_internal.get(display_name, display_name)
+    
+    def get_display_profile_name(self, internal_name):
+        """Convert internal file name to display name."""
+        return self._profile_internal_to_display.get(internal_name, internal_name)
+    
+    def get_profiles_list(self, game_name=None):
+        """Get detailed list of profiles for a game. Returns list of dict with name, mods, settings."""
+        profiles = []
+        try:
+            if game_name:
+                game_dir = self.profiles_dir / game_name
+                if game_dir.exists():
+                    for file in game_dir.glob("*.pum"):
+                        try:
+                            with open(file, "r", encoding="utf-8") as f:
+                                data = json.load(f)
+                            display_name_key = data.get("display_name_key")
+                            display_name = t(display_name_key) if display_name_key else file.stem
+                            profiles.append({
+                                "name": file.stem,
+                                "display_name": display_name,
+                                "game_name": data.get("game_name", game_name),
+                                "mods": data.get("selected_mods", []),
+                                "mod_options": data.get("mod_options", {}),
+                                "settings": data.get("app_settings", {}),
+                                "saved_at": data.get("saved_at", 0)
+                            })
+                        except Exception:
+                            pass
+            else:
+                # Get all profiles across all games
+                for game_dir in self.profiles_dir.iterdir():
+                    if game_dir.is_dir():
+                        for file in game_dir.glob("*.pum"):
+                            try:
+                                with open(file, "r", encoding="utf-8") as f:
+                                    data = json.load(f)
+                                display_name_key = data.get("display_name_key")
+                                display_name = t(display_name_key) if display_name_key else file.stem
+                                profiles.append({
+                                    "name": file.stem,
+                                    "display_name": display_name,
+                                    "game_name": data.get("game_name", game_dir.name),
+                                    "mods": data.get("selected_mods", []),
+                                    "mod_options": data.get("mod_options", {}),
+                                    "settings": data.get("app_settings", {}),
+                                    "saved_at": data.get("saved_at", 0)
+                                })
+                            except Exception:
+                                pass
         except Exception:
             pass
         return profiles
     
+    def import_profile(self, file_path=None, game_name=None):
+        """Import a profile from .pum file. Can be called with file_path directly."""
+        if file_path is None:
+            file_path = filedialog.askopenfilename(
+                title=t("import_profile"),
+                filetypes=[("PUM Profile files", "*.pum"), ("JSON files", "*.json"), ("All files", "*.*")]
+            )
+        
+        if file_path:
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    profile_data = json.load(f)
+                
+                # Extract profile name and game
+                profile_name = profile_data.get("profile_name", f"Imported_{int(time.time())}")
+                if game_name is None:
+                    game_name = profile_data.get("game_name", getattr(self.app, 'active_game_name', None))
+                selected_mods = profile_data.get("selected_mods", [])
+                mod_options = profile_data.get("mod_options", {})
+                app_settings = profile_data.get("app_settings", {})
+                mod_data = profile_data.get("mod_data", {})
+                
+                # Fallback to Default if still None
+                if not game_name:
+                    game_name = "Default"
+                
+                # Ask for profile name if not in file
+                if "profile_name" not in profile_data:
+                    dialog = customtkinter.CTkInputDialog(
+                        text=t("enter_profile_name"),
+                        title=t("import_profile")
+                    )
+                    profile_name = dialog.get_input()
+                    
+                    if not profile_name:
+                        return False
+                
+                if profile_name:
+                    profile_name = profile_name.strip()
+                    if profile_name:
+                        if self.save_profile(profile_name, selected_mods, mod_options, app_settings, game_name, mod_data):
+                            # Check for missing mods and offer to download them
+                            self._check_and_download_missing_mods(selected_mods, mod_data, game_name)
+                            
+                            tkinter.messagebox.showinfo(t("success"), t("profile_imported"))
+                            return True
+            except Exception as e:
+                tkinter.messagebox.showerror(t("error"), f"Failed to import profile: {e}")
+                return False
+        return False
+    
+    def export_profile(self, profile_name=None, file_path=None):
+        """Export a profile to .pum file. Can be called with specific file_path."""
+        if profile_name is None:
+            tkinter.messagebox.showerror(t("error"), "No profile specified")
+            return False
+            
+        if profile_name == "Default Profile":
+            # Load current state for default
+            app_settings, selected_mods, mod_options, existing_mod_data = {}, self.app.saved_mods, self.app.mod_options, {}
+            game_name = getattr(self.app, 'active_game_name', None)
+        else:
+            app_settings, selected_mods, mod_options, existing_mod_data = self.load_profile(profile_name)
+            # Extract game name from profile
+            if "/" in profile_name:
+                game_name = profile_name.split("/", 1)[0]
+            else:
+                game_name = getattr(self.app, 'active_game_name', None)
+        
+        # Fallback to Default if still None
+        if not game_name:
+            game_name = "Default"
+        
+        # Build mod_data with full mod information for export
+        mod_data = existing_mod_data if existing_mod_data else {}
+        try:
+            from src.core.mod_scanner import mod_info
+            available_mods = mod_info(game_name=game_name)
+            available_mods_map = {m.get('name'): m for m in available_mods}
+            
+            # Update mod_data with current mod info
+            for mod_name in selected_mods:
+                if mod_name in available_mods_map:
+                    mod_info_dict = available_mods_map[mod_name]
+                    mod_url = mod_info_dict.get('url', '') or mod_info_dict.get('source_url', '')
+                    mod_data[mod_name] = {
+                        "name": mod_info_dict.get("name", mod_name),
+                        "author": mod_info_dict.get("author", ""),
+                        "version": mod_info_dict.get("version", "1.0"),
+                        "url": mod_url,
+                        "description": mod_info_dict.get("description", ""),
+                        "category": mod_info_dict.get("category", "Other"),
+                        "screenshot": mod_info_dict.get("screenshot", ""),
+                        "has_options": mod_info_dict.get("has_options", False)
+                    }
+        except Exception:
+            pass
+        
+        profile_data = {
+            "profile_name": profile_name,
+            "game_name": game_name,
+            "selected_mods": selected_mods,
+            "mod_data": mod_data,
+            "mod_options": mod_options,
+            "app_settings": app_settings,
+            "exported_at": int(time.time()),
+            "pum_version": "1.3.0"
+        }
+        
+        if file_path is None:
+            file_path = filedialog.asksaveasfilename(
+                title=t("export_profile"),
+                defaultextension=".pum",
+                filetypes=[("PUM Profile files", "*.pum"), ("JSON files", "*.json"), ("All files", "*.*")]
+            )
+        
+        if file_path:
+            try:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(profile_data, f, indent=4, ensure_ascii=False)
+                tkinter.messagebox.showinfo(t("success"), t("profile_exported"))
+                return True
+            except Exception as e:
+                tkinter.messagebox.showerror(t("error"), f"Failed to export profile: {e}")
+                return False
+        return False
+
     def save_profile(self, profile_name, selected_mods, mod_options, app_settings, game_name=None, mod_data=None):
         """Save a profile for specific game with full mod information including URLs."""
         # Use current game if not specified
@@ -263,15 +465,20 @@ class ProfileManager:
                 return False
         return False
     
-    def import_profile(self):
+    def import_profile(self, file_path=None, game_name=None):
         """Import a profile from .pum file with full mod data including URLs.
         
         After importing, checks for missing mods and offers to download them automatically
         if URLs are available in the mod_data.
+        
+        Args:
+            file_path: Optional path to .pum file. If None, shows file dialog.
+            game_name: Optional game name to import to. If None, uses profile's game or current game.
         """
-        file_path = tkinter.filedialog.askopenfilename(
-            title=t("import_profile"),
-            filetypes=[("PUM Profile files", "*.pum"), ("JSON files", "*.json"), ("All files", "*.*")]
+        if file_path is None:
+            file_path = tkinter.filedialog.askopenfilename(
+                title=t("import_profile"),
+                filetypes=[("PUM Profile files", "*.pum"), ("JSON files", "*.json"), ("All files", "*.*")]
         )
         
         if file_path:
@@ -383,7 +590,7 @@ class ProfileManager:
         customtkinter.CTkLabel(dialog, text=info_text, font=("Arial", 12), wraplength=450).pack(pady=(20, 10), padx=20)
         
         # Scrollable frame for mod list
-        scroll_frame = customtkinter.CTkScrollableFrame(dialog, fg_color="gray15", height=200)
+        scroll_frame = customtkinter.CTkScrollableFrame(dialog, fg_color=("gray90", "gray15"), height=200)
         scroll_frame.pack(fill="both", expand=True, padx=20, pady=10)
         
         # Checkboxes for each missing mod
@@ -400,12 +607,12 @@ class ProfileManager:
             
             if mod.get('url'):
                 url_label = customtkinter.CTkLabel(mod_frame, text=f"  URL: {mod['url'][:60]}...", 
-                                                     font=("Arial", 9), text_color="gray60")
+                                                     font=("Arial", 9), text_color=("gray60", "gray60"))
                 url_label.pack(anchor="w", padx=25)
             
             if mod.get('author') and mod['author'] != 'Unknown':
                 author_label = customtkinter.CTkLabel(mod_frame, text=f"  By: {mod['author']}", 
-                                                      font=("Arial", 9), text_color="gray60")
+                                                      font=("Arial", 9), text_color=("gray60", "gray60"))
                 author_label.pack(anchor="w", padx=25)
         
         # Buttons frame
@@ -421,21 +628,21 @@ class ProfileManager:
         def skip_download():
             dialog.destroy()
         
-        customtkinter.CTkButton(btn_frame, text="Download Selected", fg_color="#1a9f84",
+        customtkinter.CTkButton(btn_frame, text="Download Selected", fg_color=("#1a9f84", "#1a9f84"),
                                command=download_selected).pack(side="left", padx=10)
-        customtkinter.CTkButton(btn_frame, text="Skip", fg_color="gray35",
+        customtkinter.CTkButton(btn_frame, text="Skip", fg_color=("gray85", "gray35"),
                                command=skip_download).pack(side="right", padx=10)
     
     def _download_missing_mods(self, mods_to_download, game_name):
-        """Download missing mods using the URL handler."""
+        """Download missing mods using the URL handler silently (no metadata dialogs)."""
         try:
             if hasattr(self.app, 'url_handler') and self.app.url_handler:
                 for mod in mods_to_download:
                     url = mod.get('url', '')
                     if url:
-                        print(f"DEBUG: Initiating download for missing mod: {mod['name']} from {url}")
-                        # Use the URL handler to download the mod
-                        self.app.url_handler._initiate_url_download(url)
+                        print(f"DEBUG: Initiating silent download for missing mod: {mod['name']} from {url}")
+                        # Use the URL handler to download the mod silently (no metadata dialogs)
+                        self.app.url_handler.download_mod_silently(url, game_name)
             else:
                 # Fallback: show message with URLs
                 urls_text = "\n".join([f"- {mod['name']}: {mod['url']}" for mod in mods_to_download if mod.get('url')])
@@ -476,7 +683,8 @@ class ProfileManager:
                 "app_settings": {},
                 "saved_at": int(time.time()),
                 "pum_version": "1.3.0",
-                "is_default": True
+                "is_default": True,
+                "display_name_key": "default_profile"
             }
             
             try:
@@ -532,5 +740,55 @@ class ProfileManager:
             tkinter.messagebox.showerror("Migration Error", f"Failed to migrate profiles: {e}")
         
         return migrated_count
+    
+    def get_profiles_list(self, game_name=None):
+        """Get detailed list of profiles for a game. Returns list of dict with name, mods, settings."""
+        import json
+        profiles = []
+        try:
+            if game_name:
+                game_dir = self.profiles_dir / game_name
+                if game_dir.exists():
+                    for file in game_dir.glob("*.pum"):
+                        try:
+                            with open(file, "r", encoding="utf-8") as f:
+                                data = json.load(f)
+                            display_name_key = data.get("display_name_key")
+                            display_name = t(display_name_key) if display_name_key else file.stem
+                            profiles.append({
+                                "name": file.stem,
+                                "display_name": display_name,
+                                "game_name": data.get("game_name", game_name),
+                                "mods": data.get("selected_mods", []),
+                                "mod_options": data.get("mod_options", {}),
+                                "settings": data.get("app_settings", {}),
+                                "saved_at": data.get("saved_at", 0)
+                            })
+                        except Exception:
+                            pass
+            else:
+                # Get all profiles across all games
+                for game_dir in self.profiles_dir.iterdir():
+                    if game_dir.is_dir():
+                        for file in game_dir.glob("*.pum"):
+                            try:
+                                with open(file, "r", encoding="utf-8") as f:
+                                    data = json.load(f)
+                                display_name_key = data.get("display_name_key")
+                                display_name = t(display_name_key) if display_name_key else file.stem
+                                profiles.append({
+                                    "name": file.stem,
+                                    "display_name": display_name,
+                                    "game_name": data.get("game_name", game_dir.name),
+                                    "mods": data.get("selected_mods", []),
+                                    "mod_options": data.get("mod_options", {}),
+                                    "settings": data.get("app_settings", {}),
+                                    "saved_at": data.get("saved_at", 0)
+                                })
+                            except Exception:
+                                pass
+        except Exception:
+            pass
+        return profiles
 
 # endregion

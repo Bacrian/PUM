@@ -68,8 +68,8 @@ class AutoUpdater:
                     return {
                         "version": data.get("version"),
                         "download_url": data.get("download_url", "https://gamebanana.com/tools/21625"),
-                        "changelog": data.get("changelog", "Bug fixes and improvements."),
-                        "release_date": data.get("release_date", "Unknown")
+                        "changelog": data.get("changelog", t("no_notes")),
+                        "release_date": data.get("release_date", t("unknown"))
                     }
                 elif show_no_update:
                     self.show_no_update_dialog()
@@ -78,7 +78,7 @@ class AutoUpdater:
             if show_no_update or force:
                 tkinter.messagebox.showerror(
                     t("error"), 
-                    f"Failed to check for updates: {e}"
+                    f"{t('failed_to_check_updates')}: {e}"
                 )
         
         return None
@@ -86,7 +86,7 @@ class AutoUpdater:
     def show_update_dialog(self, update_info: Dict):
         """Show update available dialog with options."""
         dialog = customtkinter.CTkToplevel(self.app)
-        dialog.title("Update Available")
+        dialog.title(t("update_available_title"))
         dialog.geometry("500x400")
         dialog.transient(self.app)
         dialog.grab_set()
@@ -96,41 +96,41 @@ class AutoUpdater:
         container.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Header
-        header = customtkinter.CTkFrame(container, fg_color="gray15", corner_radius=10)
+        header = customtkinter.CTkFrame(container, fg_color=("gray90", "gray15"), corner_radius=10)
         header.pack(fill="x", pady=(0, 15))
         
         customtkinter.CTkLabel(
             header,
-            text="🚀 Update Available!",
+            text=t("update_available_title"),
             font=("Arial", 18, "bold"),
             text_color="#1a9f84"
         ).pack(pady=15)
         
         # Version info
-        version_frame = customtkinter.CTkFrame(container, fg_color="gray14", corner_radius=8)
+        version_frame = customtkinter.CTkFrame(container, fg_color=("gray90", "gray14"), corner_radius=8)
         version_frame.pack(fill="x", pady=(0, 15))
         
         customtkinter.CTkLabel(
             version_frame,
-            text=f"Current Version: {APP_VERSION}",
+            text=f"{t('current_version')}: {APP_VERSION}",
             font=("Arial", 12),
-            text_color="gray60"
+            text_color=("gray60", "gray60")
         ).pack(anchor="w", padx=15, pady=(10, 5))
         
         customtkinter.CTkLabel(
             version_frame,
-            text=f"Latest Version: {update_info['version']}",
+            text=f"{t('latest_version')}: {update_info['version']}",
             font=("Arial", 12, "bold"),
             text_color="#1a9f84"
         ).pack(anchor="w", padx=15, pady=(0, 10))
         
         # Changelog
-        changelog_frame = customtkinter.CTkFrame(container, fg_color="gray14", corner_radius=8)
+        changelog_frame = customtkinter.CTkFrame(container, fg_color=("gray90", "gray14"), corner_radius=8)
         changelog_frame.pack(fill="both", expand=True, pady=(0, 15))
         
         customtkinter.CTkLabel(
             changelog_frame,
-            text="What's New:",
+            text=t("whats_new"),
             font=("Arial", 12, "bold"),
             anchor="w"
         ).pack(anchor="w", padx=15, pady=(10, 5))
@@ -138,10 +138,10 @@ class AutoUpdater:
         changelog_text = customtkinter.CTkTextbox(
             changelog_frame, 
             height=120, 
-            fg_color="gray12"
+            fg_color=("gray98", "gray12")
         )
         changelog_text.pack(fill="both", expand=True, padx=15, pady=(0, 10))
-        changelog_text.insert("0.0", update_info.get("changelog", "Bug fixes and improvements."))
+        changelog_text.insert("0.0", update_info.get("changelog", t("no_notes")))
         changelog_text.configure(state="disabled")
         
         # Buttons
@@ -150,24 +150,24 @@ class AutoUpdater:
         
         customtkinter.CTkButton(
             button_frame,
-            text="Download Now",
-            fg_color="#1a9f84",
-            hover_color="#158d73",
+            text=t("download_now"),
+            fg_color=("#1a9f84", "#1a9f84"),
+            hover_color=("#158d73", "#158d73"),
             command=lambda: webbrowser.open(update_info["download_url"])
         ).pack(side="left", fill="x", expand=True, padx=(0, 5))
         
         customtkinter.CTkButton(
             button_frame,
-            text="Later",
-            fg_color="gray25",
+            text=t("later"),
+            fg_color=("gray85", "gray25"),
             command=dialog.destroy
         ).pack(side="right", fill="x", expand=True, padx=(5, 0))
     
     def show_no_update_dialog(self):
         """Show dialog when no updates are available."""
         tkinter.messagebox.showinfo(
-            "Up to Date",
-            f"You're running the latest version ({APP_VERSION}).\n\nCheck back later for updates!"
+            t("up_to_date_title"),
+            f"{t('up_to_date_message').format(version=APP_VERSION)}\n\n{t('check_back_later')}"
         )
     
     def check_and_notify(self):

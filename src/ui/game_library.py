@@ -9,10 +9,11 @@ from pathlib import Path
 from PIL import Image, ImageOps
 from src.core.config import get_game_registry
 from src.core.constants import ASSETS_DIR
+from src.core.localization import t
 
 class GameLibraryPage(customtkinter.CTkFrame):
     def __init__(self, master, app_instance, **kwargs):
-        super().__init__(master, fg_color="gray10", corner_radius=0, **kwargs)
+        super().__init__(master, fg_color=("gray95", "gray10"), corner_radius=0, **kwargs)
         self.app = app_instance
         self.selected_game = None
         self._cover_images = {}
@@ -24,7 +25,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
         
         # === LEFT SIDEBAR ===
-        self.sidebar = customtkinter.CTkFrame(self, fg_color="gray12", corner_radius=0, width=300)
+        self.sidebar = customtkinter.CTkFrame(self, fg_color=("gray98", "gray12"), corner_radius=0, width=300)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         self.sidebar.grid_propagate(False)
         self.sidebar.grid_rowconfigure(2, weight=1)  # Game list expands
@@ -36,12 +37,12 @@ class GameLibraryPage(customtkinter.CTkFrame):
         self.search_var = customtkinter.StringVar()
         self.search_var.trace_add("write", lambda *args: self._filter_games())
         
-        self.search_frame = customtkinter.CTkFrame(self.sidebar, fg_color="gray18", corner_radius=6, height=32)
+        self.search_frame = customtkinter.CTkFrame(self.sidebar, fg_color=("gray90", "gray18"), corner_radius=6, height=32)
         self.search_frame.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
         self.search_frame.grid_propagate(False)
         
         self.search_entry = customtkinter.CTkEntry(
-            self.search_frame, placeholder_text="Search",
+            self.search_frame, placeholder_text=t("search"),
             textvariable=self.search_var, font=("Arial", 12),
             fg_color="transparent", border_width=0,
             height=28
@@ -51,22 +52,22 @@ class GameLibraryPage(customtkinter.CTkFrame):
         # Game list container (scrollable)
         self.game_list = customtkinter.CTkScrollableFrame(
             self.sidebar, fg_color="transparent", corner_radius=0,
-            scrollbar_button_color="gray30", scrollbar_button_hover_color="gray40",
-            label_text="Games"
+            scrollbar_button_color=("gray70", "gray30"), scrollbar_button_hover_color=("gray60", "gray40"),
+            label_text=t("games")
         )
         self.game_list.grid(row=2, column=0, sticky="nsew", padx=0, pady=(0, 10))
-        self.game_list._parent_canvas.configure(background="gray12")
+        self.game_list._parent_canvas.configure(bg=("#f8f8f8", "#1c1c1c"))
         
         # Add Game button at bottom
         self.add_btn = customtkinter.CTkButton(
-            self.sidebar, text="+ Add Game", height=32,
-            font=("Arial", 11, "bold"), fg_color="gray20", hover_color="gray30",
+            self.sidebar, text=t("add_game"), height=32,
+            font=("Arial", 11, "bold"), fg_color=("gray85", "gray20"), hover_color=("gray75", "gray30"),
             corner_radius=6, command=self._show_add_options
         )
         self.add_btn.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
         
         # === RIGHT CONTENT AREA ===
-        self.content = customtkinter.CTkFrame(self, fg_color="gray10", corner_radius=0)
+        self.content = customtkinter.CTkFrame(self, fg_color=("gray95", "gray10"), corner_radius=0)
         self.content.grid(row=0, column=1, sticky="nsew")
         self.content.grid_columnconfigure(0, weight=1)
         self.content.grid_rowconfigure(0, weight=1)
@@ -76,8 +77,8 @@ class GameLibraryPage(customtkinter.CTkFrame):
         self.empty_state.grid(row=0, column=0, sticky="nsew")
         
         customtkinter.CTkLabel(
-            self.empty_state, text="Select a game from your library",
-            font=("Arial", 18), text_color="gray50"
+            self.empty_state, text=t("select_game_prompt"),
+            font=("Arial", 18), text_color=("gray60", "gray50")
         ).place(relx=0.5, rely=0.5, anchor="center")
         
         # Detail view (initially hidden)
@@ -100,7 +101,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
             pass
         
         customtkinter.CTkLabel(
-            header, text="Library", font=("Arial", 16, "bold")
+            header, text=t("library"), font=("Arial", 16, "bold")
         ).pack(side="left")
     
     def _filter_games(self):
@@ -120,8 +121,8 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         if not games:
             lbl = customtkinter.CTkLabel(
-                self.game_list, text="No games found",
-                font=("Arial", 11), text_color="gray50"
+                self.game_list, text=t("no_games_found"),
+                font=("Arial", 11), text_color=("gray60", "gray50")
             )
             lbl.pack(pady=20)
             return
@@ -225,7 +226,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         # Container frame
         item = customtkinter.CTkFrame(
-            self.game_list, fg_color="gray20" if is_selected else "transparent",
+            self.game_list, fg_color=("gray80", "gray20") if is_selected else "transparent",
             corner_radius=4, height=36
         )
         item.pack(fill="x", padx=6, pady=1)
@@ -247,7 +248,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
             initial = game['name'][0].upper() if game['name'] else "?"
             customtkinter.CTkLabel(
                 icon_frame, text=initial, font=("Arial", 10, "bold"),
-                text_color="white"
+                text_color=("black", "white")
             ).place(relx=0.5, rely=0.5, anchor="center")
         
         # Game name
@@ -263,7 +264,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         # Hover effects
         if not is_selected:
-            item.bind("<Enter>", lambda e, f=item: f.configure(fg_color="gray16"))
+            item.bind("<Enter>", lambda e, f=item: f.configure(fg_color=("gray90", "gray16")))
             item.bind("<Leave>", lambda e, f=item: f.configure(fg_color="transparent"))
     
     def _get_game_color(self, name):
@@ -288,14 +289,14 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         # Main detail container with scrolling
         self.detail_view = customtkinter.CTkScrollableFrame(
-            self.content, fg_color="gray10", corner_radius=0
+            self.content, fg_color=("gray95", "gray10"), corner_radius=0
         )
         self.detail_view.grid(row=0, column=0, sticky="nsew")
-        self.detail_view._parent_canvas.configure(background="gray10")
+        self.detail_view._parent_canvas.configure(bg=("#f0f0f0", "#1a1a1a"))
         
         # Hero banner area (avoid place() so it doesn't deform on resize)
         banner = customtkinter.CTkFrame(
-            self.detail_view, fg_color="gray14", corner_radius=0, height=300
+            self.detail_view, fg_color=("gray90", "gray14"), corner_radius=0, height=300
         )
         banner.pack(fill="x", padx=0, pady=0)
         banner.pack_propagate(False)
@@ -305,7 +306,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
 
         # Large game artwork/icon (fixed size)
         art_frame = customtkinter.CTkFrame(
-            banner_inner, fg_color="gray20", corner_radius=12, width=200, height=260
+            banner_inner, fg_color=("gray90", "gray20"), corner_radius=12, width=200, height=260
         )
         art_frame.pack(side="left", padx=(0, 30))
         art_frame.pack_propagate(False)
@@ -330,7 +331,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         customtkinter.CTkLabel(
             info_frame, text=f"{game.get('engine', 'Unreal Engine')} • {Path(game['path']).parent.name}",
-            font=("Arial", 12), text_color="gray60"
+            font=("Arial", 12), text_color=("gray60", "gray60")
         ).pack(anchor="w", pady=(4, 0))
         
         # Action buttons (Steam-like big buttons)
@@ -339,8 +340,8 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         # Play/Manage button (big green like Steam's Play)
         play_btn = customtkinter.CTkButton(
-            btn_frame, text="▶ Manage Mods", width=160, height=42,
-            font=("Arial", 14, "bold"), fg_color="#5c7e10", hover_color="#7da014",
+            btn_frame, text=f"▶ {t('manage_mods')}", width=160, height=42,
+            font=("Arial", 14, "bold"), fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
             corner_radius=3, command=lambda: self.app.show_mod_manager(game)
         )
         play_btn.pack(side="left", padx=(0, 10))
@@ -348,7 +349,7 @@ class GameLibraryPage(customtkinter.CTkFrame):
         # Secondary actions
         settings_btn = customtkinter.CTkButton(
             btn_frame, text="⚙", width=42, height=42,
-            font=("Arial", 14), fg_color="gray25", hover_color="gray35",
+            font=("Arial", 14), fg_color=("gray80", "gray25"), hover_color=("gray70", "gray35"),
             corner_radius=3, command=lambda: self._show_game_settings(game)
         )
         settings_btn.pack(side="left")
@@ -358,42 +359,42 @@ class GameLibraryPage(customtkinter.CTkFrame):
         stats_frame.pack(fill="x", padx=40, pady=(30, 20))
         
         # Hours played (placeholder)
-        self._stat_card(stats_frame, 0, "Mods Installed", "0 mods")
-        self._stat_card(stats_frame, 1, "Last Played", "Today")
-        self._stat_card(stats_frame, 2, "Achievements", "N/A")
+        self._stat_card(stats_frame, 0, t("mods_installed"), t("mods_count").format(count=0))
+        self._stat_card(stats_frame, 1, t("last_played"), t("today"))
+        self._stat_card(stats_frame, 2, t("achievements"), t("na"))
         
         # Achievements/Links section
-        links_frame = customtkinter.CTkFrame(self.detail_view, fg_color="gray14", corner_radius=8)
+        links_frame = customtkinter.CTkFrame(self.detail_view, fg_color=("gray90", "gray14"), corner_radius=8)
         links_frame.pack(fill="x", padx=40, pady=(10, 20))
         
         customtkinter.CTkLabel(
-            links_frame, text="Links", font=("Arial", 14, "bold")
+            links_frame, text=t("links"), font=("Arial", 14, "bold")
         ).pack(anchor="w", padx=15, pady=(12, 8))
         
         links_row = customtkinter.CTkFrame(links_frame, fg_color="transparent")
         links_row.pack(fill="x", padx=15, pady=(0, 12))
         
         customtkinter.CTkButton(
-            links_row, text="Open Game Folder", width=130, height=28,
-            font=("Arial", 11), fg_color="gray20", hover_color="gray25",
+            links_row, text=t("open_game_folder"), width=130, height=28,
+            font=("Arial", 11), fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
             corner_radius=4, command=lambda: self._open_game_folder(game)
         ).pack(side="left", padx=(0, 8))
         
         customtkinter.CTkButton(
-            links_row, text="Steam Store", width=100, height=28,
-            font=("Arial", 11), fg_color="gray20", hover_color="gray25",
+            links_row, text=t("steam_store"), width=100, height=28,
+            font=("Arial", 11), fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
             corner_radius=4, command=lambda: self._open_steam_store(game)
         ).pack(side="left", padx=(0, 8))
     
     def _stat_card(self, master, col, label, value):
         """Create a stat card like Steam shows."""
-        card = customtkinter.CTkFrame(master, fg_color="gray14", corner_radius=6, width=140)
+        card = customtkinter.CTkFrame(master, fg_color=("gray90", "gray14"), corner_radius=6, width=140)
         card.pack(side="left", padx=(0 if col == 0 else 12, 0))
         card.pack_propagate(False)
         
         customtkinter.CTkLabel(
             card, text=label.upper(), font=("Arial", 9),
-            text_color="gray60"
+            text_color=("gray50", "gray60")
         ).pack(anchor="w", padx=12, pady=(10, 0))
         
         customtkinter.CTkLabel(
@@ -403,14 +404,14 @@ class GameLibraryPage(customtkinter.CTkFrame):
     def _show_add_options(self):
         """Show dialog to add games."""
         dialog = customtkinter.CTkToplevel(self)
-        dialog.title("Add Game")
+        dialog.title(t("add_game_title"))
         dialog.geometry("400x200")
         dialog.transient(self.app)
         dialog.grab_set()
-        dialog.configure(fg_color="gray12")
+        dialog.configure(fg_color=("gray98", "gray12"))
         
         customtkinter.CTkLabel(
-            dialog, text="Add a game to your library",
+            dialog, text=t("add_game_prompt"),
             font=("Arial", 16, "bold")
         ).pack(pady=(20, 15))
         
@@ -418,14 +419,14 @@ class GameLibraryPage(customtkinter.CTkFrame):
         btn_frame.pack(pady=10)
         
         customtkinter.CTkButton(
-            btn_frame, text="Import from Steam", width=150, height=40,
-            font=("Arial", 12, "bold"), fg_color="#1b2838", hover_color="#2a475e",
+            btn_frame, text=t("import_from_steam"), width=150, height=40,
+            font=("Arial", 12, "bold"), fg_color=("#1b2838", "#1b2838"), hover_color=("#2a475e", "#2a475e"),
             command=lambda: [dialog.destroy(), self._show_steam_import()]
         ).pack(side="left", padx=5)
         
         customtkinter.CTkButton(
-            btn_frame, text="Add Manually", width=150, height=40,
-            font=("Arial", 12, "bold"), fg_color="gray20", hover_color="gray30",
+            btn_frame, text=t("add_manually"), width=150, height=40,
+            font=("Arial", 12, "bold"), fg_color=("gray85", "gray20"), hover_color=("gray75", "gray30"),
             command=lambda: [dialog.destroy(), self._show_manual_add()]
         ).pack(side="left", padx=5)
     
@@ -435,30 +436,30 @@ class GameLibraryPage(customtkinter.CTkFrame):
         from src.core.config import add_game_to_registry
         
         dialog = customtkinter.CTkToplevel(self)
-        dialog.title("Import from Steam")
+        dialog.title(t("import_from_steam"))
         dialog.geometry("500x450")
         dialog.transient(self.app)
         dialog.grab_set()
-        dialog.configure(fg_color="gray12")
+        dialog.configure(fg_color=("gray98", "gray12"))
         
         customtkinter.CTkLabel(
-            dialog, text="Select a detected Unreal Engine game:",
+            dialog, text=t("select_steam_game"),
             font=("Arial", 14, "bold")
         ).pack(pady=20)
         
-        scroll = customtkinter.CTkScrollableFrame(dialog, height=300, fg_color="gray10")
+        scroll = customtkinter.CTkScrollableFrame(dialog, height=300, fg_color=("gray95", "gray10"))
         scroll.pack(fill="both", expand=True, padx=20, pady=(0, 20))
         
         games = list_installed_steam_games()
         
         if not games:
             customtkinter.CTkLabel(
-                scroll, text="No Unreal Engine games detected in Steam library.",
-                text_color="gray50"
+                scroll, text=t("no_steam_games"),
+                text_color=("gray60", "gray50")
             ).pack(pady=50)
         
         for game in games:
-            g_frame = customtkinter.CTkFrame(scroll, fg_color="gray14", corner_radius=8)
+            g_frame = customtkinter.CTkFrame(scroll, fg_color=("gray90", "gray14"), corner_radius=8)
             g_frame.pack(fill="x", pady=5, padx=5)
             
             customtkinter.CTkLabel(
@@ -475,8 +476,8 @@ class GameLibraryPage(customtkinter.CTkFrame):
                 self.app.refresh_logic()
             
             customtkinter.CTkButton(
-                g_frame, text="Add", width=60, height=26,
-                fg_color="gray20", hover_color="gray30", command=add_this
+                g_frame, text=t("add_game"), width=60, height=26,
+                fg_color=("gray85", "gray20"), hover_color=("gray75", "gray30"), command=add_this
             ).pack(side="right", padx=10)
     
     def _show_manual_add(self):
@@ -484,24 +485,24 @@ class GameLibraryPage(customtkinter.CTkFrame):
         from src.core.config import add_game_to_registry
         
         dialog = customtkinter.CTkToplevel(self)
-        dialog.title("Add Game Manually")
+        dialog.title(t("add_manually"))
         dialog.geometry("450x300")
         dialog.transient(self.app)
         dialog.grab_set()
-        dialog.configure(fg_color="gray12")
+        dialog.configure(fg_color=("gray98", "gray12"))
         
         customtkinter.CTkLabel(
-            dialog, text="Game Name:", font=("Arial", 12, "bold")
+            dialog, text=t("game_name"), font=("Arial", 12, "bold")
         ).pack(pady=(20, 0), padx=30, anchor="w")
         
         name_entry = customtkinter.CTkEntry(
-            dialog, placeholder_text="e.g. My Hero Ultra Rumble",
-            height=32, fg_color="gray14", border_color="gray30"
+            dialog, placeholder_text=t("game_name_placeholder"),
+            height=32, fg_color=("gray95", "gray14"), border_color=("gray70", "gray30")
         )
         name_entry.pack(fill="x", padx=30, pady=5)
         
         customtkinter.CTkLabel(
-            dialog, text="Paks Directory:", font=("Arial", 12, "bold")
+            dialog, text=t("paks_directory"), font=("Arial", 12, "bold")
         ).pack(pady=(10, 0), padx=30, anchor="w")
         
         path_var = customtkinter.StringVar()
@@ -510,12 +511,12 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         customtkinter.CTkEntry(
             path_frame, textvariable=path_var, height=32,
-            fg_color="gray14", border_color="gray30"
+            fg_color=("gray95", "gray14"), border_color=("gray70", "gray30")
         ).pack(side="left", fill="x", expand=True)
         
         customtkinter.CTkButton(
-            path_frame, text="Browse", width=60, height=32,
-            fg_color="gray20", hover_color="gray30",
+            path_frame, text=t("browse"), width=60, height=32,
+            fg_color=("gray85", "gray20"), hover_color=("gray75", "gray30"),
             command=lambda: path_var.set(filedialog.askdirectory())
         ).pack(side="right", padx=(5, 0))
         
@@ -530,34 +531,34 @@ class GameLibraryPage(customtkinter.CTkFrame):
                 self.app.refresh_logic()
         
         customtkinter.CTkButton(
-            dialog, text="Register Game", height=40,
-            font=("Arial", 13, "bold"), fg_color="#5c7e10", hover_color="#7da014",
+            dialog, text=t("register_game"), height=40,
+            font=("Arial", 13, "bold"), fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
             command=save
         ).pack(pady=25)
     
     def _show_game_settings(self, game):
         """Show game settings/options."""
         dialog = customtkinter.CTkToplevel(self)
-        dialog.title(f"Settings - {game['name']}")
+        dialog.title(t("settings_for").format(name=game['name']))
         dialog.geometry("400x250")
         dialog.transient(self.app)
         dialog.grab_set()
-        dialog.configure(fg_color="gray12")
+        dialog.configure(fg_color=("gray98", "gray12"))
         
         customtkinter.CTkLabel(
-            dialog, text="Game Settings", font=("Arial", 16, "bold")
+            dialog, text=t("game_settings"), font=("Arial", 16, "bold")
         ).pack(pady=(20, 15))
         
         # Remove from library option
         customtkinter.CTkButton(
-            dialog, text="Remove from Library", width=200, height=35,
-            font=("Arial", 12), fg_color="#8c1c1c", hover_color="#a02020",
+            dialog, text=t("remove_from_library"), width=200, height=35,
+            font=("Arial", 12), fg_color=("#8c1c1c", "#8c1c1c"), hover_color=("#a02020", "#a02020"),
             command=lambda: self._remove_game(game, dialog)
         ).pack(pady=10)
         
         customtkinter.CTkLabel(
-            dialog, text="This will remove the game from your library.\nYour mods will not be deleted.",
-            font=("Arial", 10), text_color="gray50"
+            dialog, text=t("remove_from_library_warning"),
+            font=("Arial", 10), text_color=("gray60", "gray50")
         ).pack(pady=(5, 0))
     
     def _remove_game(self, game, dialog=None):

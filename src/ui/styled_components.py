@@ -11,8 +11,8 @@ class StyledCard(customtkinter.CTkFrame):
     """A styled card component with shadow-like border effect."""
     
     def __init__(self, master, title=None, description=None, icon_path=None, 
-                 accent_color="#1a9f84", hover_color="gray25", **kwargs):
-        super().__init__(master, fg_color="gray18", corner_radius=12, **kwargs)
+                 accent_color="#1a9f84", hover_color=("gray30", "gray25"), **kwargs):
+        super().__init__(master, fg_color=("gray90", "gray18"), corner_radius=12, **kwargs)
         
         self.accent_color = accent_color
         self.hover_color = hover_color
@@ -36,14 +36,14 @@ class StyledCard(customtkinter.CTkFrame):
         if title:
             self.title_label = customtkinter.CTkLabel(
                 self.content, text=title, font=("Arial", 16, "bold"),
-                text_color="white"
+                text_color=("black", "white")
             )
             self.title_label.pack(anchor="w")
         
         if description:
             self.desc_label = customtkinter.CTkLabel(
                 self.content, text=description, font=("Arial", 12),
-                text_color="gray60", wraplength=250
+                text_color=("gray40", "gray60"), wraplength=250
             )
             self.desc_label.pack(anchor="w", pady=(5, 0))
         
@@ -53,11 +53,11 @@ class StyledCard(customtkinter.CTkFrame):
     def _setup_hover(self):
         """Setup hover effect for the card."""
         def on_enter(e):
-            self.configure(fg_color="gray20")
+            self.configure(fg_color=("gray85", "gray20"))
             self.accent_line.configure(height=4)
         
         def on_leave(e):
-            self.configure(fg_color="gray18")
+            self.configure(fg_color=("gray90", "gray18"))
             self.accent_line.configure(height=3)
         
         self.bind("<Enter>", on_enter)
@@ -120,7 +120,7 @@ class StatCard(customtkinter.CTkFrame):
     """Card displaying a statistic with icon and value."""
     
     def __init__(self, master, icon, value, label, accent_color="#1a9f84", **kwargs):
-        super().__init__(master, fg_color="gray18", corner_radius=10, **kwargs)
+        super().__init__(master, fg_color=("gray95", "gray18"), corner_radius=10, **kwargs)
         
         # Icon
         self.icon_label = customtkinter.CTkLabel(
@@ -132,14 +132,14 @@ class StatCard(customtkinter.CTkFrame):
         # Value
         self.value_label = customtkinter.CTkLabel(
             self, text=str(value), font=("Arial", 24, "bold"),
-            text_color="white"
+            text_color=("black", "white")
         )
         self.value_label.pack()
         
         # Label
         self.label_widget = customtkinter.CTkLabel(
             self, text=label, font=("Arial", 11),
-            text_color="gray60"
+            text_color=("gray50", "gray60")
         )
         self.label_widget.pack(pady=(5, 15))
 
@@ -148,14 +148,14 @@ class SearchBox(customtkinter.CTkFrame):
     """Styled search box with icon."""
     
     def __init__(self, master, placeholder="Search...", command=None, **kwargs):
-        super().__init__(master, fg_color="gray20", corner_radius=20, height=40, **kwargs)
+        super().__init__(master, fg_color=("gray90", "gray20"), corner_radius=20, height=40, **kwargs)
         
         self.command = command
         
         # Search icon
         self.icon = customtkinter.CTkLabel(
             self, text="", font=("Arial", 14),
-            text_color="gray50"
+            text_color=("gray70", "gray50")
         )
         self.icon.pack(side="left", padx=(15, 5))
         
@@ -199,7 +199,7 @@ class Badge(customtkinter.CTkLabel):
         super().__init__(
             master, text=text,
             font=("Arial", 10, "bold"),
-            fg_color=bg, text_color="white",
+            fg_color=bg, text_color=("gray10", "gray90"),
             corner_radius=10, padx=10, pady=3,
             **kwargs
         )
@@ -208,7 +208,7 @@ class Badge(customtkinter.CTkLabel):
 class Divider(customtkinter.CTkFrame):
     """Horizontal divider line."""
     
-    def __init__(self, master, color="gray30", **kwargs):
+    def __init__(self, master, color=("gray70", "gray30"), **kwargs):
         super().__init__(master, height=1, fg_color=color, **kwargs)
 
 
@@ -232,10 +232,10 @@ class Tooltip:
         self.tooltip.wm_overrideredirect(True)
         self.tooltip.wm_geometry(f"+{x}+{y}")
         
-        label = tkinter.Label(
+        label = customtkinter.CTkLabel(
             self.tooltip, text=self.text,
-            background="#2a2a2a", foreground="white",
-            relief="solid", borderwidth=1,
+            fg_color=("gray90", "gray20"), text_color=("black", "white"),
+            corner_radius=6, padx=10, pady=5,
             font=("Arial", 10)
         )
         label.pack()
@@ -251,7 +251,7 @@ def apply_glass_effect(widget, opacity=0.95):
     # Note: True glass effect requires native window transparency
     # This is a simplified version using color blending
     try:
-        widget.configure(fg_color="gray15")
+        widget.configure(fg_color=("gray95", "gray15"))
     except:
         pass
 

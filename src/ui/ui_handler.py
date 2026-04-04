@@ -137,8 +137,8 @@ class ReloadedStyleUI:
             text="Deploy Selected",
             width=120,
             height=SMALL_BUTTON_HEIGHT,
-            fg_color="#1a9f84",
-            hover_color="#13775c",
+            fg_color=("#1a9f84", "#1a9f84"),
+            hover_color=("#13775c", "#13775c"),
             command=self._deploy_selected_mods
         ).pack(side="left", padx=5, pady=5)
         

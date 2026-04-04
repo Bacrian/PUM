@@ -1,6 +1,7 @@
 config.json
 __init__.py
 __pycache__/
+venv/
 scripts/__pycache__/
 /.vscode/settings.json
 /.idea/inspectionProfiles/profiles_settings.xml

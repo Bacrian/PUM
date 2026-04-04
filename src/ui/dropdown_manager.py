@@ -24,7 +24,7 @@ class DropdownManager:
             except Exception:
                 pass
             
-            inner = customtkinter.CTkFrame(self.pref_dropdown_win, fg_color="#222222")
+            inner = customtkinter.CTkFrame(self.pref_dropdown_win, fg_color=("gray90", "gray20"))
             inner.pack(fill="both", expand=True)
             
             # Store buttons for external access
@@ -75,7 +75,7 @@ class DropdownManager:
                 
         except Exception:
             # Fallback to in-root frame
-            self.pref_dropdown_frame = customtkinter.CTkFrame(self.app, fg_color="#222222")
+            self.pref_dropdown_frame = customtkinter.CTkFrame(self.app, fg_color=("gray90", "gray20"))
             self.buttons = {}
             self.buttons['path'] = customtkinter.CTkButton(
                 self.pref_dropdown_frame, text=t("game_path"), corner_radius=2, height=28,

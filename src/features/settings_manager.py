@@ -25,8 +25,8 @@ class SettingsManager:
             return
         
         self.setting_window = customtkinter.CTkToplevel(self.app)
-        self.setting_window.title("System Preferences")
-        self.setting_window.geometry("550x500")
+        self.setting_window.title(t("settings_title"))
+        self.setting_window.geometry("550x580")
         self.setting_window.resizable(False, False)
         self.setting_window.transient(self.app)
         self.setting_window.grab_set()
@@ -41,7 +41,7 @@ class SettingsManager:
         self.main_container.pack(fill="both", expand=True, padx=20, pady=20)
 
         # Title Header
-        title_lbl = customtkinter.CTkLabel(self.main_container, text="Preferences", font=("Arial", 24, "bold"))
+        title_lbl = customtkinter.CTkLabel(self.main_container, text=t("settings"), font=("Arial", 24, "bold"))
         title_lbl.pack(anchor="w", pady=(0, 10))
 
         # --- TABVIEW ---
@@ -49,45 +49,47 @@ class SettingsManager:
                                                anchor="w", segmented_button_selected_color=self.app._accent_color())
         self.tabview.pack(fill="both", expand=True)
 
-        self.tab_ui = self.tabview.add("Interface")
-        self.tab_sys = self.tabview.add("Behavior")
-        self.tab_game = self.tabview.add("Game")
+        self.tab_ui = self.tabview.add(t("tab_interface"))
+        self.tab_sys = self.tabview.add(t("tab_behavior"))
+        self.tab_game = self.tabview.add(t("tab_game"))
 
         # --- TAB 1: INTERFACE ---
         # Language
-        self._add_label(self.tab_ui, "Application Language")
+        self._add_label(self.tab_ui, t("language_label"))
         lang_list = list_available_languages()
         lang_names = [name for _, name in lang_list]
         current_lang = self.app.app_settings.get("language", "English")
         
         self.lang_menu = customtkinter.CTkOptionMenu(
             self.tab_ui, values=lang_names, width=220,
-            fg_color="gray20", button_color="gray25",
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=self._on_language_change
         )
         self.lang_menu.set(current_lang)
         self.lang_menu.pack(anchor="w", pady=(0, 20))
 
         # Theme
-        self._add_label(self.tab_ui, "Appearance Mode")
+        self._add_label(self.tab_ui, t("appearance_mode_label"))
         current_theme = self.app.app_settings.get("appearance", "Dark")
+        theme_display_map = {"Dark": t("dark_theme"), "Light": t("light_theme"), "System": t("system_theme")}
+        display_theme = theme_display_map.get(current_theme, current_theme)
         self.theme_menu = customtkinter.CTkOptionMenu(
-            self.tab_ui, values=["Dark", "Light", "System"], width=220,
-            fg_color="gray20", button_color="gray25",
+            self.tab_ui, values=[t("dark_theme"), t("light_theme"), t("system_theme")], width=220,
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=self._on_theme_change
         )
-        self.theme_menu.set(current_theme)
+        self.theme_menu.set(display_theme)
         self.theme_menu.pack(anchor="w", pady=(0, 20))
 
         # Accent
-        self._add_label(self.tab_ui, "Highlight Accent Color")
+        self._add_label(self.tab_ui, t("accent_color_label"))
         color_opts = {t("teal"): "#1a9f84", t("blue"): "#2065d1", t("purple"): "#7b61ff", t("red"): "#d14b4b"}
         current_accent = self.app.app_settings.get("accent_color", DEFAULT_ACCENT_COLOR)
         current_accent_name = next((k for k, v in color_opts.items() if v == current_accent), t("teal"))
 
         self.accent_menu = customtkinter.CTkOptionMenu(
             self.tab_ui, values=list(color_opts.keys()), width=220,
-            fg_color="gray20", button_color="gray25",
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=lambda _: self._on_accent_change(color_opts)
         )
         self.accent_menu.set(current_accent_name)
@@ -96,62 +98,62 @@ class SettingsManager:
         # --- TAB 2: BEHAVIOR ---
         
         # Startup Page Selection
-        self._add_label(self.tab_sys, "Startup Page")
-        startup_options = ["Home Dashboard", "Mod Library"]
+        self._add_label(self.tab_sys, t("startup_page_label"))
+        startup_options = [t("home_dashboard"), t("mod_library")]
         current_startup = self.app.app_settings.get("startup_page", "Home Dashboard")
         
         self.startup_menu = customtkinter.CTkOptionMenu(
             self.tab_sys, values=startup_options, width=220,
-            fg_color="gray20", button_color="gray25",
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=self._on_startup_page_change
         )
         self.startup_menu.set(current_startup)
         self.startup_menu.pack(anchor="w", pady=(0, 10))
         
         # Default Game Selection (only used when Startup Page is Mod Library)
-        self._add_label(self.tab_sys, "Default Game for Mod Library")
+        self._add_label(self.tab_sys, t("default_game_mod_library"))
         games = get_game_registry()
-        game_names = [g.get("name", "Unknown") for g in games] if games else ["No games added"]
+        game_names = [g.get("name", t("unknown")) for g in games] if games else [t("no_games_added_short")]
         current_default_game = self.app.app_settings.get("default_startup_game", "")
         
         self.default_game_menu = customtkinter.CTkOptionMenu(
             self.tab_sys, values=game_names, width=220,
-            fg_color="gray20", button_color="gray25",
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=self._on_default_game_change
         )
         if current_default_game and current_default_game in game_names:
             self.default_game_menu.set(current_default_game)
-        elif game_names and game_names[0] != "No games added":
+        elif game_names and game_names[0] != t("no_games_added_short"):
             self.default_game_menu.set(game_names[0])
         else:
-            self.default_game_menu.set("No games added")
+            self.default_game_menu.set(t("no_games_added_short"))
         self.default_game_menu.pack(anchor="w", pady=(0, 20))
         
         # Separator
-        separator = customtkinter.CTkFrame(self.tab_sys, height=2, fg_color="gray30")
+        separator = customtkinter.CTkFrame(self.tab_sys, height=2, fg_color=("gray80", "gray30"))
         separator.pack(fill="x", pady=10)
 
         self.auto_update_var = customtkinter.BooleanVar(value=self.app.app_settings.get("auto_update_enabled", True))
-        self._add_checkbox(self.tab_sys, "Check for updates automatically", self.auto_update_var, self._save_all)
+        self._add_checkbox(self.tab_sys, t("auto_check_updates_label"), self.auto_update_var, self._save_all)
 
         self.console_var = customtkinter.BooleanVar(value=self.app.app_settings.get("enable_console", False))
-        self._add_checkbox(self.tab_sys, "Enable integrated debug console", self.console_var, self._on_console_toggle)
+        self._add_checkbox(self.tab_sys, t("enable_integrated_console"), self.console_var, self._on_console_toggle)
 
         self.backup_var = customtkinter.BooleanVar(value=self.app.app_settings.get("backup_mods", False))
-        self._add_checkbox(self.tab_sys, "Backup mods before deployment", self.backup_var, self._save_all)
+        self._add_checkbox(self.tab_sys, t("backup_mods_label"), self.backup_var, self._save_all)
 
         # --- TAB 3: GAME ---
-        self._add_label(self.tab_game, "Game Content Directory (Paks)")
+        self._add_label(self.tab_game, t("game_content_dir_label"))
 
         games = get_game_registry()
         if games:
-            self._add_label(self.tab_game, "Select Game")
-            self.game_name_to_path = {g.get("name", "Unknown"): g.get("path", "") for g in games}
+            self._add_label(self.tab_game, t("select_game"))
+            self.game_name_to_path = {g.get("name", t("unknown")): g.get("path", "") for g in games}
             self.game_names = list(self.game_name_to_path.keys())
 
             self.game_select = customtkinter.CTkOptionMenu(
                 self.tab_game, values=self.game_names, width=350,
-                fg_color="gray20", button_color="gray25",
+                fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
                 command=self._on_game_select
             )
             # default selection: active game if present, otherwise first
@@ -159,33 +161,33 @@ class SettingsManager:
             self.game_select.set(default_name)
             self.game_select.pack(anchor="w", pady=(0, 10))
 
-            path_frame = customtkinter.CTkFrame(self.tab_game, fg_color="gray18", corner_radius=10)
+            path_frame = customtkinter.CTkFrame(self.tab_game, fg_color=("gray95", "gray18"), corner_radius=10)
             path_frame.pack(fill="x", pady=10)
 
             initial_path = self.game_name_to_path.get(default_name, "")
-            path_text = initial_path if initial_path else "Not set"
+            path_text = initial_path if initial_path else t("na")
             self.path_lbl = customtkinter.CTkLabel(
-                path_frame, text=path_text, font=("Arial", 11), text_color="gray60", wraplength=450
+                path_frame, text=path_text, font=("Arial", 11), text_color=("gray60", "gray60"), wraplength=450
             )
             self.path_lbl.pack(padx=15, pady=15, side="top", anchor="w")
 
             change_path_btn = customtkinter.CTkButton(
-                path_frame, text="Update Directory Path", width=150, height=30,
+                path_frame, text=t("update_dir_path"), width=150, height=30,
                 fg_color=self.app._accent_color(), hover_color=self.app._hover_color(),
                 command=self._select_folder_for_selected_game
             )
             change_path_btn.pack(padx=15, pady=(0, 15), side="left")
         else:
             # Legacy / fallback when no games exist
-            path_frame = customtkinter.CTkFrame(self.tab_game, fg_color="gray18", corner_radius=10)
+            path_frame = customtkinter.CTkFrame(self.tab_game, fg_color=("gray95", "gray18"), corner_radius=10)
             path_frame.pack(fill="x", pady=10)
 
-            path_text = self.app.current_path if self.app.current_path else "Not set"
-            self.path_lbl = customtkinter.CTkLabel(path_frame, text=path_text, font=("Arial", 11), text_color="gray60", wraplength=450)
+            path_text = self.app.current_path if self.app.current_path else t("na")
+            self.path_lbl = customtkinter.CTkLabel(path_frame, text=path_text, font=("Arial", 11), text_color=("gray60", "gray60"), wraplength=450)
             self.path_lbl.pack(padx=15, pady=15, side="top", anchor="w")
 
             change_path_btn = customtkinter.CTkButton(
-                path_frame, text="Update Directory Path", width=150, height=30,
+                path_frame, text=t("update_dir_path"), width=150, height=30,
                 fg_color=self.app._accent_color(), hover_color=self.app._hover_color(),
                 command=self.app.select_path_callback
             )
@@ -196,13 +198,13 @@ class SettingsManager:
         footer_frame.pack(fill="x", side="bottom", pady=(10, 0))
 
         customtkinter.CTkButton(
-            footer_frame, text="Apply & Close", width=120, height=35, 
+            footer_frame, text=t("apply_close"), width=120, height=35, 
             fg_color=self.app._accent_color(), hover_color=self.app._hover_color(),
             command=self.setting_window.destroy
         ).pack(side="right")
 
     def _add_label(self, master, text):
-        lbl = customtkinter.CTkLabel(master, text=text, font=("Arial", 12, "bold"), text_color="gray70")
+        lbl = customtkinter.CTkLabel(master, text=text, font=("Arial", 12, "bold"), text_color=("gray60", "gray70"))
         lbl.pack(anchor="w", pady=(10, 5))
 
     def _add_checkbox(self, master, text, var, command):
@@ -221,7 +223,7 @@ class SettingsManager:
     def _on_game_select(self, name):
         try:
             p = self.game_name_to_path.get(name, "")
-            self.path_lbl.configure(text=p if p else "Not set")
+            self.path_lbl.configure(text=p if p else t("na"))
         except Exception:
             pass
 
@@ -255,13 +257,19 @@ class SettingsManager:
         self.app.app_settings["language"] = name
         init_translations(name)
         self._save_all()
-        self.app.refresh_logic()
         self.setting_window.destroy()
+        # Reload entire UI to apply new language
+        self.app.reload_ui()
+        # Reopen settings with new language
         self.open_settings()
 
     def _on_theme_change(self, mode):
-        customtkinter.set_appearance_mode(mode.lower())
-        self.app.app_settings["appearance"] = mode
+        # Convert localized theme name back to canonical theme key if necessary
+        theme_map = {t("dark_theme"): "Dark", t("light_theme"): "Light", t("system_theme"): "System"}
+        canonical_mode = theme_map.get(mode, mode)
+        
+        customtkinter.set_appearance_mode(canonical_mode.lower())
+        self.app.app_settings["appearance"] = canonical_mode
         self._save_all()
 
     def _on_accent_change(self, opts):
@@ -273,7 +281,11 @@ class SettingsManager:
         self.open_settings()
 
     def _on_startup_page_change(self, value):
-        self.app.app_settings["startup_page"] = value
+        # Map localized page back to internal value
+        page_map = {t("home_dashboard"): "Home Dashboard", t("mod_library"): "Mod Library"}
+        canonical_page = page_map.get(value, value)
+        
+        self.app.app_settings["startup_page"] = canonical_page
         self._save_all()
     
     def _on_default_game_change(self, value):

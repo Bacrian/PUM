@@ -80,7 +80,7 @@ class SkinViewer3D(customtkinter.CTkToplevel):
         self.main_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Toolbar
-        self.toolbar = customtkinter.CTkFrame(self.main_frame, fg_color="gray18", height=50)
+        self.toolbar = customtkinter.CTkFrame(self.main_frame, fg_color=("gray98", "gray18"), height=50)
         self.toolbar.pack(fill="x", pady=(0, 10))
         self.toolbar.pack_propagate(False)
         
@@ -102,7 +102,7 @@ class SkinViewer3D(customtkinter.CTkToplevel):
         # 3D Viewport
         self.viewport_frame = customtkinter.CTkFrame(
             self.main_frame, 
-            fg_color="gray12",
+            fg_color=("gray98", "gray12"),
             corner_radius=10
         )
         self.viewport_frame.pack(fill="both", expand=True)
@@ -120,8 +120,8 @@ class SkinViewer3D(customtkinter.CTkToplevel):
             width=80,
             height=30,
             font=("Arial", 11),
-            fg_color="gray25",
-            hover_color="gray35",
+            fg_color=("gray90", "gray25"),
+            hover_color=("gray80", "gray35"),
             command=command
         )
         btn.pack(side="left", padx=5, pady=10)
@@ -153,7 +153,7 @@ class SkinViewer3D(customtkinter.CTkToplevel):
             self.viewport_frame,
             text="3D View requires matplotlib\n\nInstall with: pip install matplotlib",
             font=("Arial", 14),
-            text_color="gray50"
+            text_color=("gray60", "gray50")
         )
         self.fallback_label.pack(expand=True)
     
@@ -591,7 +591,7 @@ class SkinViewer3D(customtkinter.CTkToplevel):
             self.ax.scatter(cube_vertices[:, 0], cube_vertices[:, 1], cube_vertices[:, 2], 
                           c='#1a9f84', s=50)
             
-            self.ax.set_title('No Model Loaded\nPlaceholder Preview', color='gray', fontsize=14, pad=20)
+            self.ax.set_title('No Model Loaded\nPlaceholder Preview', color='#888888', fontsize=14, pad=20)
             self.ax.set_xlabel('X')
             self.ax.set_ylabel('Y')
             self.ax.set_zlabel('Z')

@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+from src.core.localization import t
 
 class ModMarketplace:
     """Mod marketplace supporting GameBanana, NexusMods, and other platforms."""
@@ -53,13 +54,13 @@ class ModMarketplace:
             return
         
         self.window = customtkinter.CTkToplevel(self.app)
-        self.window.title("Mod Marketplace")
+        self.window.title(t("mod_marketplace"))
         self.window.geometry("900x700")
         self.window.transient(self.app)
         self.window.grab_set()
         
         # Main layout
-        main_frame = customtkinter.CTkFrame(self.window, fg_color="gray10")
+        main_frame = customtkinter.CTkFrame(self.window, fg_color=("gray95", "gray10"))
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Header
@@ -76,13 +77,13 @@ class ModMarketplace:
     
     def _create_header(self, parent):
         """Create marketplace header."""
-        header_frame = customtkinter.CTkFrame(parent, fg_color="gray15", height=60)
+        header_frame = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray15"), height=60)
         header_frame.pack(fill="x", pady=(0, 15))
         header_frame.pack_propagate(False)
         
         # Title
         customtkinter.CTkLabel(
-            header_frame, text="Mod Marketplace",
+            header_frame, text=t("mod_marketplace"),
             font=("Arial", 18, "bold")
         ).pack(side="left", padx=20, pady=15)
         
@@ -95,15 +96,15 @@ class ModMarketplace:
             btn = customtkinter.CTkButton(
                 platform_frame, text=platform_info["name"],
                 width=100, height=35,
-                fg_color=platform_info["color"] if platform_key == "gamebanana" else "gray20",
-                hover_color=platform_info["color"] if platform_key == "gamebanana" else "gray25",
+                fg_color=platform_info["color"] if platform_key == "gamebanana" else ("gray85", "gray20"),
+                hover_color=platform_info["color"] if platform_key == "gamebanana" else ("gray80", "gray25"),
                 command=lambda pk=platform_key: self._switch_platform(pk)
             )
             btn.pack(side="left", padx=5)
     
     def _create_search_filters(self, parent):
         """Create search and filter controls."""
-        search_frame = customtkinter.CTkFrame(parent, fg_color="gray15", height=50)
+        search_frame = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray15"), height=50)
         search_frame.pack(fill="x", pady=(0, 15))
         search_frame.pack_propagate(False)
         
@@ -112,7 +113,7 @@ class ModMarketplace:
         self.search_var.trace_add("write", lambda *args: self._on_search_change())
         
         search_entry = customtkinter.CTkEntry(
-            search_frame, placeholder_text="Search mods...",
+            search_frame, placeholder_text=t("search_placeholder"),
             textvariable=self.search_var, width=300, height=35
         )
         search_entry.pack(side="left", padx=20, pady=7)
@@ -122,7 +123,7 @@ class ModMarketplace:
         game_frame.pack(side="left", padx=20, pady=7)
         
         customtkinter.CTkLabel(
-            game_frame, text="Game:", font=("Arial", 11)
+            game_frame, text=f"{t('games')}:", font=("Arial", 11)
         ).pack(side="left", padx=(0, 5))
         
         self.game_var = customtkinter.StringVar(value="My Hero Ultra Rumble")
@@ -138,7 +139,7 @@ class ModMarketplace:
         cat_frame.pack(side="left", padx=20, pady=7)
         
         customtkinter.CTkLabel(
-            cat_frame, text="Category:", font=("Arial", 11)
+            cat_frame, text=t("category_label"), font=("Arial", 11)
         ).pack(side="left", padx=(0, 5))
         
         self.category_var = customtkinter.StringVar(value="All Categories")
@@ -150,24 +151,24 @@ class ModMarketplace:
         
         # Search button
         search_btn = customtkinter.CTkButton(
-            search_frame, text="Search", width=80, height=35,
-            fg_color="#5c7e10", hover_color="#7da014",
+            search_frame, text=t("search"), width=80, height=35,
+            fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
             command=self._perform_search
         )
         search_btn.pack(side="right", padx=20, pady=7)
     
     def _create_results_area(self, parent):
         """Create results display area."""
-        results_frame = customtkinter.CTkFrame(parent, fg_color="gray15")
+        results_frame = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray15"))
         results_frame.pack(fill="both", expand=True)
         
         # Results header
-        results_header = customtkinter.CTkFrame(results_frame, fg_color="gray12", height=40)
+        results_header = customtkinter.CTkFrame(results_frame, fg_color=("gray98", "gray12"), height=40)
         results_header.pack(fill="x", padx=10, pady=(10, 5))
         results_header.pack_propagate(False)
         
         self.results_label = customtkinter.CTkLabel(
-            results_header, text="Featured Mods",
+            results_header, text=t("featured_mods"),
             font=("Arial", 12, "bold")
         )
         self.results_label.pack(side="left", padx=15, pady=10)
@@ -177,7 +178,7 @@ class ModMarketplace:
         sort_frame.pack(side="right", padx=15, pady=10)
         
         customtkinter.CTkLabel(
-            sort_frame, text="Sort by:", font=("Arial", 10)
+            sort_frame, text=t("sort_by"), font=("Arial", 10)
         ).pack(side="left", padx=(0, 5))
         
         self.sort_var = customtkinter.StringVar(value="Popular")
@@ -189,7 +190,7 @@ class ModMarketplace:
         
         # Results content
         self.results_frame = customtkinter.CTkScrollableFrame(
-            results_frame, fg_color="gray10", height=500
+            results_frame, fg_color=("gray95", "gray10"), height=500
         )
         self.results_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
     
@@ -230,8 +231,8 @@ class ModMarketplace:
         
         # Show loading
         loading_label = customtkinter.CTkLabel(
-            self.results_frame, text="Searching...",
-            font=("Arial", 12), text_color="gray50"
+            self.results_frame, text=t("searching"),
+            font=("Arial", 12), text_color=("gray60", "gray50")
         )
         loading_label.pack(pady=50)
         
@@ -545,15 +546,15 @@ class ModMarketplace:
         
         if not results:
             no_results = customtkinter.CTkLabel(
-                self.results_frame, text="No results found",
-                font=("Arial", 12), text_color="gray50"
+                self.results_frame, text=t("no_results_found"),
+                font=("Arial", 12), text_color=("gray60", "gray50")
             )
             no_results.pack(pady=50)
             return
         
         # Update results label
         if self.results_label and self.results_label.winfo_exists():
-            self.results_label.configure(text=f"Search Results ({len(results)} mods)")
+            self.results_label.configure(text=f"{t('searching')} ({len(results)} mods)")
         
         # Display results
         for result in results:
@@ -562,13 +563,13 @@ class ModMarketplace:
     def _create_mod_item(self, mod_data):
         """Create a mod item card."""
         item_frame = customtkinter.CTkFrame(
-            self.results_frame, fg_color="gray20", height=120
+            self.results_frame, fg_color=("gray85", "gray20"), height=120
         )
         item_frame.pack(fill="x", padx=10, pady=5)
         item_frame.pack_propagate(False)
         
         # Mod image
-        image_frame = customtkinter.CTkFrame(item_frame, fg_color="gray15", width=100, height=100)
+        image_frame = customtkinter.CTkFrame(item_frame, fg_color=("gray90", "gray15"), width=100, height=100)
         image_frame.pack(side="left", padx=10, pady=10)
         image_frame.pack_propagate(False)
         
@@ -581,8 +582,8 @@ class ModMarketplace:
             ).start()
         else:
             customtkinter.CTkLabel(
-                image_frame, text="No Image",
-                font=("Arial", 10), text_color="gray50"
+                image_frame, text=t("no_image"),
+                font=("Arial", 10), text_color=("gray60", "gray50")
             ).pack(expand=True)
         
         # Mod info
@@ -608,7 +609,7 @@ class ModMarketplace:
         # Description
         customtkinter.CTkLabel(
             info_frame, text=mod_data["description"],
-            font=("Arial", 10), text_color="gray60", anchor="w", wraplength=400
+            font=("Arial", 10), text_color=("gray60", "gray60"), anchor="w", wraplength=400
         ).pack(fill="x", pady=(0, 5))
         
         # Metadata
@@ -617,7 +618,7 @@ class ModMarketplace:
         
         customtkinter.CTkLabel(
             meta_frame, text=f"By {mod_data.get('author', 'Unknown')} • {mod_data.get('downloads', 0)} downloads",
-            font=("Arial", 9), text_color="gray50", anchor="w"
+            font=("Arial", 9), text_color=("gray60", "gray50"), anchor="w"
         ).pack(side="left")
         
         # Action buttons
@@ -626,8 +627,8 @@ class ModMarketplace:
         
         # Download button
         download_btn = customtkinter.CTkButton(
-            button_frame, text="Download", width=80, height=30,
-            fg_color="#5c7e10", hover_color="#7da014",
+            button_frame, text=t("download_button"), width=80, height=30,
+            fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
             command=lambda: self._download_mod(mod_data)
         )
         download_btn.pack(pady=2)
@@ -635,7 +636,7 @@ class ModMarketplace:
         # 1-Click Install button (if supported)
         if mod_data["platform"] == "gamebanana":
             one_click_btn = customtkinter.CTkButton(
-                button_frame, text="1-Click Install", width=100, height=25,
+                button_frame, text=t("one_click_install"), width=100, height=25,
                 fg_color=platform_color, hover_color=self._adjust_color(platform_color, -20),
                 command=lambda: self._one_click_install(mod_data)
             )
@@ -716,8 +717,8 @@ class ModMarketplace:
         
         # Show loading
         loading_label = customtkinter.CTkLabel(
-            self.results_frame, text="Loading featured mods...",
-            font=("Arial", 12), text_color="gray50"
+            self.results_frame, text=t("loading_featured"),
+            font=("Arial", 12), text_color=("gray60", "gray50")
         )
         loading_label.pack(pady=50)
         
@@ -991,7 +992,7 @@ class ModMarketplace:
             widget.destroy()
         
         error_label = customtkinter.CTkLabel(
-            self.results_frame, text="Error loading mods. Please try again.",
+            self.results_frame, text=t("error_loading_mods"),
             font=("Arial", 12), text_color="#ff6b6b"
         )
         error_label.pack(pady=50)

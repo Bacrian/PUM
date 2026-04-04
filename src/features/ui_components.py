@@ -51,8 +51,8 @@ class PreviewRenderer:
         
         for icon, mode, tooltip in modes:
             is_active = self.view_mode == mode
-            color = self.app._accent_color() if is_active else "gray20"
-            text_color = "white" if is_active else "gray60"
+            color = self.app._accent_color() if is_active else ("gray85", "gray20")
+            text_color = "white" if is_active else ("gray60", "gray60")
             
             btn = customtkinter.CTkButton(
                 toggle_frame,
@@ -81,7 +81,7 @@ class PreviewRenderer:
         # Try to extract model from .pak files
         model_data = self._extract_model_from_pak(mod)
         
-        viewer_frame = customtkinter.CTkFrame(parent, fg_color="gray15", corner_radius=10)
+        viewer_frame = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray15"), corner_radius=10)
         viewer_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Header
@@ -103,7 +103,7 @@ class PreviewRenderer:
                 viewer_frame,
                 text=info_text,
                 font=("Arial", 10),
-                text_color="gray60"
+                text_color=("gray60", "gray60")
             ).pack(pady=5)
             
             # Get the pak_file and model_files in the correct scope
@@ -127,7 +127,7 @@ class PreviewRenderer:
                 viewer_frame,
                 text="📦 No 3D Model\n\nThis mod doesn't contain\na recognizable 3D model file.",
                 font=("Arial", 11),
-                text_color="gray50"
+                text_color=("gray60", "gray50")
             ).pack(expand=True, pady=20)
         
         return viewer_frame
@@ -205,7 +205,7 @@ class PreviewRenderer:
     
     def _create_preview_image_section(self, parent, mod, show_title=True, max_size=None):
         """Create the mod preview image section."""
-        preview_frame = customtkinter.CTkFrame(parent, fg_color="gray15", corner_radius=10)
+        preview_frame = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray15"), corner_radius=10)
         preview_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Header (only if enabled and 3D viewer is active)
@@ -287,7 +287,7 @@ class PreviewRenderer:
                     preview_frame,
                     text="No Preview Image",
                     font=("Arial", 11),
-                    text_color="gray50"
+                    text_color=("gray60", "gray50")
                 ).pack(expand=True)
         except Exception as e:
             print(f"Error loading preview: {e}")
@@ -303,7 +303,7 @@ class PreviewRenderer:
     def _create_info_section(self, parent, mod):
         """Create the mod info section at bottom."""
         # Use scrollable frame for info section
-        info_frame = customtkinter.CTkScrollableFrame(parent, fg_color="gray15", corner_radius=10, height=180)
+        info_frame = customtkinter.CTkScrollableFrame(parent, fg_color=("gray90", "gray15"), corner_radius=10, height=180)
         info_frame.pack(fill="both", expand=True, padx=5, pady=5)
         
         # Inner content frame
@@ -325,7 +325,7 @@ class PreviewRenderer:
             content,
             text=f"by {author}",
             font=("Arial", 12),
-            text_color="gray60",
+            text_color=("gray60", "gray60"),
             anchor="w"
         ).pack(fill="x", pady=(0, 5))
         
@@ -335,19 +335,22 @@ class PreviewRenderer:
         
         version = mod.get("version", "1.0")
         category = mod.get("category", "Other")
+        # Translate category for display
+        category_map = {"Skin": t("cat_skin"), "Voice": t("cat_voice"), "UI": t("cat_ui"), "Music": t("cat_music"), "Other": t("cat_other")}
+        display_category = category_map.get(category, category)
         
         customtkinter.CTkLabel(
             meta_frame,
             text=f"📦 v{version}",
             font=("Arial", 10),
-            text_color="gray50"
+            text_color=("gray60", "gray50")
         ).pack(side="left", padx=(0, 15))
         
         customtkinter.CTkLabel(
             meta_frame,
-            text=f"🏷 {category}",
+            text=f"🏷 {display_category}",
             font=("Arial", 10),
-            text_color="gray50"
+            text_color=("gray60", "gray50")
         ).pack(side="left")
         
         # Status toggle
@@ -355,8 +358,8 @@ class PreviewRenderer:
         toggle_frame = customtkinter.CTkFrame(content, fg_color="transparent")
         toggle_frame.pack(fill="x", pady=10)
         
-        toggle_text = "✓ ENABLED" if is_enabled else "○ DISABLED"
-        toggle_color = self.app._accent_color() if is_enabled else "gray30"
+        toggle_text = f"✓ {t('enabled').upper()}" if is_enabled else f"○ {t('disabled').upper()}"
+        toggle_color = self.app._accent_color() if is_enabled else ("gray80", "gray30")
         
         def toggle_mod_state():
             name = mod.get('name')
@@ -387,7 +390,7 @@ class PreviewRenderer:
                 desc_frame,
                 text=description,
                 font=("Arial", 11),
-                text_color="gray70",
+                text_color=("gray50", "gray70"),
                 wraplength=300,
                 anchor="w",
                 justify="left"
@@ -400,8 +403,8 @@ class PreviewRenderer:
         # Configure Parts button (for mods with options)
         if mod.get("has_options"):
             customtkinter.CTkButton(
-                btn_frame, text="⚙ Configure Parts", height=32, 
-                fg_color="#da8938", hover_color="#c05b17",
+                btn_frame, text=f"⚙ {t('configure_parts')}", height=32, 
+                fg_color=("#da8938", "#da8938"), hover_color=("#c05b17", "#c05b17"),
                 command=lambda: self.app.open_mod_config(mod)
             ).pack(fill="x", pady=(0, 5))
         
@@ -411,8 +414,8 @@ class PreviewRenderer:
         
         # Edit Mod Info button
         customtkinter.CTkButton(
-            bottom_btn_frame, text="✎ Edit Info", height=32, 
-            fg_color="gray25", hover_color="gray35",
+            bottom_btn_frame, text=f"✎ {t('edit_info')}", height=32, 
+            fg_color=("gray85", "gray25"), hover_color=("gray80", "gray35"),
             command=self.app.open_metadata_editor
         ).pack(side="left", padx=(0, 5), expand=True, fill="x")
         
@@ -420,7 +423,7 @@ class PreviewRenderer:
         url = mod.get("url", "").strip()
         if url:
             customtkinter.CTkButton(
-                bottom_btn_frame, text="🌐 View Online", height=32, 
+                bottom_btn_frame, text=f"🌐 {t('view_online')}", height=32, 
                 fg_color=self.app._accent_color(), hover_color=self.app._hover_color(),
                 command=lambda: os.startfile(url)
             ).pack(side="left", padx=(5, 0), expand=True, fill="x")
@@ -476,7 +479,7 @@ class PreviewRenderer:
                     left_frame,
                     text="3D Viewer Disabled",
                     font=("Arial", 11),
-                    text_color="gray40"
+                    text_color=("gray50", "gray40")
                 )
                 placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
