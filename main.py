@@ -31,7 +31,7 @@ except ImportError:
 # Import core modules
 from src.core.constants import (
     APP_VERSION, ASSETS_DIR, PREVIEW_SIZE,
-    DEFAULT_ACCENT_COLOR, AUTO_REFRESH_INTERVAL, PROTOCOL_CHECK_DELAY,
+    DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR, AUTO_REFRESH_INTERVAL, PROTOCOL_CHECK_DELAY,
     UPDATE_CHECK_DELAY, CONFIG_FILE
 )
 from src.core.config import get_game_registry, save_config, load_config, load_app_settings
@@ -63,10 +63,13 @@ from src.ui.animations import AnimationHelper
 from src.ui.collapsible_menu import SidebarMenuManager, CollapsibleMenu, FloatingMenuSection
 
 # Initialize
-customtkinter.set_appearance_mode("dark")
 ensure_assets_exist()
 _initial_app_settings = load_app_settings()
 init_translations(_initial_app_settings.get("language", "English"))
+
+# Set appearance mode from saved settings
+saved_theme = _initial_app_settings.get("appearance", "Dark")
+customtkinter.set_appearance_mode(saved_theme.lower())
 # endregion
 
 class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
@@ -186,7 +189,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         
         self.ver_label = customtkinter.CTkLabel(
             self.sidebar_frame, text=f"{t('version_label')} {APP_VERSION}", 
-            font=("Arial", 11), text_color="gray50"
+            font=("Arial", 11), text_color=("gray50", "gray50")
         )
         self.ver_label.grid(row=1, column=0, padx=22, pady=(0, 20), sticky="w")
 
@@ -201,7 +204,11 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             self.sidebar_frame,
             values=[t("all_categories"), t("cat_skin"), t("cat_voice"), t("cat_ui"), t("cat_music"), t("cat_other")],
             command=lambda _: self.refresh_logic(),
-            fg_color="gray25", button_color="gray30"
+            fg_color=("gray85", "gray25"), 
+            text_color=("gray10", "gray90"),
+            dropdown_text_color=("gray10", "gray90"),
+            button_color=(self._accent_color(), self._accent_color()),
+            button_hover_color=(self._hover_color(), self._hover_color())
         )
         self.cat_filter.grid(row=6, column=0, padx=20, pady=5, sticky="ew")
 
@@ -213,7 +220,11 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             values=self.get_saved_profiles(),
             variable=self.profile_var,
             command=self.load_profile_event,
-            fg_color="gray25", button_color="gray30"
+            fg_color=("gray85", "gray25"), 
+            text_color=("gray10", "gray90"),
+            dropdown_text_color=("gray10", "gray90"),
+            button_color=(self._accent_color(), self._accent_color()),
+            button_hover_color=(self._hover_color(), self._hover_color())
         )
         self.profile_menu.grid(row=8, column=0, padx=20, pady=5, sticky="ew")
         
@@ -411,7 +422,11 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             header,
             values=[game["name"] for game in get_game_registry()],
             command=self.switch_game,
-            fg_color="gray25", button_color="gray30",
+            fg_color=("gray85", "gray25"), 
+            text_color=("gray10", "gray90"),
+            dropdown_text_color=("gray10", "gray90"),
+            button_color=(self._accent_color(), self._accent_color()),
+            button_hover_color=(self._hover_color(), self._hover_color()),
             width=200
         )
         game_selector_header.set(self.active_game_name)
@@ -424,11 +439,12 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         )
         self.play_btn.pack(side="right")
 
-        # Paned view
-        self.paned_view = tkinter.PanedWindow(self.mod_manager_root, orient="horizontal", bg="#1a1a1a", bd=0, sashwidth=4, sashpad=0)
+        # Paned view - use theme-aware background color
+        bg_color = "gray80" if customtkinter.get_appearance_mode() == "Light" else "gray15"
+        self.paned_view = tkinter.PanedWindow(self.mod_manager_root, orient="horizontal", bg=bg_color, bd=0, sashwidth=4, sashpad=0)
         self.paned_view.grid(row=1, column=0, sticky="nsew")
 
-        self.list_container = customtkinter.CTkFrame(self.paned_view, fg_color="gray12", corner_radius=15)
+        self.list_container = customtkinter.CTkFrame(self.paned_view, fg_color=("gray98", "gray12"), corner_radius=15)
         self.list_container.grid_rowconfigure(1, weight=1)
         self.list_container.grid_columnconfigure(0, weight=1)
 
@@ -449,7 +465,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.modlist_frame = customtkinter.CTkFrame(self.list_container, fg_color="transparent")
         self.modlist_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 10))
 
-        self.config_frame = customtkinter.CTkFrame(self.paned_view, fg_color="gray12", corner_radius=15)
+        self.config_frame = customtkinter.CTkFrame(self.paned_view, fg_color=("gray98", "gray12"), corner_radius=15)
         self.paned_view.add(self.list_container, minsize=400)
         self.paned_view.add(self.config_frame, minsize=350)
 
@@ -483,18 +499,18 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self._clear_view(animate=False)
 
     def _sidebar_header(self, row, text):
-        lbl = customtkinter.CTkLabel(self.sidebar_frame, text=text, font=("Arial", 11, "bold"), text_color="gray40")
+        lbl = customtkinter.CTkLabel(self.sidebar_frame, text=text, font=("Arial", 11, "bold"), text_color=("gray40", "gray60"))
         lbl.grid(row=row, column=0, padx=20, pady=(20, 5), sticky="w")
 
     def _sidebar_subheader(self, row, text):
         """Smaller subheader for grouping items under Tools."""
-        lbl = customtkinter.CTkLabel(self.sidebar_frame, text=text, font=("Arial", 10), text_color="gray60")
+        lbl = customtkinter.CTkLabel(self.sidebar_frame, text=text, font=("Arial", 10), text_color=("gray50", "gray50"))
         lbl.grid(row=row, column=0, padx=25, pady=(10, 2), sticky="w")
 
     def _sidebar_btn(self, row, text, command):
         btn = customtkinter.CTkButton(
             self.sidebar_frame, text=text, anchor="w", 
-            fg_color="transparent", text_color="gray80", hover_color="gray25",
+            fg_color="transparent", text_color=("gray20", "gray80"), hover_color=("gray75", "gray25"),
             height=35, command=command
         )
         btn.grid(row=row, column=0, padx=10, pady=2, sticky="ew")
@@ -504,7 +520,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         """Create a sidebar button for use in collapsible menus (uses pack)."""
         btn = customtkinter.CTkButton(
             master, text=text, anchor="w", 
-            fg_color="transparent", text_color="gray80", hover_color="gray25",
+            fg_color="transparent", text_color=("gray20", "gray80"), hover_color=("gray75", "gray25"),
             height=35, command=command
         )
         btn.pack(fill="x", padx=5, pady=2)
@@ -556,12 +572,13 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.profile_manager.ensure_default_profile_exists()
 
     # --- UI Helpers ---
+    def _primary_color(self): return self.app_settings.get("primary_color", DEFAULT_PRIMARY_COLOR)
     def _accent_color(self): return self.app_settings.get("accent_color", DEFAULT_ACCENT_COLOR)
     def _hover_color(self, pct=0.18):
         try:
             h = self._accent_color().lstrip('#')
             r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-            return f"#{max(0,int(r*(1-pct))):02x}{max(0,int(g*(1-pct))):02x}{max(0,int(b*(1-pct))):02x}"
+            return f"#{max(0,int(r*(1-pct))):02x}{max(0,int(r*(1-pct))):02x}{max(0,int(r*(1-pct))):02x}"
         except Exception: return "#13775c"
 
     def _blend_color(self, color, alpha):
@@ -1551,7 +1568,7 @@ TIPS
         self.editor_window.grid_rowconfigure(0, weight=1)
         left_frame = customtkinter.CTkFrame(self.editor_window, fg_color="transparent")
         left_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
-        img_box = customtkinter.CTkFrame(left_frame, fg_color="gray18", corner_radius=15)
+        img_box = customtkinter.CTkFrame(left_frame, fg_color=("gray95", "gray18"), corner_radius=15)
         img_box.pack(fill="x", pady=(0, 10))
         editor_preview_label = customtkinter.CTkLabel(img_box, text="", width=320, height=180)
         editor_preview_label.pack(pady=15)
@@ -1570,11 +1587,13 @@ TIPS
                     shutil.copy(path, Path(self.focused_mod["folder_path"]) / "preview.png")
                     self.focused_mod["screenshot"] = "preview.png"; update_editor_preview()
                 except: pass
-        customtkinter.CTkButton(img_box, text=t("change_cover_image"), fg_color="gray25", command=change_img).pack(pady=(0, 15))
-        parts_box = customtkinter.CTkFrame(left_frame, fg_color="gray18", corner_radius=15)
+        customtkinter.CTkButton(img_box, text=t("change_cover_image"), fg_color=("gray85", "gray25"), command=change_img).pack(pady=(0, 15))
+        parts_box = customtkinter.CTkFrame(left_frame, fg_color=("gray95", "gray18"), corner_radius=15)
         parts_box.pack(fill="both", expand=True)
         has_opts_var = customtkinter.BooleanVar(value=self.focused_mod.get("has_options", False))
-        opts_cb = customtkinter.CTkCheckBox(parts_box, text=t("multipart_support"), variable=has_opts_var)
+        opts_cb = customtkinter.CTkCheckBox(parts_box, text=t("multipart_support"), variable=has_opts_var,
+            fg_color=(self._accent_color(), self._accent_color()),
+            hover_color=(self._hover_color(), self._hover_color()))
         opts_cb.pack(anchor="w", padx=15, pady=10)
         opts_scroll = customtkinter.CTkScrollableFrame(parts_box, fg_color="transparent", height=150)
         opts_scroll.pack(fill="both", expand=True, padx=5, pady=(0, 10))
@@ -1623,7 +1642,13 @@ TIPS
                 category_map = {"Skin": t("cat_skin"), "Voice": t("cat_voice"), "UI": t("cat_ui"), "Music": t("cat_music"), "Other": t("cat_other")}
                 stored_cat = self.focused_mod.get("category", "Other")
                 category_var = customtkinter.StringVar(value=category_map.get(stored_cat, stored_cat))
-                category_menu = customtkinter.CTkOptionMenu(right_frame, variable=category_var, values=[t("cat_skin"), t("cat_voice"), t("cat_ui"), t("cat_music"), t("cat_other")], width=200)
+                category_menu = customtkinter.CTkOptionMenu(right_frame, variable=category_var, 
+                    values=[t("cat_skin"), t("cat_voice"), t("cat_ui"), t("cat_music"), t("cat_other")], width=200,
+                    text_color=("gray10", "gray90"),
+                    dropdown_text_color=("gray10", "gray90"),
+                    fg_color=(self._accent_color(), self._accent_color()),
+                    button_color=(self._accent_color(), self._accent_color()),
+                    button_hover_color=(self._hover_color(), self._hover_color()))
                 category_menu.pack(fill="x", pady=(2, 12))
                 entries[key] = category_var
             else:
@@ -1631,7 +1656,7 @@ TIPS
                 entry = customtkinter.CTkEntry(right_frame, height=32); entry.insert(0, self.focused_mod.get(key, ""))
                 entry.pack(fill="x", pady=(2, 12)); entries[key] = entry
         customtkinter.CTkLabel(right_frame, text=t("description_label"), font=("Arial", 12, "bold"), anchor="w").pack(fill="x")
-        desc_text = customtkinter.CTkTextbox(right_frame, height=150, fg_color="gray18"); desc_text.insert("0.0", self.focused_mod.get("description", "")); desc_text.pack(fill="x", pady=(2, 10))
+        desc_text = customtkinter.CTkTextbox(right_frame, height=150, fg_color=("gray95", "gray18")); desc_text.insert("0.0", self.focused_mod.get("description", "")); desc_text.pack(fill="x", pady=(2, 10))
         def save():
             new_options = []
             if has_opts_var.get():
@@ -1686,12 +1711,16 @@ TIPS
         normalized_options = [normalize_option(opt) for opt in options_list]
         for opt in normalized_options:
             var = customtkinter.BooleanVar(value=opt["file"] in current_opts)
-            customtkinter.CTkCheckBox(scroll, text=opt["name"], variable=var).pack(anchor="w", pady=8, padx=10)
+            customtkinter.CTkCheckBox(scroll, text=opt["name"], variable=var,
+                fg_color=(self._accent_color(), self._accent_color())).pack(anchor="w", pady=8, padx=10)
             vars_map[opt["file"]] = var
         def apply():
             self.mod_options[mod["name"]] = [f for f, v in vars_map.items() if v.get()]
             save_config(self.current_path, self.saved_mods, self.mod_options, self.app_settings); self.config_parts_window.destroy()
-        customtkinter.CTkButton(self.config_parts_window, text=t("apply_button"), command=apply).pack(pady=20)
+        customtkinter.CTkButton(self.config_parts_window, text=t("apply_button"), 
+            fg_color=(self._accent_color(), self._accent_color()),
+            hover_color=(self._hover_color(), self._hover_color()),
+            command=apply).pack(pady=20)
 
 if __name__ == "__main__":
     myappid = 'bacrian.pum.modmanager'

@@ -3,6 +3,8 @@ __init__.py
 __pycache__/
 venv/
 scripts/__pycache__/
+.vscode/
+.idea/
 /.vscode/settings.json
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/.gitignore

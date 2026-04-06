@@ -52,7 +52,7 @@ class PreviewRenderer:
         for icon, mode, tooltip in modes:
             is_active = self.view_mode == mode
             color = self.app._accent_color() if is_active else ("gray85", "gray20")
-            text_color = "white" if is_active else ("gray60", "gray60")
+            text_color = ("white", "white") if is_active else ("gray60", "gray60")
             
             btn = customtkinter.CTkButton(
                 toggle_frame,
@@ -295,7 +295,7 @@ class PreviewRenderer:
                 preview_frame,
                 text="Error Loading Preview",
                 font=("Arial", 11),
-                text_color="red"
+                text_color=("#d32f2f", "#ff5252")
             ).pack(expand=True)
         
         return preview_frame

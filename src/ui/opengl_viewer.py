@@ -63,8 +63,9 @@ class OpenGLModelViewer(customtkinter.CTkFrame):
             ).pack(expand=True)
             return
         
-        # Create OpenGL frame
-        self.gl_frame = tk.Frame(self, bg='black', width=self.width, height=self.height)
+        # Create OpenGL frame with theme-aware background
+        bg_color = '#e0e0e0' if customtkinter.get_appearance_mode() == 'Light' else 'black'
+        self.gl_frame = tk.Frame(self, bg=bg_color, width=self.width, height=self.height)
         self.gl_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         
         # Create OpenGL canvas
@@ -156,7 +157,9 @@ class OpenGLModelViewer(customtkinter.CTkFrame):
             control_frame,
             text="Auto Rotate",
             variable=self.rotate_var,
-            command=self._toggle_auto_rotate
+            command=self._toggle_auto_rotate,
+            fg_color=(self.app._accent_color(), self.app._accent_color()),
+            hover_color=(self.app._hover_color(), self.app._hover_color())
         )
         rotate_check.pack(side="left", padx=5, pady=5)
         
@@ -165,7 +168,9 @@ class OpenGLModelViewer(customtkinter.CTkFrame):
         wireframe_check = customtkinter.CTkCheckBox(
             control_frame,
             text="Wireframe",
-            variable=self.wireframe_var
+            variable=self.wireframe_var,
+            fg_color=(self.app._accent_color(), self.app._accent_color()),
+            hover_color=(self.app._hover_color(), self.app._hover_color())
         )
         wireframe_check.pack(side="left", padx=5, pady=5)
         

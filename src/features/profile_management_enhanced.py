@@ -602,7 +602,9 @@ class ProfileManager:
             mod_frame = customtkinter.CTkFrame(scroll_frame, fg_color="transparent")
             mod_frame.pack(fill="x", pady=2, padx=5)
             
-            cb = customtkinter.CTkCheckBox(mod_frame, text=f"{mod['name']}", variable=var, font=("Arial", 11, "bold"))
+            cb = customtkinter.CTkCheckBox(mod_frame, text=f"{mod['name']}", variable=var, font=("Arial", 11, "bold"),
+                fg_color=(self.app._accent_color(), self.app._accent_color()),
+                hover_color=(self.app._hover_color(), self.app._hover_color()))
             cb.pack(anchor="w", pady=2)
             
             if mod.get('url'):
@@ -628,8 +630,10 @@ class ProfileManager:
         def skip_download():
             dialog.destroy()
         
-        customtkinter.CTkButton(btn_frame, text="Download Selected", fg_color=("#1a9f84", "#1a9f84"),
-                               command=download_selected).pack(side="left", padx=10)
+        customtkinter.CTkButton(btn_frame, text="Download Selected", 
+            fg_color=(self.app._accent_color(), self.app._accent_color()),
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
+            command=download_selected).pack(side="left", padx=10)
         customtkinter.CTkButton(btn_frame, text="Skip", fg_color=("gray85", "gray35"),
                                command=skip_download).pack(side="right", padx=10)
     

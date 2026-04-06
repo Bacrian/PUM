@@ -39,7 +39,7 @@ class BackupManagerWindow:
         
         customtkinter.CTkLabel(
             header_frame, text=t("backup_manager"), 
-            font=("Arial", 16, "bold")
+            font=("Arial", 16, "bold"), text_color=("black", "white")
         ).pack(side="left", padx=15, pady=10)
         
         # Action buttons
@@ -48,19 +48,22 @@ class BackupManagerWindow:
         
         customtkinter.CTkButton(
             button_frame, text=t("create_backup"), width=100,
-            fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
+            fg_color=(self.app._accent_color(), self.app._accent_color()), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=self._create_manual_backup
         ).pack(side="left", padx=5)
         
         customtkinter.CTkButton(
             button_frame, text=t("import"), width=80,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
+            text_color=("gray10", "gray90"),
             command=self._import_backup
         ).pack(side="left", padx=5)
         
         customtkinter.CTkButton(
             button_frame, text=t("export"), width=80,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
+            text_color=("gray10", "gray90"),
             command=self._export_backup
         ).pack(side="left", padx=5)
         
@@ -73,7 +76,7 @@ class BackupManagerWindow:
         left_panel.pack(side="left", fill="both", expand=True, padx=(10, 5), pady=10)
         
         customtkinter.CTkLabel(
-            left_panel, text=t("backups"), font=("Arial", 12, "bold")
+            left_panel, text=t("backups"), font=("Arial", 12, "bold"), text_color=("gray20", "gray80")
         ).pack(anchor="w", padx=10, pady=(10, 5))
         
         # Backup listbox
@@ -88,12 +91,12 @@ class BackupManagerWindow:
         right_panel.pack_propagate(False)
         
         customtkinter.CTkLabel(
-            right_panel, text=t("details"), font=("Arial", 12, "bold")
+            right_panel, text=t("details"), font=("Arial", 12, "bold"), text_color=("gray20", "gray80")
         ).pack(anchor="w", padx=10, pady=(10, 5))
         
         # Details text
         self.details_text = customtkinter.CTkTextbox(
-            right_panel, height=150, font=("Consolas", 10)
+            right_panel, height=150, font=("Consolas", 10), text_color=("black", "white")
         )
         self.details_text.pack(fill="x", padx=10, pady=(0, 10))
         
@@ -103,7 +106,8 @@ class BackupManagerWindow:
         
         self.restore_btn = customtkinter.CTkButton(
             action_frame, text=t("restore"), height=35,
-            fg_color=("#1a9f84", "#1a9f84"), hover_color=("#2ab398", "#2ab398"),
+            fg_color=(self.app._accent_color(), self.app._accent_color()), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=self._restore_backup, state="disabled"
         )
         self.restore_btn.pack(fill="x", pady=5)
@@ -120,23 +124,28 @@ class BackupManagerWindow:
         settings_frame.pack(fill="x", padx=10, pady=10)
         
         customtkinter.CTkLabel(
-            settings_frame, text=t("settings"), font=("Arial", 11, "bold")
+            settings_frame, text=t("settings"), font=("Arial", 11, "bold"), text_color=("gray20", "gray80")
         ).pack(anchor="w", padx=10, pady=(10, 5))
         
         customtkinter.CTkLabel(
-            settings_frame, text=t("max_backups_per_game"), font=("Arial", 10)
+            settings_frame, text=t("max_backups_per_game"), font=("Arial", 10), text_color=("gray30", "gray70")
         ).pack(anchor="w", padx=10, pady=(5, 0))
         
         self.max_backups_var = customtkinter.StringVar(value="10")
         max_backups_menu = customtkinter.CTkOptionMenu(
             settings_frame, values=["5", "10", "15", "20", "30"],
-            variable=self.max_backups_var, width=200
+            variable=self.max_backups_var, width=200,
+            text_color=("gray10", "gray90"),
+            dropdown_text_color=("gray10", "gray90"),
+            button_color=(self.app._accent_color(), self.app._accent_color()),
+            button_hover_color=(self.app._hover_color(), self.app._hover_color())
         )
         max_backups_menu.pack(anchor="w", padx=10, pady=5)
         
         customtkinter.CTkButton(
             settings_frame, text=t("save_settings"), height=30,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
+            text_color=("gray10", "gray90"),
             command=self._save_settings
         ).pack(fill="x", padx=10, pady=10)
         
@@ -157,7 +166,7 @@ class BackupManagerWindow:
         if not backups:
             customtkinter.CTkLabel(
                 self.backup_listbox, text=t("no_backups_found"),
-                font=("Arial", 11), text_color=("gray60", "gray50")
+                font=("Arial", 11), text_color=("gray40", "gray60")
             ).pack(pady=20)
             return
         
@@ -175,13 +184,13 @@ class BackupManagerWindow:
             
             name_label = customtkinter.CTkLabel(
                 info_frame, text=backup["name"].replace(".zip", ""),
-                font=("Arial", 11, "bold"), anchor="w"
+                font=("Arial", 11, "bold"), anchor="w", text_color=("black", "white")
             )
             name_label.pack(fill="x")
             
             date_label = customtkinter.CTkLabel(
                 info_frame, text=f"{backup['timestamp']} • {backup['size_mb']} MB",
-                font=("Arial", 9), text_color=("gray60", "gray60"), anchor="w"
+                font=("Arial", 9), text_color=("gray40", "gray60"), anchor="w"
             )
             date_label.pack(fill="x")
             
@@ -189,7 +198,7 @@ class BackupManagerWindow:
             if backup.get("description"):
                 desc_label = customtkinter.CTkLabel(
                     info_frame, text=backup["description"],
-                    font=("Arial", 9), text_color=("gray60", "gray50"), anchor="w"
+                    font=("Arial", 9), text_color=("gray40", "gray60"), anchor="w"
                 )
                 desc_label.pack(fill="x")
             
@@ -237,7 +246,7 @@ class BackupManagerWindow:
         
         customtkinter.CTkLabel(
             dialog, text=t("backup_description_optional"),
-            font=("Arial", 11)
+            font=("Arial", 11), text_color=("black", "white")
         ).pack(pady=20)
         
         desc_entry = customtkinter.CTkEntry(dialog, width=300)
@@ -280,13 +289,15 @@ class BackupManagerWindow:
         
         customtkinter.CTkButton(
             button_frame, text=t("create"), width=100,
-            fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
+            fg_color=(self.app._accent_color(), self.app._accent_color()), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=create
         ).pack(side="left", padx=10)
         
         customtkinter.CTkButton(
             button_frame, text=t("btn_cancel"), width=100,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
+            text_color=("gray10", "gray90"),
             command=dialog.destroy
         ).pack(side="left", padx=10)
     

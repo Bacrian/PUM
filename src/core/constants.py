@@ -2,8 +2,7 @@
 import customtkinter
 from pathlib import Path
 
-# App constants
-customtkinter.set_appearance_mode("dark")
+# App constants - Theme is set in main.py from user settings
 theme = "dark"
 dynamic_text_color = ("black", "white")
 APP_VERSION = "1.3.0"
@@ -24,6 +23,7 @@ BUTTON_HEIGHT = 28
 SMALL_BUTTON_HEIGHT = 20
 
 # Colors
+DEFAULT_PRIMARY_COLOR = "#1e2a2e"
 DEFAULT_ACCENT_COLOR = "#1a9f84"
 SAVE_BUTTON_COLOR = "#da8938"
 DELETE_BUTTON_COLOR = "#8c1c1c"

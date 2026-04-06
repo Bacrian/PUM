@@ -43,7 +43,9 @@ class ReloadedStyleUI:
             variable=self.app.mod_set_var,
             command=self._on_mod_set_change,
             width=150,
-            height=BUTTON_HEIGHT
+            height=BUTTON_HEIGHT,
+            button_color=(self.app._accent_color(), self.app._accent_color()),
+            button_hover_color=(self.app._hover_color(), self.app._hover_color())
         )
         self.app.mod_set_menu.pack(side="left", padx=(5, 10), pady=5)
         
@@ -124,7 +126,9 @@ class ReloadedStyleUI:
             row2_frame,
             text="Show Favorites Only",
             variable=self.app.favorites_only_var,
-            command=self._toggle_favorites_filter
+            command=self._toggle_favorites_filter,
+            fg_color=(self.app._accent_color(), self.app._accent_color()),
+            hover_color=(self.app._hover_color(), self.app._hover_color())
         )
         self.app.favorites_checkbox.pack(side="left", padx=5, pady=5)
         
@@ -137,8 +141,8 @@ class ReloadedStyleUI:
             text="Deploy Selected",
             width=120,
             height=SMALL_BUTTON_HEIGHT,
-            fg_color=("#1a9f84", "#1a9f84"),
-            hover_color=("#13775c", "#13775c"),
+            fg_color=(self.app._accent_color(), self.app._accent_color()),
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=self._deploy_selected_mods
         ).pack(side="left", padx=5, pady=5)
         
