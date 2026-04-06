@@ -47,92 +47,17 @@ class URLHandler:
         # Close any open floating menus first
         self._close_floating_menus()
         
-        # Create custom URL input dialog with accent colors
-        url = self._show_url_input_dialog()
+        dialog = customtkinter.CTkInputDialog(
+            text=t("enter_url"),
+            title=t("download_mod")
+        )
+        url = dialog.get_input()
         
         if url and url.strip():
             url = url.strip()
             if url.startswith("www."):
                 url = "https://" + url
             self._initiate_url_download(url)
-    
-    def _show_url_input_dialog(self):
-        """Show custom URL input dialog with accent colored buttons."""
-        dialog = customtkinter.CTkToplevel(self.app)
-        dialog.title(t("download_mod"))
-        dialog.geometry("450x180")
-        dialog.transient(self.app)
-        dialog.grab_set()
-        dialog.resizable(False, False)
-        
-        # Center dialog
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (450 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (180 // 2)
-        dialog.geometry(f"+{x}+{y}")
-        
-        # Main container
-        container = customtkinter.CTkFrame(dialog, fg_color="transparent")
-        container.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # Label
-        customtkinter.CTkLabel(
-            container,
-            text=t("enter_url"),
-            font=("Arial", 12, "bold")
-        ).pack(anchor="w", pady=(0, 10))
-        
-        # URL entry
-        url_var = tkinter.StringVar()
-        entry = customtkinter.CTkEntry(
-            container,
-            textvariable=url_var,
-            width=400,
-            height=32
-        )
-        entry.pack(fill="x", pady=(0, 15))
-        entry.focus()
-        
-        result = [None]
-        
-        def on_ok():
-            result[0] = url_var.get()
-            dialog.destroy()
-        
-        def on_cancel():
-            dialog.destroy()
-        
-        # Bind Enter key
-        entry.bind("<Return>", lambda e: on_ok())
-        
-        # Buttons frame
-        btn_frame = customtkinter.CTkFrame(container, fg_color="transparent")
-        btn_frame.pack(fill="x")
-        
-        # OK button with accent color
-        customtkinter.CTkButton(
-            btn_frame,
-            text="OK",
-            command=on_ok,
-            width=100,
-            fg_color=self.app._accent_color(),
-            hover_color=self.app._hover_color(),
-            font=("Arial", 11, "bold")
-        ).pack(side="left", padx=(0, 10))
-        
-        # Cancel button with accent color
-        customtkinter.CTkButton(
-            btn_frame,
-            text=t("cancel"),
-            command=on_cancel,
-            width=100,
-            fg_color=self.app._accent_color(),
-            hover_color=self.app._hover_color(),
-            font=("Arial", 11)
-        ).pack(side="left")
-        
-        dialog.wait_window()
-        return result[0]
     
     def download_mod_silently(self, url, game_name=None):
         """Download a mod from URL without showing metadata dialogs.
@@ -623,9 +548,7 @@ Do you want to continue downloading anyway?"""
                                  font=("Arial", 11)).pack(side="left", padx=10, pady=8)
         else:
             customtkinter.CTkOptionMenu(game_frame, values=available_games, variable=game_var,
-                                       width=200,
-                                       button_color=(self.app._accent_color(), self.app._accent_color()),
-                                       button_hover_color=(self.app._hover_color(), self.app._hover_color())).pack(side="left", padx=10, pady=8)
+                                       width=200).pack(side="left", padx=10, pady=8)
         
         # Files section
         files = mod_data.get('files', [])
@@ -645,9 +568,7 @@ Do you want to continue downloading anyway?"""
                     fname = fname[:47] + "..."
                 
                 customtkinter.CTkCheckBox(files_frame, text=fname, variable=var,
-                                          font=("Arial", 10),
-                                          fg_color=(self.app._accent_color(), self.app._accent_color()),
-                                          hover_color=(self.app._hover_color(), self.app._hover_color())).pack(anchor="w", padx=10, pady=3)
+                                          font=("Arial", 10)).pack(anchor="w", padx=10, pady=3)
         else:
             file_vars = []
         
@@ -695,10 +616,8 @@ Do you want to continue downloading anyway?"""
         
         # Cancel button  
         cncl_btn = customtkinter.CTkButton(btn_frame, text=t("cancel"), command=cancel,
-                                          width=130, height=32, 
-                                          fg_color=(self.app._accent_color(), self.app._accent_color()),
-                                          hover_color=(self.app._hover_color(), self.app._hover_color()), 
-                                          font=("Arial", 12))
+                                          width=130, height=32, fg_color=("gray85", "gray35"),
+                                          hover_color=("gray80", "gray45"), font=("Arial", 12))
         cncl_btn.pack(side="right", padx=20)
         
         # Also store cancel button reference
@@ -1240,7 +1159,7 @@ Do you want to continue downloading anyway?"""
             customtkinter.CTkLabel(
                 content_frame, text="1-Click Mod Install",
                 font=("Arial", 16, "bold"),
-                text_color=(self.app._accent_color(), self.app._accent_color())
+                text_color="#1a9f84"
             ).pack(pady=(10, 15))
             
             # Info text

@@ -9,8 +9,7 @@ from pathlib import Path
 
 from src.core.localization import t, list_available_languages, _guess_lang_code
 from src.core.config import save_config, load_app_settings, get_game_registry, update_game_path_in_registry, update_game_path_by_name_in_registry
-from src.core.constants import ASSETS_DIR, DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR
-from src.features.appearance_manager import AppearanceManager
+from src.core.constants import ASSETS_DIR, DEFAULT_ACCENT_COLOR
 
 class SettingsManager:
     """Manages a professional settings window with organized tabs."""
@@ -42,17 +41,15 @@ class SettingsManager:
         self.main_container.pack(fill="both", expand=True, padx=20, pady=20)
 
         # Title Header
-        title_lbl = customtkinter.CTkLabel(self.main_container, text=t("settings"), font=("Arial", 24, "bold"), text_color=("black", "white"))
+        title_lbl = customtkinter.CTkLabel(self.main_container, text=t("settings"), font=("Arial", 24, "bold"))
         title_lbl.pack(anchor="w", pady=(0, 10))
 
         # --- TABVIEW ---
         self.tabview = customtkinter.CTkTabview(self.main_container, width=500, height=350, 
-                                               anchor="w", segmented_button_selected_color=self.app._accent_color(),
-                                               text_color=("gray20", "gray80"))
+                                               anchor="w", segmented_button_selected_color=self.app._accent_color())
         self.tabview.pack(fill="both", expand=True)
 
         self.tab_ui = self.tabview.add(t("tab_interface"))
-        self.tab_appearance = self.tabview.add(t("tab_appearance"))
         self.tab_sys = self.tabview.add(t("tab_behavior"))
         self.tab_game = self.tabview.add(t("tab_game"))
 
@@ -65,11 +62,7 @@ class SettingsManager:
         
         self.lang_menu = customtkinter.CTkOptionMenu(
             self.tab_ui, values=lang_names, width=220,
-            fg_color=("gray90", "gray20"), 
-            text_color=("gray10", "gray90"),
-            dropdown_text_color=("gray10", "gray90"),
-            button_color=(self.app._accent_color(), self.app._accent_color()),
-            button_hover_color=(self.app._hover_color(), self.app._hover_color()),
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=self._on_language_change
         )
         self.lang_menu.set(current_lang)
@@ -82,20 +75,27 @@ class SettingsManager:
         display_theme = theme_display_map.get(current_theme, current_theme)
         self.theme_menu = customtkinter.CTkOptionMenu(
             self.tab_ui, values=[t("dark_theme"), t("light_theme"), t("system_theme")], width=220,
-            fg_color=("gray90", "gray20"), 
-            text_color=("gray10", "gray90"),
-            dropdown_text_color=("gray10", "gray90"),
-            button_color=(self.app._accent_color(), self.app._accent_color()),
-            button_hover_color=(self.app._hover_color(), self.app._hover_color()),
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=self._on_theme_change
         )
         self.theme_menu.set(display_theme)
         self.theme_menu.pack(anchor="w", pady=(0, 20))
 
-        # --- TAB 2: APPEARANCE (Advanced) ---
-        self.appearance_manager = AppearanceManager(self.app, self.tab_appearance)
+        # Accent
+        self._add_label(self.tab_ui, t("accent_color_label"))
+        color_opts = {t("teal"): "#1a9f84", t("blue"): "#2065d1", t("purple"): "#7b61ff", t("red"): "#d14b4b"}
+        current_accent = self.app.app_settings.get("accent_color", DEFAULT_ACCENT_COLOR)
+        current_accent_name = next((k for k, v in color_opts.items() if v == current_accent), t("teal"))
 
-        # --- TAB 3: BEHAVIOR ---
+        self.accent_menu = customtkinter.CTkOptionMenu(
+            self.tab_ui, values=list(color_opts.keys()), width=220,
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
+            command=lambda _: self._on_accent_change(color_opts)
+        )
+        self.accent_menu.set(current_accent_name)
+        self.accent_menu.pack(anchor="w")
+
+        # --- TAB 2: BEHAVIOR ---
         
         # Startup Page Selection
         self._add_label(self.tab_sys, t("startup_page_label"))
@@ -104,11 +104,7 @@ class SettingsManager:
         
         self.startup_menu = customtkinter.CTkOptionMenu(
             self.tab_sys, values=startup_options, width=220,
-            fg_color=("gray90", "gray20"), 
-            text_color=("gray10", "gray90"),
-            dropdown_text_color=("gray10", "gray90"),
-            button_color=(self.app._accent_color(), self.app._accent_color()),
-            button_hover_color=(self.app._hover_color(), self.app._hover_color()),
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=self._on_startup_page_change
         )
         self.startup_menu.set(current_startup)
@@ -122,11 +118,7 @@ class SettingsManager:
         
         self.default_game_menu = customtkinter.CTkOptionMenu(
             self.tab_sys, values=game_names, width=220,
-            fg_color=("gray90", "gray20"), 
-            text_color=("gray10", "gray90"),
-            dropdown_text_color=("gray10", "gray90"),
-            button_color=(self.app._accent_color(), self.app._accent_color()),
-            button_hover_color=(self.app._hover_color(), self.app._hover_color()),
+            fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
             command=self._on_default_game_change
         )
         if current_default_game and current_default_game in game_names:
@@ -161,11 +153,7 @@ class SettingsManager:
 
             self.game_select = customtkinter.CTkOptionMenu(
                 self.tab_game, values=self.game_names, width=350,
-                fg_color=("gray90", "gray20"), 
-                text_color=("gray10", "gray90"),
-                dropdown_text_color=("gray10", "gray90"),
-                button_color=(self.app._accent_color(), self.app._accent_color()),
-                button_hover_color=(self.app._hover_color(), self.app._hover_color()),
+                fg_color=("gray90", "gray20"), button_color=("gray80", "gray25"),
                 command=self._on_game_select
             )
             # default selection: active game if present, otherwise first
@@ -179,7 +167,7 @@ class SettingsManager:
             initial_path = self.game_name_to_path.get(default_name, "")
             path_text = initial_path if initial_path else t("na")
             self.path_lbl = customtkinter.CTkLabel(
-                path_frame, text=path_text, font=("Arial", 11), text_color=("gray30", "gray70"), wraplength=450
+                path_frame, text=path_text, font=("Arial", 11), text_color=("gray60", "gray60"), wraplength=450
             )
             self.path_lbl.pack(padx=15, pady=15, side="top", anchor="w")
 
@@ -195,7 +183,7 @@ class SettingsManager:
             path_frame.pack(fill="x", pady=10)
 
             path_text = self.app.current_path if self.app.current_path else t("na")
-            self.path_lbl = customtkinter.CTkLabel(path_frame, text=path_text, font=("Arial", 11), text_color=("gray30", "gray70"), wraplength=450)
+            self.path_lbl = customtkinter.CTkLabel(path_frame, text=path_text, font=("Arial", 11), text_color=("gray60", "gray60"), wraplength=450)
             self.path_lbl.pack(padx=15, pady=15, side="top", anchor="w")
 
             change_path_btn = customtkinter.CTkButton(
@@ -216,14 +204,11 @@ class SettingsManager:
         ).pack(side="right")
 
     def _add_label(self, master, text):
-        lbl = customtkinter.CTkLabel(master, text=text, font=("Arial", 12, "bold"), text_color=("gray30", "gray70"))
+        lbl = customtkinter.CTkLabel(master, text=text, font=("Arial", 12, "bold"), text_color=("gray60", "gray70"))
         lbl.pack(anchor="w", pady=(10, 5))
 
     def _add_checkbox(self, master, text, var, command):
-        cb = customtkinter.CTkCheckBox(master, text=text, variable=var, command=command, font=("Arial", 12),
-            text_color=("black", "white"),
-            fg_color=(self.app._accent_color(), self.app._accent_color()),
-            hover_color=(self.app._hover_color(), self.app._hover_color()))
+        cb = customtkinter.CTkCheckBox(master, text=text, variable=var, command=command, font=("Arial", 12))
         cb.pack(anchor="w", pady=12)
 
     def _save_all(self):

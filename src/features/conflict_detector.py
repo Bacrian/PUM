@@ -22,7 +22,7 @@ class ConflictDetectorWindow:
     def show(self):
         """Show the conflict detector window."""
         self.window = customtkinter.CTkToplevel(self.app)
-        self.window.title(t("conflict_detector_title"))
+        self.window.title("Mod Conflict Detector")
         self.window.geometry("700x500")
         self.window.transient(self.app)
         self.window.grab_set()
@@ -37,31 +37,29 @@ class ConflictDetectorWindow:
         
         customtkinter.CTkLabel(
             header,
-            text=t("conflicts_detected_header"),
+            text="⚠️ Mod Conflicts Detected",
             font=("Arial", 18, "bold"),
-            text_color=("#f5a623", "#f5a623")
+            text_color="#f5a623"
         ).pack(pady=15)
         
         if not self.conflicts:
             customtkinter.CTkLabel(
                 container,
-                text=t("no_conflicts_message"),
+                text="No conflicts detected! Your enabled mods are compatible.",
                 font=("Arial", 14),
                 text_color=("gray60", "gray60")
             ).pack(expand=True)
             
             customtkinter.CTkButton(
                 container,
-                text=t("close_button"),
+                text="Close",
                 command=self.window.destroy,
-                width=120,
-                fg_color=self.app._accent_color(),
-                hover_color=self.app._hover_color()
+                width=120
             ).pack(pady=20)
             return
         
         # Summary
-        summary_text = t("conflicts_found_summary").format(count=len(self.conflicts))
+        summary_text = f"Found {len(self.conflicts)} conflicting .pak file(s) across your enabled mods"
         customtkinter.CTkLabel(
             container,
             text=summary_text,
@@ -82,7 +80,7 @@ class ConflictDetectorWindow:
         
         customtkinter.CTkButton(
             btn_frame,
-            text=t("check_again_button"),
+            text="Check Again",
             command=self._refresh,
             width=120,
             fg_color=self.app._accent_color(),
@@ -91,11 +89,10 @@ class ConflictDetectorWindow:
         
         customtkinter.CTkButton(
             btn_frame,
-            text=t("close_button"),
+            text="Close",
             command=self.window.destroy,
             width=120,
-            fg_color=self.app._accent_color(),
-            hover_color=self.app._hover_color()
+            fg_color=("gray85", "gray25")
         ).pack(side="right", padx=5)
     
     def _create_conflict_card(self, parent, index: int, conflict: dict):
@@ -118,7 +115,7 @@ class ConflictDetectorWindow:
             card,
             text=warning,
             font=("Arial", 10),
-            text_color=("#f5a623", "#f5a623"),
+            text_color="#f5a623",
             wraplength=600,
             justify="left"
         ).pack(anchor="w", padx=12, pady=(0, 10))

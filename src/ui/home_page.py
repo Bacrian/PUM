@@ -30,14 +30,14 @@ class HomePage(customtkinter.CTkScrollableFrame):
 
         welcome_text = customtkinter.CTkFrame(inner, fg_color="transparent")
         welcome_text.pack(side="left")
-        customtkinter.CTkLabel(welcome_text, text=t("app_title"), font=("Arial", 28, "bold"), text_color=("black", "white")).pack(anchor="w")
-        customtkinter.CTkLabel(welcome_text, text=f"{t('version_label')} 1.3.0 - 05-04-2026 quirk-testing build", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
+        customtkinter.CTkLabel(welcome_text, text=t("app_title"), font=("Arial", 28, "bold")).pack(anchor="w")
+        customtkinter.CTkLabel(welcome_text, text=f"{t('version_label')} 1.3.0 - 04-04-2026 quirk-testing build", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
 
         # 2. Game Library Section
         title_row = customtkinter.CTkFrame(self, fg_color="transparent")
         title_row.pack(fill="x", padx=30, pady=(10, 5))
         
-        customtkinter.CTkLabel(title_row, text=t("my_games"), font=("Arial", 11, "bold"), text_color=("gray40", "gray60")).pack(side="left")
+        customtkinter.CTkLabel(title_row, text=t("my_games"), font=("Arial", 11, "bold"), text_color=("gray50", "gray50")).pack(side="left")
         
         # Action Buttons for adding games
         self.add_btns_frame = customtkinter.CTkFrame(title_row, fg_color="transparent")
@@ -45,14 +45,13 @@ class HomePage(customtkinter.CTkScrollableFrame):
 
         self.add_steam_btn = customtkinter.CTkButton(
             self.add_btns_frame, text=t("import_from_steam"), width=100, height=24, font=("Arial", 10, "bold"),
-            fg_color=self.app._accent_color(), hover_color=self.app._hover_color(), command=self._on_add_steam
+            fg_color=("#1b2838", "#1b2838"), hover_color=("#2a475e", "#2a475e"), command=self._on_add_steam
         )
         self.add_steam_btn.pack(side="left", padx=5)
 
         self.add_game_btn = customtkinter.CTkButton(
             self.add_btns_frame, text=t("add_manually"), width=100, height=24, font=("Arial", 10, "bold"),
-            fg_color=("gray85", "gray20"), hover_color=("gray70", "gray35"), text_color=("gray30", "gray90"),
-            command=self._on_add_game
+            fg_color=("gray85", "gray20"), hover_color=("gray75", "gray30"), command=self._on_add_game
         )
         self.add_game_btn.pack(side="left")
 
@@ -93,8 +92,8 @@ class HomePage(customtkinter.CTkScrollableFrame):
         info_frame = customtkinter.CTkFrame(card, fg_color="transparent")
         info_frame.pack(side="left", padx=20, pady=15)
         
-        customtkinter.CTkLabel(info_frame, text=game['name'], font=("Arial", 16, "bold"), text_color=("black", "white")).pack(anchor="w")
-        customtkinter.CTkLabel(info_frame, text=f"{game['engine']} • {game['path']}", font=("Arial", 10), text_color=("gray30", "gray70")).pack(anchor="w")
+        customtkinter.CTkLabel(info_frame, text=game['name'], font=("Arial", 16, "bold")).pack(anchor="w")
+        customtkinter.CTkLabel(info_frame, text=f"{game['engine']} • {game['path']}", font=("Arial", 10), text_color=("gray60", "gray50")).pack(anchor="w")
 
         actions = customtkinter.CTkFrame(card, fg_color="transparent")
         actions.pack(side="right", padx=20)
@@ -108,7 +107,7 @@ class HomePage(customtkinter.CTkScrollableFrame):
 
         btn_del = customtkinter.CTkButton(
             actions, text="✕", width=32, height=32, corner_radius=8,
-            fg_color=("gray80", "gray25"), hover_color=("#8c1c1c", "#6a1515"),
+            fg_color=("gray80", "gray25"), hover_color="#8c1c1c",
             command=lambda p=game['path']: self._remove_game(p)
         )
         btn_del.pack(side="left")
@@ -133,7 +132,7 @@ class HomePage(customtkinter.CTkScrollableFrame):
         games = list_installed_steam_games()
         
         if not games:
-            customtkinter.CTkLabel(scroll, text=t("no_steam_games"), text_color=("gray40", "gray70")).pack(pady=50)
+            customtkinter.CTkLabel(scroll, text=t("no_steam_games"), text_color=("gray60", "gray50")).pack(pady=50)
         
         for game in games:
             g_frame = customtkinter.CTkFrame(scroll, fg_color=("gray90", "gray18"), corner_radius=10)
@@ -181,16 +180,16 @@ class HomePage(customtkinter.CTkScrollableFrame):
             self.refresh_games()
 
     def _add_section_title(self, text):
-        lbl = customtkinter.CTkLabel(self, text=text, font=("Arial", 11, "bold"), text_color=("gray40", "gray60"))
+        lbl = customtkinter.CTkLabel(self, text=text, font=("Arial", 11, "bold"), text_color=("gray50", "gray40"))
         lbl.pack(anchor="w", padx=35, pady=(20, 5))
 
     def _tool_card(self, master, col, title, sub, cmd):
         card = customtkinter.CTkFrame(master, fg_color=("gray95", "gray12"), corner_radius=15)
         card.grid(row=0, column=col, padx=10, sticky="nsew")
         
-        customtkinter.CTkLabel(card, text=title, font=("Arial", 13, "bold"), text_color=("black", "white")).pack(pady=(15, 0))
-        customtkinter.CTkLabel(card, text=sub, font=("Arial", 10), text_color=("gray30", "gray70")).pack(pady=(0, 10))
-        customtkinter.CTkButton(card, text=t("run_button"), height=24, fg_color=("gray85", "gray25"), hover_color=("gray70", "gray40"), text_color=("gray30", "gray90"), command=cmd).pack(pady=(0, 15), padx=20)
+        customtkinter.CTkLabel(card, text=title, font=("Arial", 13, "bold")).pack(pady=(15, 0))
+        customtkinter.CTkLabel(card, text=sub, font=("Arial", 10), text_color=("gray60", "gray50")).pack(pady=(0, 10))
+        customtkinter.CTkButton(card, text=t("run_button"), height=24, fg_color=("gray85", "gray25"), hover_color=("gray75", "gray35"), command=cmd).pack(pady=(0, 15), padx=20)
 
     def _check_updates(self):
         """Check for app updates."""

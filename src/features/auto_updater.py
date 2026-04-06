@@ -103,7 +103,7 @@ class AutoUpdater:
             header,
             text=t("update_available_title"),
             font=("Arial", 18, "bold"),
-            text_color=(self.app._accent_color(), self.app._accent_color())
+            text_color="#1a9f84"
         ).pack(pady=15)
         
         # Version info
@@ -121,7 +121,7 @@ class AutoUpdater:
             version_frame,
             text=f"{t('latest_version')}: {update_info['version']}",
             font=("Arial", 12, "bold"),
-            text_color=(self.app._accent_color(), self.app._accent_color())
+            text_color="#1a9f84"
         ).pack(anchor="w", padx=15, pady=(0, 10))
         
         # Changelog
@@ -151,8 +151,8 @@ class AutoUpdater:
         customtkinter.CTkButton(
             button_frame,
             text=t("download_now"),
-            fg_color=(self.app._accent_color(), self.app._accent_color()),
-            hover_color=(self.app._hover_color(), self.app._hover_color()),
+            fg_color=("#1a9f84", "#1a9f84"),
+            hover_color=("#158d73", "#158d73"),
             command=lambda: webbrowser.open(update_info["download_url"])
         ).pack(side="left", fill="x", expand=True, padx=(0, 5))
         

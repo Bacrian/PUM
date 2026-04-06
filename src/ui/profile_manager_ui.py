@@ -38,7 +38,7 @@ class ProfileManagerWindow:
         
         customtkinter.CTkLabel(
             header_frame, text=t("profile_manager"), 
-            font=("Arial", 16, "bold"), text_color=("black", "white")
+            font=("Arial", 16, "bold")
         ).pack(side="left", padx=15, pady=10)
         
         # Action buttons
@@ -47,8 +47,7 @@ class ProfileManagerWindow:
         
         customtkinter.CTkButton(
             button_frame, text=t("new_profile"), width=100,
-            fg_color=(self.app._accent_color(), self.app._accent_color()), 
-            hover_color=(self.app._hover_color(), self.app._hover_color()),
+            fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
             command=self._create_new_profile
         ).pack(side="left", padx=5)
         
@@ -61,14 +60,12 @@ class ProfileManagerWindow:
         customtkinter.CTkButton(
             button_frame, text=t("import"), width=80,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
             command=self._import_profile
         ).pack(side="left", padx=5)
         
         customtkinter.CTkButton(
             button_frame, text=t("export"), width=80,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
             command=self._export_profile
         ).pack(side="left", padx=5)
         
@@ -81,7 +78,7 @@ class ProfileManagerWindow:
         left_panel.pack(side="left", fill="both", expand=True, padx=(10, 5), pady=10)
         
         customtkinter.CTkLabel(
-            left_panel, text=t("profiles"), font=("Arial", 12, "bold"), text_color=("gray20", "gray80")
+            left_panel, text=t("profiles"), font=("Arial", 12, "bold")
         ).pack(anchor="w", padx=10, pady=(10, 5))
         
         # Profile listbox
@@ -96,12 +93,12 @@ class ProfileManagerWindow:
         right_panel.pack_propagate(False)
         
         customtkinter.CTkLabel(
-            right_panel, text=t("details"), font=("Arial", 12, "bold"), text_color=("gray20", "gray80")
+            right_panel, text=t("details"), font=("Arial", 12, "bold")
         ).pack(anchor="w", padx=10, pady=(10, 5))
         
         # Details text
         self.details_text = customtkinter.CTkTextbox(
-            right_panel, height=150, font=("Consolas", 10), text_color=("black", "white")
+            right_panel, height=150, font=("Consolas", 10)
         )
         self.details_text.pack(fill="x", padx=10, pady=(0, 10))
         
@@ -111,8 +108,7 @@ class ProfileManagerWindow:
         
         self.load_btn = customtkinter.CTkButton(
             action_frame, text=t("load_profile"), height=35,
-            fg_color=(self.app._accent_color(), self.app._accent_color()), 
-            hover_color=(self.app._hover_color(), self.app._hover_color()),
+            fg_color=("#1a9f84", "#1a9f84"), hover_color=("#2ab398", "#2ab398"),
             command=self._load_profile, state="disabled"
         )
         self.load_btn.pack(fill="x", pady=5)
@@ -147,7 +143,7 @@ class ProfileManagerWindow:
         if not profiles:
             customtkinter.CTkLabel(
                 self.profile_listbox, text=t("no_profiles_found"),
-                font=("Arial", 11), text_color=("gray40", "gray60")
+                font=("Arial", 11), text_color=("gray60", "gray50")
             ).pack(pady=20)
             return
         
@@ -176,7 +172,7 @@ class ProfileManagerWindow:
             mod_count = len(profile.get("mods", []))
             count_label = customtkinter.CTkLabel(
                 info_frame, text=t("mods_count", count=mod_count),
-                font=("Arial", 9), text_color=("gray40", "gray60"), anchor="w"
+                font=("Arial", 9), text_color=("gray60", "gray60"), anchor="w"
             )
             count_label.pack(fill="x")
             
@@ -250,7 +246,7 @@ Selected Mods:
         
         customtkinter.CTkLabel(
             dialog, text=t("profile_name"),
-            font=("Arial", 11), text_color=("black", "white")
+            font=("Arial", 11)
         ).pack(pady=20)
         
         name_entry = customtkinter.CTkEntry(dialog, width=300)
@@ -282,15 +278,13 @@ Selected Mods:
         
         customtkinter.CTkButton(
             button_frame, text=t("create"), width=100,
-            fg_color=(self.app._accent_color(), self.app._accent_color()), 
-            hover_color=(self.app._hover_color(), self.app._hover_color()),
+            fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
             command=create
         ).pack(side="left", padx=10)
         
         customtkinter.CTkButton(
             button_frame, text=t("cancel"), width=100,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
             command=dialog.destroy
         ).pack(side="left", padx=10)
     
@@ -307,7 +301,7 @@ Selected Mods:
         
         customtkinter.CTkLabel(
             dialog, text=t("new_profile_name"),
-            font=("Arial", 11), text_color=("black", "white")
+            font=("Arial", 11)
         ).pack(pady=20)
         
         name_entry = customtkinter.CTkEntry(dialog, width=300)
@@ -351,7 +345,6 @@ Selected Mods:
         customtkinter.CTkButton(
             button_frame, text=t("cancel"), width=100,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
             command=dialog.destroy
         ).pack(side="left", padx=10)
     
@@ -372,7 +365,7 @@ Selected Mods:
         
         customtkinter.CTkLabel(
             dialog, text=t("new_name"),
-            font=("Arial", 11), text_color=("black", "white")
+            font=("Arial", 11)
         ).pack(pady=20)
         
         name_entry = customtkinter.CTkEntry(dialog, width=300)
@@ -430,7 +423,6 @@ Selected Mods:
         customtkinter.CTkButton(
             button_frame, text=t("cancel"), width=100,
             fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
             command=dialog.destroy
         ).pack(side="left", padx=10)
     

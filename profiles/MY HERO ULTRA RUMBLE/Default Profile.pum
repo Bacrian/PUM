@@ -1,81 +1,11 @@
 {
     "game_name": "MY HERO ULTRA RUMBLE",
-    "selected_mods": [
-        "MHA:AJ Stars and Stripes",
-        "Lady Nagant - Street Wear",
-        "Example Mod",
-        "AJ Ofa Deku Over UR Ofa Deku"
-    ],
-    "mod_data": {
-        "MHA:AJ Stars and Stripes": {
-            "name": "MHA:AJ Stars and Stripes",
-            "author": "TheBlueBlur1710",
-            "version": "1.0",
-            "url": "https://gamebanana.com/mods/664252",
-            "description": "Does anyone else think that the model used in Alls Justice looks a lot better than the one in Ultra Rumble?&nbsp;If so, then here's a rather scuffed rush job of a model swap. I tried my best to fix the weird thigh mesh issue, but nothing worked, so I exported it as is. If I ever figure out how to fix this, I'll upload it here, but for now this is how it is.&nbsp;\n\nAlso somewhat scuffed cape physics. The cape looks better in the game than in the lobby.",
-            "category": "Other",
-            "screenshot": "preview.png",
-            "has_options": false
-        },
-        "Lady Nagant - Street Wear": {
-            "name": "Lady Nagant - Street Wear",
-            "author": "TheFloy",
-            "version": "1.0",
-            "url": "https://www.nexusmods.com/myheroultrarumble/mods/280?tab=description",
-            "description": "I used the Kiriko skin with the same name for this mod.\nNo recolors\nFor all skins",
-            "category": "Skin",
-            "screenshot": "preview.png",
-            "has_options": true
-        },
-        "Example Mod": {
-            "name": "Example Mod",
-            "author": "Author name",
-            "version": "1.3",
-            "url": "https://example.com/mods/0",
-            "description": "Example mod template.",
-            "category": "Skin",
-            "screenshot": "preview.png",
-            "has_options": false
-        },
-        "AJ Ofa Deku Over UR Ofa Deku": {
-            "name": "AJ Ofa Deku Over UR Ofa Deku",
-            "author": "DarkBagz",
-            "version": "1.0",
-            "url": "https://gamebanana.com/mods/655801",
-            "description": "aj deku mod",
-            "category": "Other",
-            "screenshot": "preview.png",
-            "has_options": false
-        }
-    },
-    "mod_options": {
-        "Lady Nagant - String Bikini": [
-            "XNagantStringBikiniPonyTailOverHeroCostume-WindowsNoEditor_P.pak"
-        ],
-        "Nejire Hado - Superstars Idol Short Hair ver.": [
-            "XNejireShortHairIdolOverDefault-WindowsNoEditor_P.pak"
-        ],
-        "Lady Nagant - Street Wear": [
-            "KirikoStreetNagantHero_P.pak"
-        ],
-        "MHA:AJ Ochaco Uraraka": []
-    },
-    "app_settings": {
-        "language": "Español",
-        "check_updates": true,
-        "minimize_to_tray": false,
-        "enable_console": true,
-        "backup_mods": true,
-        "appearance": "Light",
-        "accent_color": "#1a9f84",
-        "button_color": "#1a9f84",
-        "view_mode": "list",
-        "grid_size": "Small",
-        "game_path": "c:\\program files (x86)\\steam\\steamapps\\common\\My Hero Ultra Rumble\\HerovsGame\\Content\\Paks",
-        "auto_update_enabled": true,
-        "startup_page": "Home Dashboard",
-        "primary_color": "#1e2a2e"
-    },
-    "saved_at": 1775435165,
-    "pum_version": "1.3.0"
+    "selected_mods": [],
+    "mod_data": {},
+    "mod_options": {},
+    "app_settings": {},
+    "saved_at": 1775325727,
+    "pum_version": "1.3.0",
+    "is_default": true,
+    "display_name_key": "default_profile"
 }

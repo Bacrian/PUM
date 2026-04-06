@@ -150,14 +150,14 @@ class ModListController:
         
         btn_name = customtkinter.CTkButton(
             header_row, text=t("editor_mod_name") + (" ▼" if cur_key == "name" and cur_order == "A-Z" else " ▲" if cur_key == "name" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=("gray70", "gray30"),
+            font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), fg_color="transparent", hover_color=("gray80", "gray25"),
             anchor="w", height=20, width=220, command=lambda: self._on_header_click("name")
         )
         btn_name.grid(row=0, column=3, padx=5, sticky="ew")
         
         btn_author = customtkinter.CTkButton(
             header_row, text=t("editor_mod_author") + (" ▼" if cur_key == "author" and cur_order == "A-Z" else " ▲" if cur_key == "author" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=("gray70", "gray30"),
+            font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), fg_color="transparent", hover_color=("gray80", "gray25"),
             anchor="w", height=20, width=100, command=lambda: self._on_header_click("author")
         )
         btn_author.grid(row=0, column=4, padx=5)
@@ -261,14 +261,14 @@ class ModListController:
         
         btn_name = customtkinter.CTkButton(
             header_row, text=t("editor_mod_name") + (" ▼" if cur_key == "name" and cur_order == "A-Z" else " ▲" if cur_key == "name" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=("gray70", "gray30"),
+            font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), fg_color="transparent", hover_color=("gray80", "gray25"),
             anchor="w", height=20, width=220, command=lambda: self._on_header_click("name")
         )
         btn_name.grid(row=0, column=3, padx=5, sticky="ew")
         
         btn_author = customtkinter.CTkButton(
             header_row, text=t("editor_mod_author") + (" ▼" if cur_key == "author" and cur_order == "A-Z" else " ▲" if cur_key == "author" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=("gray70", "gray30"),
+            font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), fg_color="transparent", hover_color=("gray80", "gray25"),
             anchor="w", height=20, width=100, command=lambda: self._on_header_click("author")
         )
         btn_author.grid(row=0, column=4, padx=5)
@@ -284,22 +284,20 @@ class ModListController:
 
         indicator = None
         if mod.get("has_options"):
-            indicator = customtkinter.CTkLabel(row_frame, text="☰", text_color=("#da8938", "#da8938"), font=("Arial", 14, "bold"), width=20)
+            indicator = customtkinter.CTkLabel(row_frame, text="☰", text_color="#da8938", font=("Arial", 14, "bold"), width=20)
             indicator.grid(row=0, column=0, padx=5)
         else:
             customtkinter.CTkLabel(row_frame, text="", width=20).grid(row=0, column=0, padx=5)
 
         cb = customtkinter.CTkCheckBox(row_frame, text="", variable=var, width=20, height=20,
-                                       fg_color=(self.app._accent_color(), self.app._accent_color()),
-                                       hover_color=(self.app._hover_color(), self.app._hover_color()),
                                        command=lambda: self._on_checkbox_click(mod, var))
         cb.grid(row=0, column=1, padx=5, pady=12)
         
         star_btn = customtkinter.CTkButton(
             row_frame, text="★" if mod.get('is_favorite', False) else "☆", 
             width=25, height=25, font=("Arial", 14),
-            fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=("gray75", "gray30"),
+            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else ("gray70", "gray50"),
+            hover_color=("gray80", "gray25"),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.grid(row=0, column=2, padx=2, pady=10)
@@ -376,22 +374,20 @@ class ModListController:
         row_frame.grid_columnconfigure(3, weight=1)
 
         if mod.get("has_options"):
-            indicator = customtkinter.CTkLabel(row_frame, text="☰", text_color=("#da8938", "#da8938"), font=("Arial", 14, "bold"), width=20)
+            indicator = customtkinter.CTkLabel(row_frame, text="☰", text_color="#da8938", font=("Arial", 14, "bold"), width=20)
             indicator.grid(row=0, column=0, padx=5)
         else:
             customtkinter.CTkLabel(row_frame, text="", width=20).grid(row=0, column=0, padx=5)
 
         cb = customtkinter.CTkCheckBox(row_frame, text="", variable=var, width=20, height=20,
-                                       fg_color=(self.app._accent_color(), self.app._accent_color()),
-                                       hover_color=(self.app._hover_color(), self.app._hover_color()),
                                        command=lambda: self._on_checkbox_click(mod, var))
         cb.grid(row=0, column=1, padx=5, pady=12)
         
         star_btn = customtkinter.CTkButton(
             row_frame, text="★" if mod.get('is_favorite', False) else "☆", 
             width=25, height=25, font=("Arial", 14),
-            fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=("gray75", "gray30"),
+            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else ("gray70", "gray50"),
+            hover_color=("gray80", "gray25"),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.grid(row=0, column=2, padx=2, pady=10)
@@ -459,11 +455,7 @@ class ModListController:
         self.refresh_logic(force_rebuild=True)
 
     def show_context_menu(self, event, mod):
-        # Theme-aware colors for context menu
-        is_light = customtkinter.get_appearance_mode() == "Light"
-        bg_color = "#f0f0f0" if is_light else "#2a2a2a"
-        fg_color = "black" if is_light else "white"
-        menu = tkinter.Menu(self.app, tearoff=0, bg=bg_color, fg=fg_color, activebackground=self.app._accent_color())
+        menu = tkinter.Menu(self.app, tearoff=0, bg="#2a2a2a", fg="white", activebackground=self.app._accent_color())
         menu.add_command(label=t("ctx_open_folder"), command=lambda: os.startfile(mod["folder_path"]))
         menu.add_command(label=t("edit_info"), command=lambda: self._on_mod_select(mod) or self.app.open_metadata_editor())
         if mod.get("url"): menu.add_command(label=t("view_online"), command=lambda: os.startfile(mod["url"]))
@@ -633,8 +625,6 @@ class ModListController:
         
         # Checkbox
         cb = customtkinter.CTkCheckBox(bottom, text="", variable=var, width=20, height=20,
-                                       fg_color=(self.app._accent_color(), self.app._accent_color()),
-                                       hover_color=(self.app._hover_color(), self.app._hover_color()),
                                        command=lambda: self._on_checkbox_click(mod, var))
         cb.pack(side="left")
         
@@ -642,8 +632,8 @@ class ModListController:
         star_btn = customtkinter.CTkButton(
             bottom, text="★" if mod.get('is_favorite', False) else "☆", 
             width=28, height=28, font=("Arial", 12),
-            fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=("gray75", "gray30"),
+            fg_color="transparent", text_color="#FFD700" if mod.get('is_favorite') else ("gray70", "gray50"),
+            hover_color=("gray80", "gray25"),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.pack(side="right")

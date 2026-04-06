@@ -43,7 +43,7 @@ class StyledCard(customtkinter.CTkFrame):
         if description:
             self.desc_label = customtkinter.CTkLabel(
                 self.content, text=description, font=("Arial", 12),
-                text_color=("gray25", "gray60"), wraplength=250
+                text_color=("gray40", "gray60"), wraplength=250
             )
             self.desc_label.pack(anchor="w", pady=(5, 0))
         
@@ -104,7 +104,7 @@ class AnimatedButton(customtkinter.CTkButton):
         
         def on_enter(e):
             # Scale effect (simulated via padding)
-            self.configure(border_width=2, border_color=("gray70", "gray30"))
+            self.configure(border_width=2, border_color="white")
         
         def on_leave(e):
             self.configure(border_width=0)
@@ -139,7 +139,7 @@ class StatCard(customtkinter.CTkFrame):
         # Label
         self.label_widget = customtkinter.CTkLabel(
             self, text=label, font=("Arial", 11),
-            text_color=("gray30", "gray70")
+            text_color=("gray50", "gray60")
         )
         self.label_widget.pack(pady=(5, 15))
 
@@ -155,7 +155,7 @@ class SearchBox(customtkinter.CTkFrame):
         # Search icon
         self.icon = customtkinter.CTkLabel(
             self, text="", font=("Arial", 14),
-            text_color=("gray30", "gray50")
+            text_color=("gray70", "gray50")
         )
         self.icon.pack(side="left", padx=(15, 5))
         
@@ -186,22 +186,20 @@ class Badge(customtkinter.CTkLabel):
     """Status badge/chip component."""
     
     COLORS = {
-        "success": (("#28a745", "#28a745"), ("#1e7e34", "#1e7e34")),
-        "warning": (("#ffc107", "#ffc107"), ("#d39e00", "#d39e00")),
-        "error": (("#dc3545", "#dc3545"), ("#bd2130", "#bd2130")),
-        "info": (("#17a2b8", "#17a2b8"), ("#117a8b", "#117a8b")),
-        "default": (("#6c757d", "#6c757d"), ("#545b62", "#545b62"))
+        "success": ("#28a745", "#1e7e34"),
+        "warning": ("#ffc107", "#d39e00"),
+        "error": ("#dc3545", "#bd2130"),
+        "info": ("#17a2b8", "#117a8b"),
+        "default": ("#6c757d", "#545b62")
     }
     
     def __init__(self, master, text, status="default", **kwargs):
         fg, bg = self.COLORS.get(status, self.COLORS["default"])
-        fg_light, fg_dark = fg
-        bg_light, bg_dark = bg
         
         super().__init__(
             master, text=text,
             font=("Arial", 10, "bold"),
-            fg_color=(bg_light, bg_dark), text_color=(fg_light, fg_dark),
+            fg_color=bg, text_color=("gray10", "gray90"),
             corner_radius=10, padx=10, pady=3,
             **kwargs
         )
