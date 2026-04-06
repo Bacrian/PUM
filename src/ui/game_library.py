@@ -56,7 +56,9 @@ class GameLibraryPage(customtkinter.CTkFrame):
             label_text=t("games")
         )
         self.game_list.grid(row=2, column=0, sticky="nsew", padx=0, pady=(0, 10))
-        self.game_list._parent_canvas.configure(bg=("#f8f8f8", "#1c1c1c"))
+        # Set canvas background based on current theme
+        bg_color = "#f8f8f8" if customtkinter.get_appearance_mode() == "Light" else "#1c1c1c"
+        self.game_list._parent_canvas.configure(bg=bg_color)
         
         # Add Game button at bottom
         self.add_btn = customtkinter.CTkButton(
@@ -292,7 +294,9 @@ class GameLibraryPage(customtkinter.CTkFrame):
             self.content, fg_color=("gray95", "gray10"), corner_radius=0
         )
         self.detail_view.grid(row=0, column=0, sticky="nsew")
-        self.detail_view._parent_canvas.configure(bg=("#f0f0f0", "#1a1a1a"))
+        # Set canvas background based on current theme
+        bg_color = "#f0f0f0" if customtkinter.get_appearance_mode() == "Light" else "#1a1a1a"
+        self.detail_view._parent_canvas.configure(bg=bg_color)
         
         # Hero banner area (avoid place() so it doesn't deform on resize)
         banner = customtkinter.CTkFrame(
@@ -341,7 +345,8 @@ class GameLibraryPage(customtkinter.CTkFrame):
         # Play/Manage button (big green like Steam's Play)
         play_btn = customtkinter.CTkButton(
             btn_frame, text=f"▶ {t('manage_mods')}", width=160, height=42,
-            font=("Arial", 14, "bold"), fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
+            font=("Arial", 14, "bold"), fg_color=(self.app._accent_color(), self.app._accent_color()), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             corner_radius=3, command=lambda: self.app.show_mod_manager(game)
         )
         play_btn.pack(side="left", padx=(0, 10))
@@ -420,7 +425,8 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         customtkinter.CTkButton(
             btn_frame, text=t("import_from_steam"), width=150, height=40,
-            font=("Arial", 12, "bold"), fg_color=("#1b2838", "#1b2838"), hover_color=("#2a475e", "#2a475e"),
+            font=("Arial", 12, "bold"), fg_color=(self.app._accent_color(), self.app._accent_color()), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=lambda: [dialog.destroy(), self._show_steam_import()]
         ).pack(side="left", padx=5)
         
@@ -532,7 +538,8 @@ class GameLibraryPage(customtkinter.CTkFrame):
         
         customtkinter.CTkButton(
             dialog, text=t("register_game"), height=40,
-            font=("Arial", 13, "bold"), fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
+            font=("Arial", 13, "bold"), fg_color=(self.app._accent_color(), self.app._accent_color()), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=save
         ).pack(pady=25)
     

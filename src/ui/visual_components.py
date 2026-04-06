@@ -193,7 +193,7 @@ class VisualComponents:
             width=BUTTON_HEIGHT,
             height=BUTTON_HEIGHT,
             fg_color=SAVE_BUTTON_COLOR,
-            hover_color="#c05b17",
+            hover_color=("#c05b17", "#a04000"),
             command=self.app.save_current_profile
         )
         self.app.save_profile_btn.grid(row=0, column=3, padx=5, pady=5)
@@ -206,7 +206,7 @@ class VisualComponents:
             width=BUTTON_HEIGHT,
             height=BUTTON_HEIGHT,
             fg_color=DELETE_BUTTON_COLOR,
-            hover_color="#5e1313",
+            hover_color=("#5e1313", "#4a0f0f"),
             command=self.app.delete_current_profile
         )
         self.app.delete_profile_btn.grid(row=0, column=4, padx=5, pady=5)

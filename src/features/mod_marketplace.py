@@ -130,6 +130,8 @@ class ModMarketplace:
         self.game_menu = customtkinter.CTkOptionMenu(
             game_frame, values=["All Games", "My Hero Ultra Rumble", "Other UE4 Games"],
             variable=self.game_var, width=150,
+            button_color=(self.app._accent_color(), self.app._accent_color()),
+            button_hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=self._on_game_filter_change
         )
         self.game_menu.pack(side="left")
@@ -145,14 +147,17 @@ class ModMarketplace:
         self.category_var = customtkinter.StringVar(value="All Categories")
         self.category_menu = customtkinter.CTkOptionMenu(
             cat_frame, values=["All Categories", "Skins", "Sounds", "Maps", "Gameplay"],
-            variable=self.category_var, width=150
+            variable=self.category_var, width=150,
+            button_color=(self.app._accent_color(), self.app._accent_color()),
+            button_hover_color=(self.app._hover_color(), self.app._hover_color())
         )
         self.category_menu.pack(side="left")
         
         # Search button
         search_btn = customtkinter.CTkButton(
             search_frame, text=t("search"), width=80, height=35,
-            fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
+            fg_color=(self.app._accent_color(), self.app._accent_color()), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=self._perform_search
         )
         search_btn.pack(side="right", padx=20, pady=7)
@@ -184,7 +189,9 @@ class ModMarketplace:
         self.sort_var = customtkinter.StringVar(value="Popular")
         sort_menu = customtkinter.CTkOptionMenu(
             sort_frame, values=["Popular", "Newest", "Updated", "Rating"],
-            variable=self.sort_var, width=120
+            variable=self.sort_var, width=120,
+            button_color=(self.app._accent_color(), self.app._accent_color()),
+            button_hover_color=(self.app._hover_color(), self.app._hover_color())
         )
         sort_menu.pack(side="left")
         
@@ -628,7 +635,8 @@ class ModMarketplace:
         # Download button
         download_btn = customtkinter.CTkButton(
             button_frame, text=t("download_button"), width=80, height=30,
-            fg_color=("#5c7e10", "#5c7e10"), hover_color=("#7da014", "#7da014"),
+            fg_color=(self.app._accent_color(), self.app._accent_color()), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=lambda: self._download_mod(mod_data)
         )
         download_btn.pack(pady=2)
@@ -993,7 +1001,7 @@ class ModMarketplace:
         
         error_label = customtkinter.CTkLabel(
             self.results_frame, text=t("error_loading_mods"),
-            font=("Arial", 12), text_color="#ff6b6b"
+            font=("Arial", 12), text_color=("#d32f2f", "#ff6b6b")
         )
         error_label.pack(pady=50)
 

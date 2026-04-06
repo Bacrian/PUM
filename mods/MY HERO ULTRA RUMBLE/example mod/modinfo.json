@@ -5,7 +5,7 @@
     "screenshot": "preview.png",
     "description": "Example mod template.",
     "category": "Skin",
-    "url": "",
+    "url": "https://example.com/mods/0",
     "has_options": false,
     "options": [],
     "is_favorite": false
