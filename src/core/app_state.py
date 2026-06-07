@@ -1,5 +1,9 @@
 # region --- App State Management ---
-"""Centralized application state management with debounced refresh."""
+"""
+Centralized application state management with debounced refresh.
+This module manages application-wide state, including sorting preferences,
+view modes, and other UI state that needs to be shared across components.
+"""
 
 class AppState:
     """Manages global application state including sorting and refresh debounce."""

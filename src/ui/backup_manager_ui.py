@@ -55,14 +55,14 @@ class BackupManagerWindow:
         
         customtkinter.CTkButton(
             button_frame, text=t("import"), width=80,
-            fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
+            fg_color=("gray85", "gray20"), hover_color=(self.app._hover_color(), self.app._hover_color()),
             text_color=("gray10", "gray90"),
             command=self._import_backup
         ).pack(side="left", padx=5)
         
         customtkinter.CTkButton(
             button_frame, text=t("export"), width=80,
-            fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
+            fg_color=("gray85", "gray20"), hover_color=(self.app._hover_color(), self.app._hover_color()),
             text_color=("gray10", "gray90"),
             command=self._export_backup
         ).pack(side="left", padx=5)
@@ -144,7 +144,7 @@ class BackupManagerWindow:
         
         customtkinter.CTkButton(
             settings_frame, text=t("save_settings"), height=30,
-            fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
+            fg_color=("gray85", "gray20"), hover_color=(self.app._hover_color(), self.app._hover_color()),
             text_color=("gray10", "gray90"),
             command=self._save_settings
         ).pack(fill="x", padx=10, pady=10)
@@ -296,7 +296,7 @@ class BackupManagerWindow:
         
         customtkinter.CTkButton(
             button_frame, text=t("btn_cancel"), width=100,
-            fg_color=("gray85", "gray20"), hover_color=("gray80", "gray25"),
+            fg_color=("gray85", "gray20"), hover_color=(self.app._hover_color(), self.app._hover_color()),
             text_color=("gray10", "gray90"),
             command=dialog.destroy
         ).pack(side="left", padx=10)

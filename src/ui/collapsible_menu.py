@@ -24,12 +24,20 @@ class FloatingMenuSection(customtkinter.CTkFrame):
         self._root_click_binding = None
         self._esc_binding = None
 
+        # Calculate hover color from accent (darker version)
+        try:
+            h = accent_color.lstrip('#')
+            r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+            self._hover_color = f"#{max(0,int(r*0.8)):02x}{max(0,int(g*0.8)):02x}{max(0,int(b*0.8)):02x}"
+        except:
+            self._hover_color = "#13775c"
+
         self.header = customtkinter.CTkButton(
             self,
             text=f"▶ {title}",
             font=("Arial", 11, "bold"),
             fg_color="transparent",
-            hover_color=("gray75", "gray30"),
+            hover_color=(self._hover_color, self._hover_color),
             text_color=("gray20", "gray70"),
             anchor="w",
             height=28,
@@ -118,7 +126,7 @@ class FloatingMenuSection(customtkinter.CTkFrame):
                 text=f"{icon} {text}" if icon else text,
                 font=("Arial", 11),
                 fg_color="transparent",
-                hover_color=("gray80", "gray30"),
+                hover_color=(self._hover_color, self._hover_color),
                 text_color=("gray20", "gray80"),
                 anchor="w",
                 height=34,
@@ -223,13 +231,21 @@ class CollapsibleMenu(customtkinter.CTkFrame):
         self.is_open = default_open
         self.accent_color = accent_color
         
+        # Calculate hover color from accent (darker version)
+        try:
+            h = accent_color.lstrip('#')
+            r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+            self._hover_color = f"#{max(0,int(r*0.8)):02x}{max(0,int(g*0.8)):02x}{max(0,int(b*0.8)):02x}"
+        except:
+            self._hover_color = "#13775c"
+
         # Header button (acts as toggle)
         self.header = customtkinter.CTkButton(
             self,
             text=f"▼ {title}" if default_open else f"▶ {title}",
             font=("Arial", 11, "bold"),
             fg_color="transparent",
-            hover_color=("gray75", "gray30"),
+            hover_color=(self._hover_color, self._hover_color),
             text_color=("gray20", "gray70"),
             anchor="w",
             height=28,
@@ -263,7 +279,7 @@ class CollapsibleMenu(customtkinter.CTkFrame):
             text=f"{icon} {text}" if icon else text,
             font=("Arial", 11),
             fg_color="transparent",
-            hover_color=("gray75", "gray30"),
+            hover_color=(self._hover_color, self._hover_color),
             text_color=("gray30", "gray80"),
             anchor="w",
             height=32,

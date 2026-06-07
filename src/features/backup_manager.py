@@ -1,5 +1,9 @@
 # region --- Backup Manager ---
-"""Advanced backup system with versioning, scheduling, and management."""
+"""
+Advanced backup system with versioning, scheduling, and management.
+This module handles creating, restoring, and managing backups of
+mod configurations and game files with versioning support.
+"""
 import os
 import json
 import shutil

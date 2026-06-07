@@ -122,8 +122,6 @@
   "no_notes": "Keine Versionshinweise verfügbar.",
   "download_button": "Download",
   "later_button": "Später",
-  "delete_title": "Profil löschen",
-  "delete_confirm": "Möchtest du das Profil wirklich löschen?",
   "dark_theme": "Dunkel",
   "light_theme": "Hell",
   "system_theme": "System",
@@ -376,5 +374,10 @@
   "conflicts_detected_header": "⚠️ Mod-Konflikte erkannt",
   "no_conflicts_message": "Keine Konflikte erkannt! Deine aktivierten Mods sind kompatibel.",
   "conflicts_found_summary": "{count} konfliktive(s) .pak-Datei(en) in deinen aktivierten Mods gefunden",
-  "check_again_button": "Erneut prüfen"
+  "check_again_button": "Erneut prüfen",
+  "first_startup_title": "Vorhandene Mods erkannt",
+  "first_startup_description": "PUM hat Mods im ~mods-Ordner deines Spiels erkannt. Diese Mods wurden außerhalb von PUM installiert. Was möchtest du mit ihnen tun?",
+  "delete_all_mods": "Alle löschen",
+  "import_to_pum": "In PUM importieren",
+  "skip": "Überspringen"
 }

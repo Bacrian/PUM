@@ -561,24 +561,12 @@ class AppearanceManager:
             text=t("reset_defaults"),
             fg_color=("gray80", "gray30"),
             hover_color=("gray70", "gray40"),
+            text_color=("gray20", "gray90"),
             width=140,
             height=32,
             command=self._reset_to_defaults
         )
-        self.reset_btn.pack(side="left", padx=(0, 10))
-        
-        # Apply button
-        self.apply_btn = customtkinter.CTkButton(
-            btn_frame,
-            text=t("apply_changes"),
-            fg_color=self._get_accent_color(),
-            hover_color=darken_color(self._get_accent_color(), 0.2),
-            width=140,
-            height=32,
-            font=("Arial", 12, "bold"),
-            command=self._apply_changes
-        )
-        self.apply_btn.pack(side="left")
+        self.reset_btn.pack(side="left")
         
         # Set initial palette selection if matches
         self._sync_palette_selection()

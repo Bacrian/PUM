@@ -1,4 +1,9 @@
 # region --- Helper Functions ---
+"""
+Utility functions for common operations throughout the application.
+This module provides helper functions for asset management,
+console output redirection, and file operations.
+"""
 import shutil
 import customtkinter
 import json

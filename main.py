@@ -14,10 +14,6 @@ from pathlib import Path
 from PIL import Image
 import sys
 import os
-import subprocess
-import time
-import zipfile
-import webbrowser
 
 try:
     from tkinterdnd2 import TkinterDnD, DND_ALL
@@ -40,27 +36,25 @@ from src.core.mod_scanner import mod_info
 from src.core.app_state import AppState
 from src.core.utils import ensure_assets_exist, ConsoleRedirector
 from src.core.protocol_registration import ensure_protocol_registered, is_protocol_registered
-from src.helpers import find_steam_game_paks, list_installed_steam_games
+from src.core.app_callbacks import AppCallbacks
+from src.helpers import find_steam_game_paks
 
 # Import feature modules
 from src.features.mod_management import ModManager
-from src.features.profile_management_enhanced import ProfileManager
+from src.features.profile_management import ProfileManager
 from src.features.ui_components import PreviewRenderer, ModListRenderer
 from src.features.url_handler import URLHandler
 from src.features.mod_list_controller import ModListController
 from src.features.settings_manager import SettingsManager
 from src.features.auto_updater import AutoUpdater
 from src.features.backup_manager import BackupManager
-from src.features.mod_marketplace import ModMarketplace
+from src.features.startup_check import StartupCheck
+from src.features.keyboard_shortcuts import KeyboardShortcutsManager
 
 # Import UI modules
 from src.ui.visual_components import VisualComponents
 from src.ui.home_page import HomePage
-from src.ui.game_library import GameLibraryPage
-from src.ui.backup_manager_ui import BackupManagerWindow
-from src.ui.profile_manager_ui import ProfileManagerWindow
-from src.ui.animations import AnimationHelper
-from src.ui.collapsible_menu import SidebarMenuManager, CollapsibleMenu, FloatingMenuSection
+from src.ui.collapsible_menu import FloatingMenuSection
 
 # Initialize
 ensure_assets_exist()
@@ -100,7 +94,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         
         # UI State Variables
         self.search_var = customtkinter.StringVar()
-        self.search_var.trace_add("write", self._on_search_change)
+        self.search_var.trace_add("write", lambda *args: self.callbacks.on_search_change(*args))
         
         # Window setup
         self.title(t("app_title"))
@@ -136,6 +130,9 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.app_state = AppState(self)
         self.app_state.view_mode = self.app_settings.get("view_mode", "list")
         
+        # Initialize callbacks handler
+        self.callbacks = AppCallbacks(self)
+        
         # Initialize managers
         self._init_managers()
         
@@ -158,7 +155,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             self.after(500, self.start_console)
 
         # Initial refresh
-        self.refresh_logic()
+        self.callbacks.refresh_logic()
         
         # Watchers
         self.last_mods_state = self._get_mods_state()
@@ -168,6 +165,10 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         # Check for updates if auto-update is enabled
         if self.app_settings.get("auto_update_enabled", True):
             self.after(UPDATE_CHECK_DELAY, lambda: self.auto_updater.check_and_notify())
+        
+        # First startup check for existing mods in ~mods folder
+        self.startup_check = StartupCheck(self)
+        self.after(1000, self.startup_check.check_first_startup)
     
     def _setup_base_layout(self):
         """Setup the sidebar and the main area container."""
@@ -203,7 +204,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.cat_filter = customtkinter.CTkOptionMenu(
             self.sidebar_frame,
             values=[t("all_categories"), t("cat_skin"), t("cat_voice"), t("cat_ui"), t("cat_music"), t("cat_other")],
-            command=lambda _: self.refresh_logic(),
+            command=lambda _: self.callbacks.refresh_logic(),
             fg_color=("gray85", "gray25"), 
             text_color=("gray10", "gray90"),
             dropdown_text_color=("gray10", "gray90"),
@@ -279,8 +280,6 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             current_view = 'home'
         elif hasattr(self, 'mod_manager_root') and self.mod_manager_root.winfo_exists():
             current_view = 'mod_manager'
-        elif hasattr(self, 'library_page') and self.library_page.winfo_exists():
-            current_view = 'library'
         
         # Store current game context
         current_game = self.active_game_name
@@ -317,14 +316,12 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
                     self.show_mod_manager(games[0])
                 else:
                     self.show_home()
-        elif current_view == 'library':
-            self.show_library()
         else:
             # Default to startup page
             self._show_startup_page()
         
         # Refresh to ensure everything is updated
-        self.refresh_logic()
+        self.callbacks.refresh_logic()
 
     def _show_startup_page(self):
         """Show the configured startup page."""
@@ -381,16 +378,13 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
                 self.current_path = game["path"]
                 # Ensure Default Profile exists for this game
                 self.profile_manager.ensure_default_profile_exists(game_name)
+                # Clear mod variable cache to prevent memory accumulation
+                if hasattr(self, 'mod_list_controller'):
+                    self.mod_list_controller._mod_vars.clear()
                 # Refresh mod manager if it's currently visible
                 if hasattr(self, 'mod_manager_root') and self.mod_manager_root.winfo_exists():
                     self.show_mod_manager(game)
                 break
-
-    def show_library(self):
-        """Show the Steam-style game selection library."""
-        self._clear_view()
-        self.library_page = GameLibraryPage(self.view_container, self)
-        self.library_page.grid(row=0, column=0, sticky="nsew")
 
     def show_mod_manager(self, game):
         """Enter the specific mod manager for a selected game."""
@@ -435,7 +429,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.play_btn = customtkinter.CTkButton(
             header, text=t("run_game_large"), width=200, height=55, font=("Arial", 18, "bold"),
             fg_color=self._accent_color(), hover_color=self._hover_color(),
-            command=self.game_callback
+            command=lambda: self.callbacks.game_callback()
         )
         self.play_btn.pack(side="right")
 
@@ -452,14 +446,14 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         tools.grid(row=0, column=0, sticky="ew", padx=15, pady=10)
         self.search_entry = customtkinter.CTkEntry(tools, placeholder_text=t("search_placeholder"), textvariable=self.search_var, height=30, width=180)
         self.search_entry.pack(side="left", padx=(0, 10))
-        self._btn(tools, t("select_all"), self.toggle_all_mods, width=100).pack(side="left", padx=5)
-        self.sort_btn = self._btn(tools, f"{t('sort')}:", self.toggle_sort, width=100)
+        self._btn(tools, t("select_all"), lambda: self.callbacks.toggle_all_mods(), width=100).pack(side="left", padx=5)
+        self.sort_btn = self._btn(tools, f"{t('sort')}: {self.app_state.sort_order}", lambda: self.callbacks.toggle_sort(), width=100)
         self.sort_btn.pack(side="left", padx=5)
         
         # View toggle button (list/grid)
         view_mode = getattr(self.app_state, 'view_mode', 'list')
         view_icon = "⊞" if view_mode == "list" else "≣"
-        self.view_toggle_btn = self._btn(tools, view_icon, self.toggle_view_mode, width=40)
+        self.view_toggle_btn = self._btn(tools, view_icon, lambda: self.callbacks.toggle_view_mode(), width=40)
         self.view_toggle_btn.pack(side="right", padx=5)
 
         self.modlist_frame = customtkinter.CTkFrame(self.list_container, fg_color="transparent")
@@ -477,7 +471,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.stats_label = customtkinter.CTkLabel(self.footer, text="...", font=("Arial", 12), text_color="gray50")
         self.stats_label.pack(side="left")
         
-        self.refresh_logic()
+        self.callbacks.refresh_logic()
 
     def _clear_view(self, animate=True):
         """Clear view with optional fade animation."""
@@ -563,13 +557,41 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.visual_components = VisualComponents(self)
         self.auto_updater = AutoUpdater(self)
         self.backup_manager = BackupManager(self)
-        self.mod_marketplace = ModMarketplace(self)
+        self.keyboard_shortcuts = KeyboardShortcutsManager(self)
+        
+        # Register keyboard shortcut callbacks
+        self._register_keyboard_shortcuts()
         
         # Migrate old profiles to new format
         self.profile_manager.migrate_old_profiles()
         
         # Ensure Default Profile exists for all games
         self.profile_manager.ensure_default_profile_exists()
+
+    def _register_keyboard_shortcuts(self):
+        """Register all keyboard shortcut callbacks."""
+        self.keyboard_shortcuts.register_action("toggle_console", self.toggle_console)
+        self.keyboard_shortcuts.register_action("open_settings", self.open_settings)
+        self.keyboard_shortcuts.register_action("refresh_mods", self.refresh_logic)
+        self.keyboard_shortcuts.register_action("toggle_all_mods", self.toggle_all_mods)
+        self.keyboard_shortcuts.register_action("deploy_mods", self.deploy_mods)
+        self.keyboard_shortcuts.register_action("search_focus", self._focus_search_box)
+        self.keyboard_shortcuts.register_action("open_mods_folder", lambda: os.startfile(Path("mods")))
+        self.keyboard_shortcuts.register_action("save_profile", self.save_current_profile)
+        self.keyboard_shortcuts.register_action("open_profile_manager", self.open_profile_manager)
+        self.keyboard_shortcuts.register_action("open_backup_manager", self.open_backup_manager)
+        self.keyboard_shortcuts.register_action("check_updates", lambda: self.auto_updater.manual_check())
+        self.keyboard_shortcuts.register_action("show_home", self.show_home)
+        self.keyboard_shortcuts.register_action("toggle_view_mode", self.toggle_view_mode)
+        self.keyboard_shortcuts.register_action("sort_mods", self.toggle_sort)
+        
+        # Bind shortcuts to main window
+        self.keyboard_shortcuts.bind_shortcuts(self)
+    
+    def _focus_search_box(self):
+        """Focus the search box if it exists."""
+        if hasattr(self, 'search_entry') and self.search_entry.winfo_exists():
+            self.search_entry.focus_set()
 
     # --- UI Helpers ---
     def _primary_color(self): return self.app_settings.get("primary_color", DEFAULT_PRIMARY_COLOR)
@@ -601,124 +623,21 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             pass
         return color
 
-    # --- Callbacks ---
-    def open_settings(self): self.settings_manager.open_settings()
-    def open_conflict_detector(self): 
-        from src.features.conflict_detector import show_conflict_detector
-        show_conflict_detector(self)
-    def download_url_callback(self): self.url_handler.download_url_callback()
-    def open_backup_manager(self):
-        if not self.backup_manager_window:
-            self.backup_manager_window = BackupManagerWindow(self)
-        self.backup_manager_window.open()
-    
-    def open_profile_manager(self):
-        if not hasattr(self, 'profile_manager_window') or not self.profile_manager_window:
-            self.profile_manager_window = ProfileManagerWindow(self)
-        self.profile_manager_window.open()
-    
-    def open_marketplace(self):
-        self.mod_marketplace.open()
-    
-    def _on_search_change(self, *args):
-        if self._search_debounce_id: self.after_cancel(self._search_debounce_id)
-        self._search_debounce_id = self.after(300, self.refresh_logic)
-
-    def toggle_sort(self):
-        self.app_state.toggle_sort()
-        if hasattr(self, 'sort_btn') and self.sort_btn.winfo_exists(): 
-            self.sort_btn.configure(text=f"{t('sort')}: {self.app_state.sort_order}")
-        self.refresh_logic()
-    
-    def refresh_logic(self):
-        self.mod_list_controller.refresh_logic()
-        self.update_stats_label()
-    
-    def update_stats_label(self):
-        if self.stats_label and self.stats_label.winfo_exists():
-            try:
-                total = len(self.mod_list_controller.mod_checkboxes)
-                enabled = sum(1 for item in self.mod_list_controller.mod_checkboxes if item['variable'].get() == 1)
-                self.stats_label.configure(text=t("mods_enabled_status").format(enabled=enabled, total=total))
-            except: self.stats_label = None
-
-    def toggle_all_mods(self):
-        if not self.mod_list_controller.mod_checkboxes: return
-        any_sel = any(item['variable'].get() == 0 for item in self.mod_list_controller.mod_checkboxes)
-        new_val = 1 if any_sel else 0
-        for item in self.mod_list_controller.mod_checkboxes:
-            item['variable'].set(new_val)
-            # Update saved_mods list to match
-            mod_name = item['mod_info'].get('name')
-            if new_val == 1:
-                if mod_name not in self.saved_mods:
-                    self.saved_mods.append(mod_name)
-            else:
-                if mod_name in self.saved_mods:
-                    self.saved_mods.remove(mod_name)
-        self.refresh_logic()
-
-    def game_callback(self):
-        if not self.current_path:
-            tkinter.messagebox.showwarning(t("warning"), t("game_path_not_set"))
-            return
-        if self.deploy_mods():
-            game_exe = Path(self.current_path) / "MHUR-Win64-Shipping.exe"
-            if game_exe.exists():
-                subprocess.Popen([str(game_exe)], cwd=str(Path(self.current_path).parent))
-            else:
-                if "Ultra Rumble" in str(self.active_game_name):
-                    os.startfile("steam://rungameid/1607250")
-                else:
-                    os.startfile(self.current_path)
-
-    def deploy_mods(self):
-        if not self.current_path: return False
-        
-        # Use the correct path where ~mods folder exists
-        base_path = Path(self.current_path)
-        target = base_path.parent / "~mods"
-        
-        # If ~mods doesn't exist at this location, try the other common location
-        if not target.exists():
-            # Try HerovsGame/Content/Paks/~mods as fallback
-            if "CrashReportClient" in str(base_path):
-                # Navigate from CrashReportClient to game root, then to HerovsGame
-                game_root = base_path.parent.parent.parent.parent.parent  # Go up 5 levels to game root
-                fallback = game_root / "HerovsGame" / "Content" / "Paks" / "~mods"
-                if fallback.exists():
-                    target = fallback
-        
-        # Enhanced backup system
-        if self.app_settings.get("backup_mods", False) and target.exists():
-            game_name = getattr(self, 'active_game_name', 'Unknown')
-            backup_path = self.backup_manager.create_backup(
-                game_name=game_name,
-                mods_path=str(target),
-                description=f"Auto-backup before deployment"
-            )
-            if backup_path:
-                print(f"Backup created: {backup_path}")
-        
-        target.mkdir(exist_ok=True)
-        for f in target.glob("*.pak"):
-            try: os.remove(f)
-            except: pass
-        selected = [item['mod_info'] for item in self.mod_list_controller.mod_checkboxes if item['variable'].get() == 1]
-        for mod in selected:
-            source = Path(mod["folder_path"]) / "assets"
-            if not source.exists(): continue
-            if mod.get("has_options"):
-                selected_files = self.mod_options.get(mod["name"], [])
-                for fname in selected_files:
-                    if (source / fname).exists(): shutil.copy(source / fname, target / fname)
-            else:
-                for f in source.glob("*.pak"): shutil.copy(f, target / f.name)
-        return True
-
-    def open_update_window(self, data):
-        if tkinter.messagebox.askyesno(t("update_available"), f"A new version (v{data['version']}) is available!\n\nDo you want to download it now?"):
-            webbrowser.open(data.get("download_url", "https://gamebanana.com/tools/21625"))
+    # --- Callbacks (delegated to AppCallbacks) ---
+    def open_settings(self): self.callbacks.open_settings()
+    def open_conflict_detector(self): self.callbacks.open_conflict_detector()
+    def download_url_callback(self): self.callbacks.download_url_callback()
+    def open_backup_manager(self): self.callbacks.open_backup_manager()
+    def open_profile_manager(self): self.callbacks.open_profile_manager()
+    def _on_search_change(self, *args): self.callbacks.on_search_change(*args)
+    def toggle_sort(self): self.callbacks.toggle_sort()
+    def refresh_logic(self): self.callbacks.refresh_logic()
+    def update_stats_label(self): self.callbacks.update_stats_label()
+    def toggle_all_mods(self): self.callbacks.toggle_all_mods()
+    def game_callback(self): self.callbacks.game_callback()
+    def deploy_mods(self): return self.callbacks.deploy_mods()
+    def open_update_window(self, data): self.callbacks.open_update_window(data)
+    def toggle_view_mode(self): self.callbacks.toggle_view_mode()
 
     def start_console(self):
         if self.console_window and self.console_window.winfo_exists():
@@ -895,6 +814,12 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
                 self._toggle_debug_mode(command[6:].strip())
             elif command == "settings":
                 self._show_settings_info()
+            elif command == "checkmods":
+                self._force_startup_check()
+            elif command == "checkupdate":
+                self._force_update_check()
+            elif command == "showupdate":
+                self._force_show_update_dialog()
             elif command.startswith("eval "):
                 expr = command[5:]  # Remove "eval " prefix
                 try:
@@ -902,6 +827,14 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
                     self._write_to_console(f"Result: {result}\n")
                 except Exception as e:
                     self._write_to_console(f"Error: {e}\n")
+            elif command == "shortcuts":
+                self._list_shortcuts()
+            elif command == "reset_shortcuts":
+                self._reset_shortcuts_console()
+            elif command.startswith("test_shortcut "):
+                self._test_shortcut(command[13:].strip())
+            elif command.startswith("bind_shortcut "):
+                self._bind_shortcut_console(command[13:].strip())
             else:
                 self._write_to_console(f"Unknown command: {command}\n")
                 self._write_to_console("Type 'help' for available commands\n")
@@ -912,7 +845,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         """Show available console commands with detailed descriptions."""
         help_text = """
 ═══════════════════════════════════════════════════════════════
-                    PUM DEBUG CONSOLE - COMMAND REFERENCE
+             PUM DEBUG CONSOLE - COMMAND REFERENCE
 ═══════════════════════════════════════════════════════════════
 
 GENERAL COMMANDS
@@ -940,6 +873,9 @@ ACTION COMMANDS (perform operations)
   deploy                  Deploy enabled mods to game's ~mods folder
   backup                  Create a manual backup of current mods
   check                   Run conflict detection on enabled mods
+  checkmods               Force check for existing mods in ~mods folder
+  checkupdate             Force check for application updates
+  showupdate              Force show update dialog (debug mode, no version check)
 
 DEBUG COMMANDS (for troubleshooting)
 ────────────────
@@ -952,6 +888,16 @@ DEBUG COMMANDS (for troubleshooting)
                           'app' variable gives access to main application
                           Example: eval app.active_game_name
                           Example: eval len(app.saved_mods)
+
+KEYBOARD SHORTCUTS
+────────────────
+  shortcuts               List all configured keyboard shortcuts
+  reset_shortcuts         Reset all shortcuts to default values
+  test_shortcut <action>  Test if a shortcut action is registered
+                          Example: test_shortcut toggle_console
+  bind_shortcut <action> <shortcut>
+                          Manually bind a shortcut to an action
+                          Example: bind_shortcut toggle_console F12
 
 TIPS
 ────
@@ -1101,7 +1047,7 @@ TIPS
         """Refresh mod list display."""
         self._write_to_console("\n🔄 Refreshing mod list display...\n")
         try:
-            self.refresh_logic()
+            self.callbacks.refresh_logic()
             self._write_to_console("✓ Mod list refreshed\n")
         except Exception as e:
             self._write_to_console(f"❌ Error refreshing: {e}\n")
@@ -1114,7 +1060,7 @@ TIPS
             # Clear any cached data
             self.saved_mods = load_config().get('saved_mods', [])
             self.mod_options = load_config().get('mod_options', {})
-            self.refresh_logic()
+            self.callbacks.refresh_logic()
             self._write_to_console("✓ Mods reloaded from disk\n")
             self._write_to_console(f"   Current saved mods: {len(self.saved_mods)}\n")
         except Exception as e:
@@ -1259,11 +1205,128 @@ TIPS
                 self._write_to_console("  No settings configured\n")
         except Exception as e:
             self._write_to_console(f"❌ Error showing settings: {e}\n")
+    
+    def _force_startup_check(self):
+        """Force the first startup check for existing mods in ~mods folder."""
+        try:
+            self._write_to_console("Forcing startup check for existing mods...\n")
+            
+            # Reset the flag
+            self.app_settings['first_startup_check_done'] = False
+            
+            # Save the updated settings
+            from src.core.config import save_config
+            save_config(self.current_path, self.saved_mods, self.mod_options, self.app_settings)
+            
+            # Run the check
+            self.startup_check.check_first_startup()
+            
+            self._write_to_console("✓ Startup check initiated\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error forcing startup check: {e}\n")
+    
+    def _force_update_check(self):
+        """Force check for application updates."""
+        try:
+            self._write_to_console("Checking for application updates...\n")
+            self.auto_updater.check_and_notify()
+            self._write_to_console("✓ Update check initiated\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error checking for updates: {e}\n")
+    
+    def _force_show_update_dialog(self):
+        """Force show the update dialog with test data (for debugging)."""
+        try:
+            self._write_to_console("Showing update dialog (debug mode)...\n")
+            self.auto_updater.force_show_update_dialog()
+            self._write_to_console("✓ Update dialog shown\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error showing update dialog: {e}\n")
 
     def stop_console(self):
         sys.stdout = self._stdout_orig
         sys.stderr = self._stderr_orig
         if self.console_window: self.console_window.destroy()
+    
+    def _list_shortcuts(self):
+        """List all configured keyboard shortcuts."""
+        try:
+            shortcuts = self.keyboard_shortcuts.get_all_shortcuts()
+            self._write_to_console(f"\n⌨ Keyboard Shortcuts ({len(shortcuts)} total)\n")
+            self._write_to_console("─" * 50 + "\n")
+            
+            for action, config in shortcuts.items():
+                shortcut = config["shortcut"]
+                description = config["description"]
+                self._write_to_console(f"  {shortcut:20s} → {description}\n")
+            
+            self._write_to_console("─" * 50 + "\n")
+            self._write_to_console("Use 'reset_shortcuts' to restore defaults\n")
+            self._write_to_console("Use 'bind_shortcut <action> <shortcut>' to change\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error listing shortcuts: {e}\n")
+    
+    def _reset_shortcuts_console(self):
+        """Reset all shortcuts to default values."""
+        try:
+            self._write_to_console("Resetting all shortcuts to defaults...\n")
+            self.keyboard_shortcuts.reset_to_defaults()
+            self.keyboard_shortcuts.bind_shortcuts(self)
+            self._write_to_console("✓ Shortcuts reset to defaults\n")
+            self._write_to_console("   Use 'shortcuts' to see current bindings\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error resetting shortcuts: {e}\n")
+    
+    def _test_shortcut(self, action):
+        """Test if a shortcut action is registered and can be executed."""
+        try:
+            if action in self.keyboard_shortcuts.action_callbacks:
+                shortcut = self.keyboard_shortcuts.get_shortcut(action)
+                self._write_to_console(f"✓ Action '{action}' is registered\n")
+                self._write_to_console(f"  Current shortcut: {shortcut}\n")
+                self._write_to_console(f"  Attempting to execute...\n")
+                try:
+                    self.keyboard_shortcuts.execute_action(action)
+                    self._write_to_console(f"  ✓ Action executed successfully\n")
+                except Exception as e:
+                    self._write_to_console(f"  ❌ Error executing action: {e}\n")
+            else:
+                self._write_to_console(f"❌ Action '{action}' is not registered\n")
+                self._write_to_console(f"   Available actions:\n")
+                for a in self.keyboard_shortcuts.action_callbacks.keys():
+                    self._write_to_console(f"   - {a}\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error testing shortcut: {e}\n")
+    
+    def _bind_shortcut_console(self, args):
+        """Manually bind a shortcut to an action."""
+        try:
+            parts = args.split(maxsplit=1)
+            if len(parts) < 2:
+                self._write_to_console("❌ Usage: bind_shortcut <action> <shortcut>\n")
+                self._write_to_console("   Example: bind_shortcut toggle_console F12\n")
+                return
+            
+            action, shortcut = parts
+            
+            if action not in self.keyboard_shortcuts.DEFAULT_SHORTCUTS:
+                self._write_to_console(f"❌ Unknown action: {action}\n")
+                self._write_to_console("   Available actions:\n")
+                for a in self.keyboard_shortcuts.DEFAULT_SHORTCUTS.keys():
+                    self._write_to_console(f"   - {a}\n")
+                return
+            
+            self._write_to_console(f"Binding '{shortcut}' to '{action}'...\n")
+            success = self.keyboard_shortcuts.set_shortcut(action, shortcut)
+            if success:
+                self.keyboard_shortcuts.bind_shortcuts(self)
+                self._write_to_console("✓ Shortcut bound successfully\n")
+                self._write_to_console(f"   Action: {action}\n")
+                self._write_to_console(f"   Shortcut: {shortcut}\n")
+            else:
+                self._write_to_console("❌ Failed to bind shortcut\n")
+        except Exception as e:
+            self._write_to_console(f"❌ Error binding shortcut: {e}\n")
 
     def toggle_console(self):
         """Toggle console window open/closed."""
@@ -1356,7 +1419,7 @@ TIPS
             destination.mkdir(parents=True, exist_ok=True)
             for f in files: 
                 self.mod_manager.install_mod(Path(f), destination=destination)
-            self.refresh_logic()
+            self.callbacks.refresh_logic()
 
     def _get_mods_state(self): return set(m.get('folder_path', '') for m in mod_info(game_name=self.active_game_name))
     def auto_save_profile(self, *args):
@@ -1464,7 +1527,7 @@ TIPS
         """Poll for mod file system changes and refresh if needed."""
         curr = self._get_mods_state()
         if curr != self.last_mods_state:
-            self.refresh_logic()
+            self.callbacks.refresh_logic()
             self.last_mods_state = curr
         self.after(AUTO_REFRESH_INTERVAL, self._poll_mods_changes)
 
@@ -1490,7 +1553,7 @@ TIPS
                 self.app_settings.update(settings)
             print(f"DEBUG LOAD: Calling set_selected_mods with: {mods}")
             self.mod_list_controller.set_selected_mods(mods if mods else [])
-            self.refresh_logic()
+            self.callbacks.refresh_logic()
     
     def save_current_profile(self):
         name = self.profile_manager.create_new_profile_dialog()
@@ -1669,7 +1732,7 @@ TIPS
             try:
                 json_path = Path(self.focused_mod["folder_path"]) / "modinfo.json"
                 with open(json_path, "w", encoding="utf-8") as f: json.dump({k: v for k, v in self.focused_mod.items() if k != "folder_path"}, f, indent=4, ensure_ascii=False)
-                self.refresh_logic(); self.preview_renderer.render_preview(self.focused_mod); self.editor_window.destroy()
+                self.callbacks.refresh_logic(); self.preview_renderer.render_preview(self.focused_mod); self.editor_window.destroy()
             except: pass
         btn_row = customtkinter.CTkFrame(right_frame, fg_color="transparent"); 
         btn_row.pack(fill="x", side="bottom", pady=(20, 0))
@@ -1689,7 +1752,7 @@ TIPS
             view_icon = "⊞" if new_mode == "list" else "≣"
             self.view_toggle_btn.configure(text=view_icon)
         # Refresh the mod list with new view mode
-        self.refresh_logic()
+        self.callbacks.refresh_logic()
 
     def open_mod_config(self, mod):
         if self.config_parts_window and self.config_parts_window.winfo_exists():

@@ -1,5 +1,9 @@
 # region --- Protocol Registration ---
-"""Windows protocol handler registration for pum:// URLs."""
+"""
+Manages the registration of the pum:// protocol with the Windows operating system.
+This module handles registering the pum:// protocol with Windows
+to enable one-click mod installation from external sources.
+"""
 import os
 import sys
 import winreg

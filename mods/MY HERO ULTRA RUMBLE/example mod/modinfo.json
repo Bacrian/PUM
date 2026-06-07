@@ -4,7 +4,7 @@
     "author": "Author name",
     "screenshot": "preview.png",
     "description": "Example mod template.",
-    "category": "Skin",
+    "category": "Other",
     "url": "https://example.com/mods/0",
     "has_options": false,
     "options": [],

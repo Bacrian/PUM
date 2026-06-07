@@ -13,7 +13,7 @@ class VirtualModList:
     """
     
     ROW_HEIGHT = 46  # Altura de cada fila de mod
-    VISIBLE_BUFFER = 3  # Filas extra a renderizar arriba/abajo
+    VISIBLE_BUFFER = 3  # Filas extra a renderizar arriba/abajo (base value, will be adjusted dynamically)
     
     def __init__(self, parent, app_instance, row_renderer: Callable):
         """
@@ -37,6 +37,7 @@ class VirtualModList:
         self.total_height = 0
         self._scroll_job = None
         self._resize_job = None
+        self._dynamic_buffer = self.VISIBLE_BUFFER  # Buffer dinámico calculado
         
         self._create_widgets()
         self._bind_events()
@@ -100,6 +101,25 @@ class VirtualModList:
             self.canvas.after_cancel(self._resize_job)
         self._resize_job = self.canvas.after(100, self._update_layout)
     
+    def _calculate_dynamic_buffer(self):
+        """Calcula el buffer dinámico según el tamaño de pantalla."""
+        try:
+            canvas_height = self.canvas.winfo_height()
+            if canvas_height > 0:
+                # Calcular cuántas filas caben en pantalla
+                visible_rows = canvas_height // self.ROW_HEIGHT
+                # Ajustar buffer: más buffer para pantallas grandes, menos para pequeñas
+                if visible_rows < 10:
+                    self._dynamic_buffer = 2
+                elif visible_rows < 20:
+                    self._dynamic_buffer = 3
+                elif visible_rows < 30:
+                    self._dynamic_buffer = 4
+                else:
+                    self._dynamic_buffer = 5
+        except Exception:
+            self._dynamic_buffer = self.VISIBLE_BUFFER
+    
     def _on_mousewheel(self, event):
         """Maneja el scroll con rueda del mouse."""
         try:
@@ -142,6 +162,9 @@ class VirtualModList:
         else:
             self.canvas.configure(scrollregion=(0, 0, canvas_width, canvas_height))
         
+        # Recalcular buffer dinámico según tamaño de pantalla
+        self._calculate_dynamic_buffer()
+        
         self._update_visible_rows()
     
     def set_data(self, mods_data: List[Dict]):
@@ -182,10 +205,10 @@ class VirtualModList:
         canvas_height = self.canvas.winfo_height()
         scroll_y = self.canvas.yview()[0] * self.total_height
         
-        first_row = max(0, int(scroll_y / self.ROW_HEIGHT) - self.VISIBLE_BUFFER)
+        first_row = max(0, int(scroll_y / self.ROW_HEIGHT) - self._dynamic_buffer)
         last_row = min(
             len(self.mods_data) - 1,
-            int((scroll_y + canvas_height) / self.ROW_HEIGHT) + self.VISIBLE_BUFFER
+            int((scroll_y + canvas_height) / self.ROW_HEIGHT) + self._dynamic_buffer
         )
         
         # Determinar qué filas necesitan ser creadas/destruidas

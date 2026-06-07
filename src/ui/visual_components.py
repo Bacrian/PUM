@@ -26,7 +26,7 @@ class VisualComponents:
             corner_radius=2, 
             height=SMALL_BUTTON_HEIGHT, 
             fg_color="transparent", 
-            hover_color=("gray80", "gray25"), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()), 
             text_color=dynamic_text_color, 
             command=self.app.toggle_pref_dropdown
         )
@@ -39,7 +39,7 @@ class VisualComponents:
             corner_radius=2, 
             height=SMALL_BUTTON_HEIGHT, 
             fg_color="transparent", 
-            hover_color=("gray80", "gray25"), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()), 
             text_color=dynamic_text_color, 
             command=self.app.download_url_callback
         )
@@ -52,7 +52,7 @@ class VisualComponents:
             corner_radius=2, 
             height=SMALL_BUTTON_HEIGHT, 
             fg_color="transparent", 
-            hover_color=("gray80", "gray25"),
+            hover_color=(self.app._hover_color(), self.app._hover_color()),
             text_color=dynamic_text_color, 
             command=self.app.open_credits
         )
@@ -65,7 +65,7 @@ class VisualComponents:
             corner_radius=2, 
             height=SMALL_BUTTON_HEIGHT, 
             fg_color="transparent", 
-            hover_color=("gray80", "gray25"), 
+            hover_color=(self.app._hover_color(), self.app._hover_color()), 
             text_color=dynamic_text_color, 
             command=self.app.open_console_window
         )

@@ -122,8 +122,6 @@
   "no_notes": "Aucune note de version disponible.",
   "download_button": "Télécharger",
   "later_button": "Plus tard",
-  "delete_title": "Supprimer le profil",
-  "delete_confirm": "Êtes-vous sûr de vouloir supprimer le profil",
   "dark_theme": "Sombre",
   "light_theme": "Clair",
   "system_theme": "Système",
@@ -376,5 +374,10 @@
   "conflicts_detected_header": "⚠️ Conflits de Mods Détectés",
   "no_conflicts_message": "Aucun conflit détecté ! Vos mods activés sont compatibles.",
   "conflicts_found_summary": "{count} fichier(s) .pak conflictuel(s) trouvé(s) parmi vos mods activés",
-  "check_again_button": "Vérifier à nouveau"
+  "check_again_button": "Vérifier à nouveau",
+  "first_startup_title": "Mods Existant Détectés",
+  "first_startup_description": "PUM a détecté des mods dans le dossier ~mods de votre jeu. Ces mods ont été installés en dehors de PUM. Que souhaitez-vous faire avec eux ?",
+  "delete_all_mods": "Supprimer Tous",
+  "import_to_pum": "Importer dans PUM",
+  "skip": "Ignorer"
 }

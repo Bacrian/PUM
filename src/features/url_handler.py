@@ -207,15 +207,30 @@ class URLHandler:
                     
                     try:
                         print(f"DEBUG: Downloading file {i+1}/{len(files)}: {filename}")
+                        
+                        # Show progress window for this file
+                        self.app.after(0, lambda f=filename, c=i+1, t=len(files): 
+                            self._show_download_progress(f, c, t))
+                        
                         response = requests.get(download_url, stream=True, timeout=30)
                         
                         if response.status_code == 200:
                             save_path = downloads_dir / filename
                             
+                            # Get total file size for progress tracking
+                            total_size = int(response.headers.get('content-length', 0))
+                            downloaded_size = 0
+                            
                             with open(save_path, 'wb') as f:
                                 for chunk in response.iter_content(chunk_size=8192):
                                     if chunk:
                                         f.write(chunk)
+                                        downloaded_size += len(chunk)
+                                        
+                                        # Update progress if we know the total size
+                                        if total_size > 0:
+                                            percent = (downloaded_size / total_size) * 100
+                                            self.app.after(0, lambda p=percent: self._update_progress(p))
                             
                             downloaded_files.append({
                                 'path': save_path,
@@ -226,10 +241,12 @@ class URLHandler:
                             print(f"DEBUG: File {filename} downloaded successfully")
                         else:
                             print(f"DEBUG: HTTP error {response.status_code} for {filename}")
+                            self.app.after(0, lambda: self._show_error(f"HTTP error {response.status_code}"))
                     except Exception as e:
                         print(f"DEBUG: Error downloading file {filename}: {e}")
                         import traceback
                         traceback.print_exc()
+                        self.app.after(0, lambda err=str(e): self._show_error(f"Download error: {err}"))
                         continue
                 
                 # Now install all files as options
@@ -822,15 +839,30 @@ Do you want to continue downloading anyway?"""
                     
                     try:
                         print(f"DEBUG: Downloading file {i+1}/{len(files)}: {filename}")
+                        
+                        # Show progress window for this file
+                        self.app.after(0, lambda f=filename, c=i+1, t=len(files): 
+                            self._show_download_progress(f, c, t))
+                        
                         response = requests.get(download_url, stream=True, timeout=30)
                         
                         if response.status_code == 200:
                             save_path = downloads_dir / filename
                             
+                            # Get total file size for progress tracking
+                            total_size = int(response.headers.get('content-length', 0))
+                            downloaded_size = 0
+                            
                             with open(save_path, 'wb') as f:
                                 for chunk in response.iter_content(chunk_size=8192):
                                     if chunk:
                                         f.write(chunk)
+                                        downloaded_size += len(chunk)
+                                        
+                                        # Update progress if we know the total size
+                                        if total_size > 0:
+                                            percent = (downloaded_size / total_size) * 100
+                                            self.app.after(0, lambda p=percent: self._update_progress(p))
                             
                             downloaded_files.append({
                                 'path': save_path,
@@ -840,10 +872,12 @@ Do you want to continue downloading anyway?"""
                             print(f"DEBUG: File {filename} downloaded successfully")
                         else:
                             print(f"DEBUG: HTTP error {response.status_code} for {filename}")
+                            self.app.after(0, lambda: self._show_error(f"HTTP error {response.status_code}"))
                     except Exception as e:
                         print(f"DEBUG: Error downloading file {filename}: {e}")
                         import traceback
                         traceback.print_exc()
+                        self.app.after(0, lambda err=str(e): self._show_error(f"Download error: {err}"))
                         continue
                 
                 # Now install all files as options
@@ -974,31 +1008,64 @@ Do you want to continue downloading anyway?"""
         # Start download in background thread
         threading.Thread(target=download_thread, daemon=True).start()
     
-    def _show_download_progress(self, filename):
-        """Show download progress window"""
+    def _show_download_progress(self, filename, current=1, total=1):
+        """Show download progress window with enhanced UI"""
         if self.loading_win:
             self.loading_win.destroy()
         
         self.loading_win = customtkinter.CTkToplevel(self.app)
-        self.loading_win.title("Downloading...")
-        self.loading_win.geometry("350x120")
+        self.loading_win.title(t("url_dl_title"))
+        self.loading_win.geometry("400x150")
         self.loading_win.attributes("-topmost", True)
+        self.loading_win.resizable(False, False)
         
+        # Center window
+        self.loading_win.update_idletasks()
+        x = (self.loading_win.winfo_screenwidth() // 2) - (400 // 2)
+        y = (self.loading_win.winfo_screenheight() // 2) - (150 // 2)
+        self.loading_win.geometry(f"+{x}+{y}")
+        
+        # Main container
+        container = customtkinter.CTkFrame(self.loading_win, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Status label with translation
         self.progress_label = customtkinter.CTkLabel(
-            self.loading_win, 
-            text=f"Downloading:\n{filename}",
+            container, 
+            text=t("batch_download_status", name=filename[:30], current=current, total=total),
             font=("Arial", 11)
         )
-        self.progress_label.pack(pady=(15, 5))
+        self.progress_label.pack(pady=(10, 5))
         
-        # Add animated loading spinner
-        self.spinner = LoadingSpinner(self.loading_win, size=50, color=self.app._accent_color())
-        self.spinner.create().pack(pady=10)
-        self.spinner.start()
+        # Progress percentage label
+        self.percent_label = customtkinter.CTkLabel(
+            container,
+            text="0%",
+            font=("Arial", 10, "bold")
+        )
+        self.percent_label.pack(pady=(0, 10))
         
-        self.progress_bar = customtkinter.CTkProgressBar(self.loading_win, width=300)
-        self.progress_bar.pack(pady=10)
+        # Progress bar
+        self.progress_bar = customtkinter.CTkProgressBar(container, width=350, height=20)
+        self.progress_bar.pack(pady=(0, 10))
         self.progress_bar.set(0)
+        
+        # Handle window close to cancel download
+        def on_close():
+            if hasattr(self, '_download_cancel_requested'):
+                return
+            self._download_cancel_requested = True
+            if tkinter.messagebox.askyesno(
+                t("cancel_button"),
+                t("cancel_download_confirm")
+            ):
+                self.download_in_progress = False
+                self.loading_win.destroy()
+                self.loading_win = None
+            else:
+                self._download_cancel_requested = False
+        
+        self.loading_win.protocol("WM_DELETE_WINDOW", on_close)
         
         try:
             self.loading_win.after(200, lambda: self.loading_win.iconbitmap(str(ASSETS_DIR / "icon.ico")))
@@ -1006,11 +1073,13 @@ Do you want to continue downloading anyway?"""
             pass
     
     def _update_progress(self, percent):
-        """Update download progress"""
+        """Update download progress with percentage label"""
         if self.loading_win and hasattr(self, 'progress_bar'):
             self.progress_bar.set(percent / 100)
+            if hasattr(self, 'percent_label'):
+                self.percent_label.configure(text=f"{int(percent)}%")
         
-        # Stop spinner when download completes
+        # Stop spinner when download completes (if it exists)
         if percent >= 100 and hasattr(self, 'spinner'):
             self.spinner.stop()
     

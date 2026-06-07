@@ -1,5 +1,10 @@
 # region --- Mod List Controller ---
-"""Controller for mod list display with optimized rendering and game isolation."""
+"""
+Controller for mod list display with optimized rendering and game isolation.
+This module handles the display and interaction with the mod list,
+including virtualization for performance, hover effects, and
+sorting/filtering functionality.
+"""
 import customtkinter
 import tkinter
 import tkinter.font
@@ -13,69 +18,7 @@ from src.core.localization import t
 from src.features.conflict_detector import show_conflict_detector
 from src.ui.animations import HoverEffect, AnimationHelper
 from src.ui.virtual_mod_list import VirtualModList
-
-class MarqueeLabel(customtkinter.CTkFrame):
-    """Custom widget that scrolls text slowly if it exceeds its width."""
-    def __init__(self, master, text, font, row_frame, on_click, on_context, **kwargs):
-        super().__init__(master, height=34, fg_color="transparent", **kwargs)
-        
-        self.text = text
-        self.font_data = font
-        
-        # Internal label
-        self.label = customtkinter.CTkLabel(self, text=text, font=font, anchor="w")
-        self.label.place(x=0, y=4)
-        
-        # State
-        self.offset = 0
-        self.scrolling = False
-        self.scroll_job = None
-        
-        # Measure text width
-        try:
-            f = tkinter.font.Font(family=font[0], size=font[1], weight=font[2])
-            self.text_width = f.measure(text)
-        except:
-            self.text_width = len(text) * 8 
-        
-        # Binds
-        for w in (self, self.label):
-            w.bind("<Button-1>", on_click)
-            w.bind("<Button-3>", on_context)
-            # No propagar Enter/Leave - el row_frame maneja hover directamente
-
-    def start_scrolling(self):
-        curr_width = self.winfo_width()
-        if self.text_width > (curr_width - 5) and not self.scrolling:
-            self.scrolling = True
-            self.animate()
-
-    def stop_scrolling(self):
-        self.scrolling = False
-        if self.scroll_job:
-            self.after_cancel(self.scroll_job)
-            self.scroll_job = None
-        self.offset = 0
-        self.label.place(x=0)
-
-    def animate(self):
-        if not self.scrolling or not self.winfo_exists():
-            return
-            
-        curr_width = self.winfo_width()
-        limit = -(self.text_width - curr_width + 20)
-        if self.offset > limit:
-            self.offset -= 1 
-            self.label.place(x=self.offset)
-            self.scroll_job = self.after(50, self.animate)
-        else:
-            self.scroll_job = self.after(2000, self.reset_and_restart)
-
-    def reset_and_restart(self):
-        if not self.scrolling or not self.winfo_exists(): return
-        self.offset = 0
-        self.label.place(x=0)
-        self.scroll_job = self.after(2000, self.animate)
+from src.ui.marquee_label import MarqueeLabel
 
 class ModListController:
     """Controls mod list rendering with virtualization for performance."""
@@ -150,14 +93,14 @@ class ModListController:
         
         btn_name = customtkinter.CTkButton(
             header_row, text=t("editor_mod_name") + (" ▼" if cur_key == "name" and cur_order == "A-Z" else " ▲" if cur_key == "name" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=("gray70", "gray30"),
+            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=(self.app._hover_color(), self.app._hover_color()),
             anchor="w", height=20, width=220, command=lambda: self._on_header_click("name")
         )
         btn_name.grid(row=0, column=3, padx=5, sticky="ew")
         
         btn_author = customtkinter.CTkButton(
             header_row, text=t("editor_mod_author") + (" ▼" if cur_key == "author" and cur_order == "A-Z" else " ▲" if cur_key == "author" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=("gray70", "gray30"),
+            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=(self.app._hover_color(), self.app._hover_color()),
             anchor="w", height=20, width=100, command=lambda: self._on_header_click("author")
         )
         btn_author.grid(row=0, column=4, padx=5)
@@ -167,7 +110,25 @@ class ModListController:
         return header_row
         
     def refresh_logic(self, force_rebuild=True):
-        """Refresh the mod list using virtualization for performance."""
+        """
+        Refresh the mod list display with filtering, sorting, and virtualization.
+        
+        This method performs the following steps:
+        1. Load mods isolated by game name for multi-game support
+        2. Apply search text filter if present
+        3. Apply category filter if selected
+        4. Sort mods by current sort key and order
+        5. Update internal checkbox state with saved selections
+        6. Render UI in appropriate view mode (list or grid)
+        
+        Args:
+            force_rebuild: If True, forces a complete UI rebuild. If False, skips
+                         rebuild if mod state hasn't changed (performance optimization).
+        
+        Note:
+            Uses virtualization for list view to handle large mod lists efficiently.
+            Grid view uses traditional scrollable frame.
+        """
         if self._refreshing:
             return
         self._refreshing = True
@@ -261,14 +222,14 @@ class ModListController:
         
         btn_name = customtkinter.CTkButton(
             header_row, text=t("editor_mod_name") + (" ▼" if cur_key == "name" and cur_order == "A-Z" else " ▲" if cur_key == "name" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=("gray70", "gray30"),
+            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=(self.app._hover_color(), self.app._hover_color()),
             anchor="w", height=20, width=220, command=lambda: self._on_header_click("name")
         )
         btn_name.grid(row=0, column=3, padx=5, sticky="ew")
         
         btn_author = customtkinter.CTkButton(
             header_row, text=t("editor_mod_author") + (" ▼" if cur_key == "author" and cur_order == "A-Z" else " ▲" if cur_key == "author" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=("gray70", "gray30"),
+            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=(self.app._hover_color(), self.app._hover_color()),
             anchor="w", height=20, width=100, command=lambda: self._on_header_click("author")
         )
         btn_author.grid(row=0, column=4, padx=5)
@@ -299,7 +260,7 @@ class ModListController:
             row_frame, text="★" if mod.get('is_favorite', False) else "☆", 
             width=25, height=25, font=("Arial", 14),
             fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=("gray75", "gray30"),
+            hover_color=(self.app._accent_color(), self.app._accent_color()),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.grid(row=0, column=2, padx=2, pady=10)
@@ -329,6 +290,7 @@ class ModListController:
                 
         def on_leave(e, rf=row_frame, nm=name_marquee, am=author_marquee):
             try:
+                # Short delay to check if mouse really left (prevents flickering)
                 def check_mouse_left():
                     try:
                         if rf.winfo_exists():
@@ -342,7 +304,7 @@ class ModListController:
                                 am.stop_scrolling()
                     except:
                         pass
-                rf.after(50, check_mouse_left)
+                rf.after(20, check_mouse_left)  # Reduced from 50ms to 20ms
             except:
                 pass
 
@@ -354,8 +316,6 @@ class ModListController:
             if w:
                 w.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
                 w.bind("<Button-3>", lambda e=None, m=mod: self.show_context_menu(e, m))
-                w.bind("<Enter>", lambda e: "break")
-                w.bind("<Leave>", lambda e: "break")
         
         return {
             'checkbox': cb,
@@ -391,7 +351,7 @@ class ModListController:
             row_frame, text="★" if mod.get('is_favorite', False) else "☆", 
             width=25, height=25, font=("Arial", 14),
             fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=("gray75", "gray30"),
+            hover_color=(self.app._accent_color(), self.app._accent_color()),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.grid(row=0, column=2, padx=2, pady=10)
@@ -421,7 +381,7 @@ class ModListController:
                 
         def on_leave(e, rf=row_frame, nm=name_marquee, am=author_marquee):
             try:
-                # Verificar si el mouse realmente salió después de un pequeño delay
+                # Short delay to check if mouse really left (prevents flickering)
                 def check_mouse_left():
                     try:
                         if rf.winfo_exists():
@@ -435,24 +395,19 @@ class ModListController:
                                 am.stop_scrolling()
                     except:
                         pass
-                # Delay para permitir que el mouse entre en otro widget hijo
-                rf.after(50, check_mouse_left)
+                rf.after(20, check_mouse_left)  # Reduced from 50ms to 20ms
             except:
                 pass
 
-        # Hover solo en el row_frame - los hijos son transparentes a eventos de hover
+        # Hover on the row_frame
         row_frame._hover_active = False
         row_frame.bind("<Enter>", on_enter)
         row_frame.bind("<Leave>", on_leave)
         
-        # Los widgets hijos no capturan Enter/Leave - pasan al padre
         for w in (cb, star_btn, version_label, indicator if mod.get("has_options") else None):
             if w:
                 w.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
                 w.bind("<Button-3>", lambda e=None, m=mod: self.show_context_menu(e, m))
-                # Hacer que los eventos de mouse pasen al row_frame para hover
-                w.bind("<Enter>", lambda e: "break")
-                w.bind("<Leave>", lambda e: "break")
 
     def _on_header_click(self, key):
         self.app.app_state.set_sort_key(key)
@@ -584,6 +539,12 @@ class ModListController:
         card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
         
+        # Hover effect for card - defined early so child widgets can reference it
+        def on_enter(e, c=card):
+            c.configure(fg_color=("gray85", "gray20"), cursor="hand2")
+        def on_leave(e, c=card):
+            c.configure(fg_color=("gray90", "gray15"), cursor="")
+        
         # Preview image
         img_frame = customtkinter.CTkFrame(card, fg_color=("gray95", "gray18"), corner_radius=8, height=120)
         img_frame.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
@@ -612,6 +573,9 @@ class ModListController:
         for widget in (img_frame, img_label):
             if widget:
                 widget.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
+                # Propagate hover events to card
+                widget.bind("<Enter>", lambda e, c=card: on_enter(e, c))
+                widget.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
         # Mod name
         name = mod.get('name', 'Unknown')
@@ -619,6 +583,9 @@ class ModListController:
             name = name[:18] + "..."
         name_lbl = customtkinter.CTkLabel(card, text=name, font=("Arial", 12, "bold"))
         name_lbl.grid(row=1, column=0, padx=10, pady=(5, 0), sticky="w")
+        name_lbl.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
+        name_lbl.bind("<Enter>", lambda e, c=card: on_enter(e, c))
+        name_lbl.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
         # Author
         author = mod.get('author', 'Unknown')
@@ -626,10 +593,15 @@ class ModListController:
             author = author[:18] + "..."
         author_lbl = customtkinter.CTkLabel(card, text=f"by {author}", font=("Arial", 10), text_color=("gray60", "gray50"))
         author_lbl.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="w")
+        author_lbl.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
+        author_lbl.bind("<Enter>", lambda e, c=card: on_enter(e, c))
+        author_lbl.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
         # Bottom row with checkbox and favorite
         bottom = customtkinter.CTkFrame(card, fg_color="transparent")
         bottom.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="ew")
+        bottom.bind("<Enter>", lambda e, c=card: on_enter(e, c))
+        bottom.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
         # Checkbox
         cb = customtkinter.CTkCheckBox(bottom, text="", variable=var, width=20, height=20,
@@ -637,23 +609,22 @@ class ModListController:
                                        hover_color=(self.app._hover_color(), self.app._hover_color()),
                                        command=lambda: self._on_checkbox_click(mod, var))
         cb.pack(side="left")
+        cb.bind("<Enter>", lambda e, c=card: on_enter(e, c))
+        cb.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
         # Favorite button
         star_btn = customtkinter.CTkButton(
             bottom, text="★" if mod.get('is_favorite', False) else "☆", 
             width=28, height=28, font=("Arial", 12),
             fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=("gray75", "gray30"),
+            hover_color=(self.app._accent_color(), self.app._accent_color()),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.pack(side="right")
+        star_btn.bind("<Enter>", lambda e, c=card: on_enter(e, c))
+        star_btn.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
-        # Hover effect for card
-        def on_enter(e, c=card):
-            c.configure(fg_color=("gray85", "gray20"), cursor="hand2")
-        def on_leave(e, c=card):
-            c.configure(fg_color=("gray90", "gray15"), cursor="")
-        
+        # Bind hover events to card itself
         card.bind("<Enter>", on_enter)
         card.bind("<Leave>", on_leave)
         card.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))

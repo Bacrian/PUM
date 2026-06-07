@@ -1,4 +1,9 @@
 # region --- Mod Management Features ---
+"""
+Mod installation and management functionality.
+This module handles mod installation from various sources,
+mod deletion, mod information editing, and size calculation.
+"""
 import os
 import shutil
 import json
@@ -34,8 +39,17 @@ def sanitize_filename(name: str) -> str:
         name = name + "_mod"
     return name
 
-def download_preview_image(image_url: str, dest_path: Path) -> bool:
-    """Download preview image from URL and save to destination."""
+def download_preview_image(image_url: str, dest_path: Path, max_size_mb: float = 5.0) -> bool:
+    """Download preview image from URL and save to destination.
+    
+    Args:
+        image_url: URL of the image to download
+        dest_path: Destination path to save the image
+        max_size_mb: Maximum allowed image size in megabytes (default: 5MB)
+    
+    Returns:
+        bool: True if download and save successful, False otherwise
+    """
     if not image_url:
         return False
     try:
@@ -44,12 +58,26 @@ def download_preview_image(image_url: str, dest_path: Path) -> bool:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
         if response.status_code == 200:
+            content_size_mb = len(response.content) / (1024 * 1024)
+            
+            # Check if image exceeds maximum size
+            if content_size_mb > max_size_mb:
+                print(f"DEBUG: Image too large ({content_size_mb:.2f}MB > {max_size_mb}MB), skipping")
+                return False
+            
             img = Image.open(BytesIO(response.content))
+            
             # Convert to RGB if necessary
             if img.mode in ('RGBA', 'P'):
                 img = img.convert('RGB')
-            # Save as PNG
-            img.save(dest_path, 'PNG')
+            
+            # Resize if image is too large (max 1024x1024 for preview)
+            max_dimension = 1024
+            if max(img.size) > max_dimension:
+                img.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+            
+            # Save as PNG with optimization
+            img.save(dest_path, 'PNG', optimize=True)
             return True
     except Exception as e:
         print(f"DEBUG: Failed to download preview image: {e}")

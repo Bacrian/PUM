@@ -87,7 +87,7 @@ class AutoUpdater:
         """Show update available dialog with options."""
         dialog = customtkinter.CTkToplevel(self.app)
         dialog.title(t("update_available_title"))
-        dialog.geometry("500x400")
+        dialog.geometry("500x500")
         dialog.transient(self.app)
         dialog.grab_set()
         
@@ -212,6 +212,31 @@ class AutoUpdater:
             self.app.mod_options,
             self.app.app_settings
         )
+    
+    def force_show_update_dialog(self):
+        """Force show the update dialog with data from GitHub (for debugging)."""
+        try:
+            response = requests.get(self.update_url, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                update_info = {
+                    "version": data.get("version", APP_VERSION),
+                    "download_url": data.get("download_url", "https://gamebanana.com/tools/21625"),
+                    "changelog": data.get("changelog", t("no_notes")),
+                    "release_date": data.get("release_date", t("unknown"))
+                }
+                self.show_update_dialog(update_info)
+            else:
+                raise Exception(f"HTTP {response.status_code}")
+        except Exception as e:
+            # Fallback to current version info if GitHub fails
+            update_info = {
+                "version": APP_VERSION,
+                "download_url": "https://gamebanana.com/tools/21625",
+                "changelog": f"Could not fetch version.json from GitHub\nError: {e}",
+                "release_date": t("unknown")
+            }
+            self.show_update_dialog(update_info)
 
 
 # endregion

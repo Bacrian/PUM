@@ -51,7 +51,7 @@ class HomePage(customtkinter.CTkScrollableFrame):
 
         self.add_game_btn = customtkinter.CTkButton(
             self.add_btns_frame, text=t("add_manually"), width=100, height=24, font=("Arial", 10, "bold"),
-            fg_color=("gray85", "gray20"), hover_color=("gray70", "gray35"), text_color=("gray30", "gray90"),
+            fg_color=("gray85", "gray20"), hover_color=(self.app._hover_color(), self.app._hover_color()), text_color=("gray30", "gray90"),
             command=self._on_add_game
         )
         self.add_game_btn.pack(side="left")
@@ -174,7 +174,8 @@ class HomePage(customtkinter.CTkScrollableFrame):
                 dialog.destroy()
 
         customtkinter.CTkButton(dialog, text=t("register_game"), height=40, font=("Arial", 13, "bold"),
-                               fg_color=self.app._accent_color(), command=save).pack(pady=25)
+                               fg_color=self.app._accent_color(), hover_color=self.app._hover_color(),
+                               command=save).pack(pady=25)
 
     def _remove_game(self, path):
         if remove_game_from_registry(path):
@@ -190,7 +191,7 @@ class HomePage(customtkinter.CTkScrollableFrame):
         
         customtkinter.CTkLabel(card, text=title, font=("Arial", 13, "bold"), text_color=("black", "white")).pack(pady=(15, 0))
         customtkinter.CTkLabel(card, text=sub, font=("Arial", 10), text_color=("gray30", "gray70")).pack(pady=(0, 10))
-        customtkinter.CTkButton(card, text=t("run_button"), height=24, fg_color=("gray85", "gray25"), hover_color=("gray70", "gray40"), text_color=("gray30", "gray90"), command=cmd).pack(pady=(0, 15), padx=20)
+        customtkinter.CTkButton(card, text=t("run_button"), height=24, fg_color=("gray85", "gray25"), hover_color=(self.app._hover_color(), self.app._hover_color()), text_color=("gray30", "gray90"), command=cmd).pack(pady=(0, 15), padx=20)
 
     def _check_updates(self):
         """Check for app updates."""

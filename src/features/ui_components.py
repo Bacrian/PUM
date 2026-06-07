@@ -1,4 +1,9 @@
 # region --- UI Components Features ---
+"""
+UI components for mod preview and list rendering.
+This module provides preview rendering for mod screenshots
+and mod list rendering with fallback image support.
+"""
 import os
 import customtkinter
 import tkinter
@@ -8,18 +13,6 @@ from PIL import Image
 
 from src.core.localization import t
 from src.core.constants import ASSETS_DIR, PREVIEW_SIZE
-
-# region --- UI Components Features ---
-import os
-import customtkinter
-import tkinter
-import tkinter.messagebox
-from pathlib import Path
-from PIL import Image
-
-from src.core.localization import t
-from src.core.constants import ASSETS_DIR, PREVIEW_SIZE
-from src.ui.simple_viewer import SimpleModelViewer
 
 # Feature flag to disable 3D viewer (set to False to hide the button)
 ENABLE_3D_VIEWER = False
@@ -231,64 +224,61 @@ class PreviewRenderer:
         try:
             if img_path.exists():
                 img = Image.open(img_path)
-                if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
-                
-                # Get container size after it's rendered
-                def resize_image(event=None):
-                    # Get available space
-                    container_width = img_container.winfo_width()
-                    container_height = img_container.winfo_height()
-                    
-                    if container_width < 50 or container_height < 50:
-                        # Container not ready yet, try again later
-                        preview_frame.after(100, resize_image)
-                        return
-                    
-                    # Calculate size maintaining aspect ratio
-                    aspect = img.width / img.height
-                    container_aspect = container_width / container_height
-                    
-                    if aspect > container_aspect:
-                        # Image is wider relative to container - fit to width
-                        new_width = container_width
-                        new_height = int(container_width / aspect)
-                    else:
-                        # Image is taller - fit to height
-                        new_height = container_height
-                        new_width = int(container_height * aspect)
-                    
-                    # Create resized image
-                    resized_img = customtkinter.CTkImage(
-                        light_image=img, 
-                        dark_image=img, 
-                        size=(new_width, new_height)
-                    )
-                    
-                    # Update or create label
-                    if hasattr(img_container, '_img_label'):
-                        img_container._img_label.configure(image=resized_img)
-                        img_container._img_label.image = resized_img
-                    else:
-                        img_container._img_label = customtkinter.CTkLabel(
-                            img_container, 
-                            image=resized_img, 
-                            text=""
-                        )
-                        img_container._img_label.place(relx=0.5, rely=0.5, anchor="center")
-                        img_container._img_label.image = resized_img
-                
-                # Bind to resize events and schedule initial resize
-                img_container.bind("<Configure>", resize_image)
-                preview_frame.after(100, resize_image)
-                
             else:
-                customtkinter.CTkLabel(
-                    preview_frame,
-                    text="No Preview Image",
-                    font=("Arial", 11),
-                    text_color=("gray60", "gray50")
-                ).pack(expand=True)
+                # Fallback to default preview image
+                img = Image.open(ASSETS_DIR / "default_preview.png")
+            
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            
+            # Get container size after it's rendered
+            def resize_image(event=None):
+                # Get available space
+                container_width = img_container.winfo_width()
+                container_height = img_container.winfo_height()
+                
+                if container_width < 50 or container_height < 50:
+                    # Container not ready yet, try again later
+                    preview_frame.after(100, resize_image)
+                    return
+                
+                # Calculate size maintaining aspect ratio
+                aspect = img.width / img.height
+                container_aspect = container_width / container_height
+                
+                if aspect > container_aspect:
+                    # Image is wider relative to container - fit to width
+                    new_width = container_width
+                    new_height = int(container_width / aspect)
+                else:
+                    # Image is taller - fit to height
+                    new_height = container_height
+                    new_width = int(container_height * aspect)
+                
+                # Create resized image
+                resized_img = customtkinter.CTkImage(
+                    light_image=img, 
+                    dark_image=img, 
+                    size=(new_width, new_height)
+                )
+                
+                # Update or create label
+                if hasattr(img_container, '_img_label'):
+                    img_container._img_label.configure(image=resized_img)
+                    img_container._img_label.image = resized_img
+                else:
+                    img_container._img_label = customtkinter.CTkLabel(
+                        img_container, 
+                        image=resized_img, 
+                        text=""
+                    )
+                    img_container._img_label.place(relx=0.5, rely=0.5, anchor="center")
+                    img_container._img_label.image = resized_img
+            
+            # Bind to resize events and schedule initial resize
+            img_container.bind("<Configure>", resize_image)
+            preview_frame.after(100, resize_image)
+                
         except Exception as e:
             print(f"Error loading preview: {e}")
             customtkinter.CTkLabel(
@@ -415,7 +405,7 @@ class PreviewRenderer:
         # Edit Mod Info button
         customtkinter.CTkButton(
             bottom_btn_frame, text=f"✎ {t('edit_info')}", height=32, 
-            fg_color=("gray85", "gray25"), hover_color=("gray80", "gray35"),
+            fg_color=("gray85", "gray25"), hover_color=(self.app._hover_color(), self.app._hover_color()),
             command=self.app.open_metadata_editor
         ).pack(side="left", padx=(0, 5), expand=True, fill="x")
         
@@ -432,8 +422,8 @@ class PreviewRenderer:
     
     def _open_3d_viewer(self, mod, pak_file, model_files):
         """Open 3D viewer with PAK loading."""
-        viewer = SimpleModelViewer(self.app, None, mod.get("name", "Unknown"))
-        viewer.load_from_pak(str(pak_file), model_files, mod.get("name", "Unknown"))
+        # 3D viewer moved to _unused folder - feature disabled
+        pass
     
     def render_preview(self, mod):
         """Render mod preview in the preview frame with new split layout"""

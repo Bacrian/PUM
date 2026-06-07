@@ -1,4 +1,9 @@
 # region --- Localization ---
+"""
+Manages the translation and localization system supporting multiple languages.
+This module handles loading translation files and providing
+translated strings throughout the application.
+"""
 import json
 import os
 from pathlib import Path

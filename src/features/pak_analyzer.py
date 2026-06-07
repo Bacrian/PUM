@@ -1,7 +1,8 @@
 # region --- PAK Analyzer for Conflict Detection ---
 """
 PAK file analyzer using PyPAKParser for detecting conflicts between mods.
-Detects when two enabled mods have .pak files that modify the same internal files.
+This module detects when two enabled mods have .pak files that modify
+the same internal files, which can cause conflicts in the game.
 """
 import os
 import json

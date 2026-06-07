@@ -1,6 +1,7 @@
 """
 Conflict Detector UI for displaying mod conflicts.
-Shows which mods have .pak files with the same name (should not be enabled together).
+This module shows which mods have .pak files with the same name,
+which should not be enabled together to prevent conflicts.
 """
 import customtkinter
 import tkinter

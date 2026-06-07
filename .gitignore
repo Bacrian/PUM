@@ -5,6 +5,7 @@ venv/
 scripts/__pycache__/
 .vscode/
 .idea/
+_unused/
 /.vscode/settings.json
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/.gitignore
