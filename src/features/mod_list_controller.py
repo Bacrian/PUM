@@ -37,6 +37,11 @@ class ModListController:
         if self.virtual_list is None or not self.virtual_list.get_container().winfo_exists():
             if hasattr(self.app, 'modlist_frame') and self.app.modlist_frame.winfo_exists():
                 # Limpiar TODO el contenido anterior (grid o list view anterior)
+                if self.virtual_list is not None:
+                    try:
+                        self.virtual_list.destroy()
+                    except Exception:
+                        pass
                 for widget in self.app.modlist_frame.winfo_children():
                     widget.destroy()
                 self.content_frame = None

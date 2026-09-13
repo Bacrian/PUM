@@ -56,6 +56,13 @@ class VirtualModList:
             borderwidth=0
         )
         self.canvas.pack(side="left", fill="both", expand=True)
+
+        # tkinter.Canvas is a raw Tk widget, not a CTk one - CustomTkinter's
+        # automatic theme re-coloring (customtkinter.set_appearance_mode)
+        # only updates CTk-native widgets, so without this subscription the
+        # canvas background silently stays on the old theme's color forever
+        # once the user switches Light/Dark (no exception, just wrong bg).
+        customtkinter.AppearanceModeTracker.add(self._on_appearance_mode_changed, self.canvas)
         
         # Scrollbar
         self.scrollbar = customtkinter.CTkScrollbar(
@@ -82,6 +89,16 @@ class VirtualModList:
             return "#ebebeb"
         except:
             return "#212121"
+
+    def _on_appearance_mode_changed(self, new_mode: str):
+        """Called by CustomTkinter's AppearanceModeTracker whenever the user
+        switches Light/Dark - keeps the raw canvas background in sync."""
+        try:
+            if not self.canvas.winfo_exists():
+                return
+            self.canvas.configure(bg="#212121" if new_mode == "Dark" else "#ebebeb")
+        except Exception:
+            pass
     
     def _bind_events(self):
         """Vincula eventos de scroll y resize."""
@@ -291,6 +308,10 @@ class VirtualModList:
     
     def destroy(self):
         """Limpia recursos."""
+        try:
+            customtkinter.AppearanceModeTracker.remove(self._on_appearance_mode_changed)
+        except Exception:
+            pass
         if self._scroll_job:
             self.canvas.after_cancel(self._scroll_job)
         if self._resize_job:

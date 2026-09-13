@@ -21,16 +21,32 @@ class SettingsManager:
     
     def open_settings(self):
         """Open a professional tabbed settings window."""
-        if self.setting_window is not None and self.setting_window.winfo_exists():
-            self.setting_window.focus()
-            return
-        
+        if self.setting_window is not None:
+            try:
+                if self.setting_window.winfo_exists():
+                    # Don't just focus() an existing window: on Windows it can
+                    # end up stuck withdrawn (invisible) after an appearance-
+                    # mode change, and focus()/deiconify() alone doesn't
+                    # reliably bring it back. Tearing it down and building a
+                    # fresh one always works.
+                    self.setting_window.destroy()
+            except Exception:
+                pass
+            self.setting_window = None
+
         self.setting_window = customtkinter.CTkToplevel(self.app)
         self.setting_window.title(t("settings_title"))
         self.setting_window.geometry("550x580")
         self.setting_window.resizable(False, False)
         self.setting_window.transient(self.app)
-        self.setting_window.grab_set()
+        # Non-modal on purpose: no grab_set(). CTkToplevel windows
+        # withdraw()/deiconify() themselves on every appearance-mode change
+        # (to repaint the Windows titlebar) - if this window held a modal
+        # grab during that brief moment, Windows would keep routing every
+        # click in the app to a window that's momentarily invisible, which
+        # is what froze the whole app. Instead we just keep it pinned above
+        # the main window at all times.
+        self.setting_window.attributes("-topmost", True)
         
         # Window attributes
         try:
@@ -347,10 +363,18 @@ class SettingsManager:
         # Convert localized theme name back to canonical theme key if necessary
         theme_map = {t("dark_theme"): "Dark", t("light_theme"): "Light", t("system_theme"): "System"}
         canonical_mode = theme_map.get(mode, mode)
-        
-        customtkinter.set_appearance_mode(canonical_mode.lower())
+
         self.app.app_settings["appearance"] = canonical_mode
         self._save_all()
+
+        # Defer the actual theme switch: calling set_appearance_mode() synchronously
+        # from inside the CTkOptionMenu's own selection callback races with that
+        # dropdown's internal teardown and can hang the whole app on Windows.
+        # Running it on the next event-loop tick (after the dropdown has fully
+        # closed) avoids that reentrancy. (The settings window itself is
+        # non-modal - see open_settings() - so its own withdraw/deiconify
+        # titlebar-repaint dance can't get stuck holding a grab anymore.)
+        self.app.after(50, lambda: customtkinter.set_appearance_mode(canonical_mode.lower()))
 
     def _on_accent_change(self, opts):
         new_hex = opts.get(self.accent_menu.get(), DEFAULT_ACCENT_COLOR)
