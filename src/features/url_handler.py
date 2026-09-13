@@ -995,10 +995,11 @@ Do you want to continue downloading anyway?"""
                 return True
                 
             except Exception as e:
-                print(f"DEBUG: Download error: {e}")
+                error_msg = str(e)
+                print(f"DEBUG: Download error: {error_msg}")
                 import traceback
                 traceback.print_exc()
-                self.app.after(0, lambda: self._show_error(f"Download error: {e}"))
+                self.app.after(0, lambda msg=error_msg: self._show_error(f"Download error: {msg}"))
                 return False
             finally:
                 if self.loading_win:

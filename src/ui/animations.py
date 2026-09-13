@@ -43,10 +43,10 @@ class AnimationHelper:
         if not widget.winfo_exists():
             return
         
-        # Store original position
-        original_place = widget.place_info() if widget.place_slaves() else None
-        original_grid = widget.grid_info() if widget.grid_slaves() else None
-        original_pack = widget.pack_info() if widget.pack_slaves() else None
+        # Store original position (only 'place'-managed widgets can be slid;
+        # winfo_manager() reports the widget's OWN geometry manager, unlike
+        # place_slaves()/grid_slaves()/pack_slaves() which report its children)
+        original_place = widget.place_info() if widget.winfo_manager() == 'place' else None
         
         step_delay = duration // steps
         step_distance = distance / steps

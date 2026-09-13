@@ -48,6 +48,7 @@ from src.features.mod_list_controller import ModListController
 from src.features.settings_manager import SettingsManager
 from src.features.auto_updater import AutoUpdater
 from src.features.backup_manager import BackupManager
+from src.features.mod_marketplace import ModMarketplace
 from src.features.startup_check import StartupCheck
 from src.features.keyboard_shortcuts import KeyboardShortcutsManager
 
@@ -246,6 +247,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.mods_tools_menu.pack(fill="x", pady=2)
         self.mods_tools_menu.add_item(t("open_mods_folder"), lambda: os.startfile(Path("mods")), "📁")
         self.mods_tools_menu.add_item(t("download_mod"), self.download_url_callback, "⬇")
+        self.mods_tools_menu.add_item(t("mod_marketplace"), self.open_mod_marketplace, "🛒")
         
         # Floating: System (auto-ajuste de ancho)
         self.system_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("system_menu"), accent_color=self._accent_color(), width="auto")
@@ -557,6 +559,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.visual_components = VisualComponents(self)
         self.auto_updater = AutoUpdater(self)
         self.backup_manager = BackupManager(self)
+        self.mod_marketplace = ModMarketplace(self)
         self.keyboard_shortcuts = KeyboardShortcutsManager(self)
         
         # Register keyboard shortcut callbacks
@@ -626,6 +629,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
     # --- Callbacks (delegated to AppCallbacks) ---
     def open_settings(self): self.callbacks.open_settings()
     def open_conflict_detector(self): self.callbacks.open_conflict_detector()
+    def open_mod_marketplace(self): self.mod_marketplace.open()
     def download_url_callback(self): self.callbacks.download_url_callback()
     def open_backup_manager(self): self.callbacks.open_backup_manager()
     def open_profile_manager(self): self.callbacks.open_profile_manager()
@@ -637,7 +641,6 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
     def game_callback(self): self.callbacks.game_callback()
     def deploy_mods(self): return self.callbacks.deploy_mods()
     def open_update_window(self, data): self.callbacks.open_update_window(data)
-    def toggle_view_mode(self): self.callbacks.toggle_view_mode()
 
     def start_console(self):
         if self.console_window and self.console_window.winfo_exists():
@@ -1425,49 +1428,6 @@ TIPS
     def auto_save_profile(self, *args):
         """Auto-save current profile after a debounce delay. Similar to Thunderstore behavior."""
         # Cancel any pending save
-        if self._auto_save_after_id:
-            self.after_cancel(self._auto_save_after_id)
-        
-        # Schedule new save after 1.5 seconds of inactivity
-        self._auto_save_after_id = self.after(1500, self._execute_auto_save)
-    
-    def _execute_auto_save(self):
-        """Execute the actual profile save."""
-        profile_name = self.profile_var.get()
-        if not profile_name:
-            profile_name = "Default Profile"
-        
-        # Get current selected mods
-        sel = [item['mod_info']['name'] for item in self.mod_list_controller.mod_checkboxes if item['variable'].get() == 1]
-        game_name = getattr(self, 'active_game_name', 'Default')
-        
-        # Save without showing dialogs
-        result = self.profile_manager.save_profile(profile_name, sel, self.mod_options, self.app_settings, game_name)
-        if result:
-            # Show subtle notification instead of full dialog
-            self.show_auto_save_indicator(profile_name)
-    
-    def show_auto_save_indicator(self, profile_name):
-        """Show a subtle indicator that profile was auto-saved."""
-        # Remove previous indicator if exists
-        if hasattr(self, '_auto_save_label') and self._auto_save_label and self._auto_save_label.winfo_exists():
-            self._auto_save_label.destroy()
-        
-        # Create small label near profile selector
-        if hasattr(self, 'profile_menu'):
-            self._auto_save_label = customtkinter.CTkLabel(
-                self.profile_menu.master,
-                text=f"✓ Saved",
-                font=("Arial", 10),
-                text_color=("gray60", "gray60")
-            )
-            self._auto_save_label.grid(row=0, column=2, padx=5)
-            # Fade out after 2 seconds
-            self.after(2000, lambda: self._fade_auto_save_indicator())
-    
-    def auto_save_profile(self, *args):
-        """Auto-save current profile after a debounce delay. Similar to Thunderstore behavior."""
-        # Cancel any pending save
         if hasattr(self, '_auto_save_after_id') and self._auto_save_after_id:
             self.after_cancel(self._auto_save_after_id)
         
@@ -1492,20 +1452,6 @@ TIPS
             # Show subtle notification instead of full dialog
             self.show_auto_save_indicator(display_name)
     
-    def show_auto_save_indicator(self, profile_name):
-        """Show a subtle indicator that profile was auto-saved."""
-        # Remove previous indicator if exists
-        if hasattr(self, '_auto_save_label') and self._auto_save_label and self._auto_save_label.winfo_exists():
-            self._auto_save_label.destroy()
-        
-        # Create small label near profile selector
-        if hasattr(self, 'profile_menu'):
-            self._auto_save_label = customtkinter.CTkLabel(
-                self.profile_menu.master,
-                text=f"✓ Saved",
-                font=("Arial", 10),
-                text_color=("gray60", "gray60")
-            )
     def show_auto_save_indicator(self, profile_name):
         """Show a floating toast notification that profile was auto-saved."""
         from src.ui.animations import ToastNotification

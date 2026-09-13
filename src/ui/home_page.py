@@ -31,7 +31,7 @@ class HomePage(customtkinter.CTkScrollableFrame):
         welcome_text = customtkinter.CTkFrame(inner, fg_color="transparent")
         welcome_text.pack(side="left")
         customtkinter.CTkLabel(welcome_text, text=t("app_title"), font=("Arial", 28, "bold"), text_color=("black", "white")).pack(anchor="w")
-        customtkinter.CTkLabel(welcome_text, text=f"{t('version_label')} 1.3.0 - 05-04-2026 quirk-testing build", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
+        customtkinter.CTkLabel(welcome_text, text=f"{t('version_label')} 1.3.0 - 13-09-2026 quirk-testing build", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
 
         # 2. Game Library Section
         title_row = customtkinter.CTkFrame(self, fg_color="transparent")
