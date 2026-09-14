@@ -111,6 +111,13 @@ def load_app_settings():
 
 # Multi-Game Registry
 def get_game_registry():
+    # Prefer the in-memory cache: writes here (add_game_to_registry, etc.)
+    # update it immediately, but the actual disk write is debounced by up
+    # to 1s (see _schedule_save), so reading straight from disk right after
+    # a write can still return the old file.
+    with _cache_lock:
+        if _config_cache and "game_registry" in _config_cache:
+            return list(_config_cache["game_registry"])
     try:
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -121,6 +128,7 @@ def get_game_registry():
     return []
 
 def add_game_to_registry(name, path, engine="UE4", appid=None, install_dir=None):
+    added = False
     with _cache_lock:
         data = _config_cache.copy() if _config_cache else {}
         
@@ -142,9 +150,13 @@ def add_game_to_registry(name, path, engine="UE4", appid=None, install_dir=None)
             data["game_registry"] = registry
             _config_cache.clear()
             _config_cache.update(data)
-            _schedule_save()
-            return True
-    return False
+            added = True
+    # _schedule_save() acquires _cache_lock itself - must run after the
+    # `with` block above has released it, or this deadlocks (the lock
+    # is not reentrant).
+    if added:
+        _schedule_save()
+    return added
 
 def remove_game_from_registry(path):
     with _cache_lock:
@@ -154,9 +166,9 @@ def remove_game_from_registry(path):
         data["game_registry"] = registry
         _config_cache.clear()
         _config_cache.update(data)
-        _schedule_save()
-        return True
-    return False
+    _schedule_save()
+    return True
+
 
 def update_game_in_registry(old_path, **updates):
     with _cache_lock:
@@ -180,9 +192,9 @@ def update_game_in_registry(old_path, **updates):
             data["game_registry"] = registry
             _config_cache.clear()
             _config_cache.update(data)
-            _schedule_save()
-            return changed
-    return False
+    if changed:
+        _schedule_save()
+    return changed
 
 def update_game_path_in_registry(old_path, new_path):
     return update_game_in_registry(old_path, path=new_path)
@@ -203,7 +215,7 @@ def update_game_path_by_name_in_registry(name, new_path):
             data["game_registry"] = registry
             _config_cache.clear()
             _config_cache.update(data)
-            _schedule_save()
-            return changed
-    return False
+    if changed:
+        _schedule_save()
+    return changed
 # endregion

@@ -5,6 +5,40 @@ from pathlib import Path
 
 MHUR_APPID = "1607250"
 
+
+def _find_content_paks(root_path, max_depth: int = 4):
+    """Bounded, pruned search for a <...>/Content/Paks folder under root_path.
+
+    Replaces the previous unbounded '**' glob / rglob, which walked the
+    ENTIRE install tree of a game (including inside its Engine/ folder,
+    often the single biggest and slowest part of a UE game install) all
+    the way to completion for every game that has no Paks folder at all
+    (i.e. most non-UE games in a typical Steam library) - that full,
+    unpruned walk per game is what made scanning installed games slow
+    enough to look like the app had frozen/crashed.
+    """
+    root_path = Path(root_path)
+    try:
+        root_depth = len(root_path.parts)
+    except Exception:
+        return None
+
+    try:
+        for current_dir, dirnames, _filenames in os.walk(root_path):
+            current_path = Path(current_dir)
+            depth = len(current_path.parts) - root_depth
+            if depth >= max_depth:
+                dirnames[:] = []  # don't descend any further from here
+                continue
+            # Engine/ never contains the game's own Paks and is typically
+            # the largest subtree by far - skip walking into it entirely.
+            dirnames[:] = [d for d in dirnames if d != "Engine"]
+            if current_path.name == "Content" and "Paks" in dirnames:
+                return str(current_path / "Paks")
+    except Exception:
+        pass
+    return None
+
 def get_steam_path():
     """Retrieves the Steam installation path from Windows Registry."""
     try:
@@ -81,10 +115,10 @@ def find_steam_game_paks(appid):
                     if content_paks.exists():
                         return str(content_paks)
                     
-                    # Fallback 2: Search for Paks folder recursively (ignore Engine folders)
-                    for p in full_install_path.rglob("Paks"):
-                        if p.is_dir() and "Content" in str(p) and "Engine" not in str(p):
-                            return str(p)
+                    # Fallback 2: bounded, pruned search (ignore Engine folders, capped depth)
+                    found = _find_content_paks(full_install_path)
+                    if found:
+                        return found
             except: pass
     return None
 
@@ -119,12 +153,7 @@ def list_installed_steam_games():
                     full_path = steamapps / "common" / install_dir
                     # Heuristic: check if it might be an Unreal Engine game
                     # We check if it has a Paks folder
-                    paks_path = None
-                    for p in full_path.glob("**/Content/Paks"):
-                        if p.is_dir() and "Engine" not in str(p):
-                            paks_path = str(p)
-                            break
-                    
+                    paks_path = _find_content_paks(full_path)
                     if paks_path:
                         games.append({
                             "name": game_name,

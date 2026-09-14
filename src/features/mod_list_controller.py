@@ -86,33 +86,49 @@ class ModListController:
     def _render_headers_in_frame(self, parent_frame):
         """Renderiza los headers en un frame específico."""
         header_row = customtkinter.CTkFrame(parent_frame, fg_color="transparent", height=25)
-        header_row.pack(fill="x", pady=(0, 5))
-        header_row.grid_columnconfigure(3, weight=1) 
+        header_row.pack(fill="x", pady=(0, 6), padx=6)
+        header_row.grid_columnconfigure(4, weight=1)
 
-        customtkinter.CTkLabel(header_row, text="", width=20).grid(row=0, column=0, padx=5)
-        customtkinter.CTkLabel(header_row, text="", width=20).grid(row=0, column=1, padx=5)
-        customtkinter.CTkLabel(header_row, text="", width=25).grid(row=0, column=2, padx=2)
+        customtkinter.CTkLabel(header_row, text="", width=4).grid(row=0, column=0, padx=(0, 8))
+        customtkinter.CTkLabel(header_row, text="", width=22).grid(row=0, column=1, padx=2)
+        customtkinter.CTkLabel(header_row, text="", width=36).grid(row=0, column=2, padx=6)
+        customtkinter.CTkLabel(header_row, text="", width=25).grid(row=0, column=3, padx=2)
 
-        cur_key = getattr(self.app.app_state, 'sort_key', 'name')
-        cur_order = getattr(self.app.app_state, 'sort_order', 'A-Z')
-        
-        btn_name = customtkinter.CTkButton(
-            header_row, text=t("editor_mod_name") + (" ▼" if cur_key == "name" and cur_order == "A-Z" else " ▲" if cur_key == "name" else ""), 
+        self.btn_name = customtkinter.CTkButton(
+            header_row, text="",
             font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=(self.app._hover_color(), self.app._hover_color()),
             anchor="w", height=20, width=220, command=lambda: self._on_header_click("name")
         )
-        btn_name.grid(row=0, column=3, padx=5, sticky="ew")
+        self.btn_name.grid(row=0, column=4, padx=5, sticky="ew")
         
-        btn_author = customtkinter.CTkButton(
-            header_row, text=t("editor_mod_author") + (" ▼" if cur_key == "author" and cur_order == "A-Z" else " ▲" if cur_key == "author" else ""), 
+        self.btn_author = customtkinter.CTkButton(
+            header_row, text="",
             font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=(self.app._hover_color(), self.app._hover_color()),
-            anchor="w", height=20, width=100, command=lambda: self._on_header_click("author")
+            anchor="w", height=20, width=110, command=lambda: self._on_header_click("author")
         )
-        btn_author.grid(row=0, column=4, padx=5)
+        self.btn_author.grid(row=0, column=5, padx=5)
         
-        customtkinter.CTkLabel(header_row, text=t("ver_header"), font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), anchor="w", width=50).grid(row=0, column=5, padx=5)
+        customtkinter.CTkLabel(header_row, text=t("ver_header"), font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), anchor="w", width=48).grid(row=0, column=6, padx=(5, 10))
+        
+        self._update_header_sort_indicators()
         
         return header_row
+
+    def _update_header_sort_indicators(self):
+        """Refresh the ▲/▼ arrow on the name/author column headers to match
+        the current sort key/order. Needs to be called explicitly whenever
+        sort state changes (from clicking a header, or from the separate
+        toolbar sort button) - the headers are only built once, not on every
+        refresh_logic(), so nothing updates them otherwise.
+        """
+        cur_key = getattr(self.app.app_state, 'sort_key', 'name')
+        cur_order = getattr(self.app.app_state, 'sort_order', 'A-Z')
+        arrow = " ▼" if cur_order == "A-Z" else " ▲"
+
+        if hasattr(self, 'btn_name') and self.btn_name.winfo_exists():
+            self.btn_name.configure(text=t("editor_mod_name") + (arrow if cur_key == "name" else ""))
+        if hasattr(self, 'btn_author') and self.btn_author.winfo_exists():
+            self.btn_author.configure(text=t("editor_mod_author") + (arrow if cur_key == "author" else ""))
         
     def refresh_logic(self, force_rebuild=True):
         """
@@ -211,88 +227,76 @@ class ModListController:
         finally:
             self._refreshing = False
     
-    def _render_headers(self):
-        """Render list headers using grid for better stability."""
-        header_row = customtkinter.CTkFrame(self.content_frame, fg_color="transparent", height=25)
-        header_row.pack(fill="x", pady=(0, 5))
-        
-        header_row.grid_columnconfigure(3, weight=1) 
-
-        customtkinter.CTkLabel(header_row, text="", width=20).grid(row=0, column=0, padx=5) # Indicator
-        customtkinter.CTkLabel(header_row, text="", width=20).grid(row=0, column=1, padx=5) # Checkbox
-        customtkinter.CTkLabel(header_row, text="", width=25).grid(row=0, column=2, padx=2) # Star
-
-        cur_key = self.app.app_state.sort_key
-        cur_order = self.app.app_state.sort_order
-        
-        btn_name = customtkinter.CTkButton(
-            header_row, text=t("editor_mod_name") + (" ▼" if cur_key == "name" and cur_order == "A-Z" else " ▲" if cur_key == "name" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=(self.app._hover_color(), self.app._hover_color()),
-            anchor="w", height=20, width=220, command=lambda: self._on_header_click("name")
-        )
-        btn_name.grid(row=0, column=3, padx=5, sticky="ew")
-        
-        btn_author = customtkinter.CTkButton(
-            header_row, text=t("editor_mod_author") + (" ▼" if cur_key == "author" and cur_order == "A-Z" else " ▲" if cur_key == "author" else ""), 
-            font=("Arial", 11, "bold"), text_color=("gray40", "gray70"), fg_color="transparent", hover_color=(self.app._hover_color(), self.app._hover_color()),
-            anchor="w", height=20, width=100, command=lambda: self._on_header_click("author")
-        )
-        btn_author.grid(row=0, column=4, padx=5)
-        
-        customtkinter.CTkLabel(header_row, text=t("ver_header"), font=("Arial", 11, "bold"), text_color=("gray50", "gray60"), anchor="w", width=50).grid(row=0, column=5, padx=5)
-    
     def _render_mod_row_virtual(self, item, row_frame, row_idx):
         """Render a single mod row for virtual list. Returns dict of widgets."""
         mod = item['mod_info']
         var = item['variable']
-        
-        row_frame.grid_columnconfigure(3, weight=1)
+        accent = self.app._accent_color()
 
-        indicator = None
+        row_frame.grid_columnconfigure(4, weight=1)
+        row_frame.grid_rowconfigure(0, weight=1)
+
+        # Thin accent bar on the left edge: colored when the mod is
+        # enabled, so scanning the list for what's active is instant.
+        accent_bar = customtkinter.CTkFrame(row_frame, width=4, corner_radius=2,
+                                             fg_color=accent if var.get() else ("gray80", "gray28"))
+        accent_bar.grid(row=0, column=0, sticky="ns", padx=(6, 8), pady=8)
+
         if mod.get("has_options"):
-            indicator = customtkinter.CTkLabel(row_frame, text="☰", text_color=("#da8938", "#da8938"), font=("Arial", 14, "bold"), width=20)
-            indicator.grid(row=0, column=0, padx=5)
+            indicator = customtkinter.CTkLabel(row_frame, text="⚙", text_color=("#da8938", "#da8938"),
+                                                font=("Arial", 14), width=22)
+            indicator.grid(row=0, column=1, padx=2)
         else:
-            customtkinter.CTkLabel(row_frame, text="", width=20).grid(row=0, column=0, padx=5)
+            indicator = None
+            customtkinter.CTkLabel(row_frame, text="", width=22).grid(row=0, column=1, padx=2)
 
-        cb = customtkinter.CTkCheckBox(row_frame, text="", variable=var, width=20, height=20,
-                                       fg_color=(self.app._accent_color(), self.app._accent_color()),
-                                       hover_color=(self.app._hover_color(), self.app._hover_color()),
-                                       command=lambda: self._on_checkbox_click(mod, var))
-        cb.grid(row=0, column=1, padx=5, pady=12)
-        
+        def on_toggle():
+            accent_bar.configure(fg_color=accent if var.get() else ("gray80", "gray28"))
+            self._on_checkbox_click(mod, var)
+
+        switch = customtkinter.CTkSwitch(row_frame, text="", variable=var, width=36, height=18,
+                                          progress_color=accent, button_color=("white", "gray90"),
+                                          command=on_toggle)
+        switch.grid(row=0, column=2, padx=6)
+
         star_btn = customtkinter.CTkButton(
-            row_frame, text="★" if mod.get('is_favorite', False) else "☆", 
+            row_frame, text="★" if mod.get('is_favorite', False) else "☆",
             width=25, height=25, font=("Arial", 14),
-            fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=(self.app._accent_color(), self.app._accent_color()),
+            fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray50", "gray55"),
+            hover_color=(accent, accent),
             command=lambda: self._toggle_favorite(mod)
         )
-        star_btn.grid(row=0, column=2, padx=2, pady=10)
-        
+        star_btn.grid(row=0, column=3, padx=2)
+
         name_marquee = MarqueeLabel(row_frame, text=mod.get('name', 'Unknown'), font=("Arial", 13, "bold"), row_frame=row_frame,
                                     on_click=lambda e=None, m=mod: self._on_mod_select(m), on_context=lambda e=None, m=mod: self.show_context_menu(e, m))
-        name_marquee.grid(row=0, column=3, padx=5, sticky="ew")
-        
-        author_marquee = MarqueeLabel(row_frame, text=mod.get('author', 'Unknown'), font=("Arial", 12), row_frame=row_frame,
+        name_marquee.grid(row=0, column=4, padx=5, sticky="ew")
+
+        author_marquee = MarqueeLabel(row_frame, text=mod.get('author', 'Unknown'), font=("Arial", 11), row_frame=row_frame,
                                       on_click=lambda e=None, m=mod: self._on_mod_select(m), on_context=lambda e=None, m=mod: self.show_context_menu(e, m))
-        author_marquee.configure(width=100)
-        author_marquee.label.configure(text_color=("gray60", "gray50"))
-        author_marquee.grid(row=0, column=4, padx=5)
-        
-        version_label = customtkinter.CTkLabel(row_frame, text=mod.get('version', '1.0'), anchor="w", text_color=("gray60", "gray50"), width=50)
-        version_label.grid(row=0, column=5, padx=5)
+        author_marquee.configure(width=110)
+        author_marquee.label.configure(text_color=("gray45", "gray60"))
+        author_marquee.grid(row=0, column=5, padx=5)
+
+        # Version shown as a small rounded "pill" badge instead of plain text.
+        version_pill = customtkinter.CTkLabel(
+            row_frame, text=mod.get('version', '1.0'), font=("Arial", 10, "bold"),
+            text_color=("gray30", "gray80"), fg_color=("gray88", "gray24"),
+            corner_radius=8, width=48, height=20
+        )
+        version_pill.grid(row=0, column=6, padx=(5, 10))
 
         def on_enter(e, rf=row_frame, nm=name_marquee, am=author_marquee):
             try:
                 if not getattr(rf, '_hover_active', False):
                     rf._hover_active = True
-                    rf.configure(fg_color=("gray85", "gray20"), cursor="hand2")
+                    rf.configure(fg_color=("gray90", "gray19"), cursor="hand2",
+                                 border_width=1, border_color=(accent, accent))
                     nm.start_scrolling()
                     am.start_scrolling()
             except:
                 pass
-                
+
         def on_leave(e, rf=row_frame, nm=name_marquee, am=author_marquee):
             try:
                 # Short delay to check if mouse really left (prevents flickering)
@@ -304,7 +308,7 @@ class ModListController:
                             x2, y2 = x1 + rf.winfo_width(), y1 + rf.winfo_height()
                             if not (x1 <= x <= x2 and y1 <= y <= y2):
                                 rf._hover_active = False
-                                rf.configure(fg_color="transparent", cursor="")
+                                rf.configure(fg_color=("gray95", "gray14"), cursor="", border_width=0)
                                 nm.stop_scrolling()
                                 am.stop_scrolling()
                     except:
@@ -316,107 +320,29 @@ class ModListController:
         row_frame._hover_active = False
         row_frame.bind("<Enter>", on_enter)
         row_frame.bind("<Leave>", on_leave)
-        
-        for w in (cb, star_btn, version_label, indicator if mod.get("has_options") else None):
+
+        for w in (switch, star_btn, version_pill, accent_bar, indicator if mod.get("has_options") else None):
             if w:
                 w.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
                 w.bind("<Button-3>", lambda e=None, m=mod: self.show_context_menu(e, m))
-        
+
         return {
-            'checkbox': cb,
+            'checkbox': switch,
+            'switch': switch,
+            'accent_bar': accent_bar,
             'star_btn': star_btn,
             'name_marquee': name_marquee,
             'author_marquee': author_marquee,
-            'version_label': version_label,
+            'version_label': version_pill,
             'indicator': indicator
         }
 
-    def _render_mod_row(self, item, row_num):
-        """Render a single mod row."""
-        mod = item['mod_info']
-        var = item['variable']
-        
-        row_frame = customtkinter.CTkFrame(self.content_frame, fg_color="transparent", corner_radius=8, height=44)
-        row_frame.pack(fill="x", pady=1, padx=5)
-        row_frame.grid_columnconfigure(3, weight=1)
-
-        if mod.get("has_options"):
-            indicator = customtkinter.CTkLabel(row_frame, text="☰", text_color=("#da8938", "#da8938"), font=("Arial", 14, "bold"), width=20)
-            indicator.grid(row=0, column=0, padx=5)
-        else:
-            customtkinter.CTkLabel(row_frame, text="", width=20).grid(row=0, column=0, padx=5)
-
-        cb = customtkinter.CTkCheckBox(row_frame, text="", variable=var, width=20, height=20,
-                                       fg_color=(self.app._accent_color(), self.app._accent_color()),
-                                       hover_color=(self.app._hover_color(), self.app._hover_color()),
-                                       command=lambda: self._on_checkbox_click(mod, var))
-        cb.grid(row=0, column=1, padx=5, pady=12)
-        
-        star_btn = customtkinter.CTkButton(
-            row_frame, text="★" if mod.get('is_favorite', False) else "☆", 
-            width=25, height=25, font=("Arial", 14),
-            fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=(self.app._accent_color(), self.app._accent_color()),
-            command=lambda: self._toggle_favorite(mod)
-        )
-        star_btn.grid(row=0, column=2, padx=2, pady=10)
-        
-        name_marquee = MarqueeLabel(row_frame, text=mod.get('name', 'Unknown'), font=("Arial", 13, "bold"), row_frame=row_frame,
-                                    on_click=lambda e=None, m=mod: self._on_mod_select(m), on_context=lambda e=None, m=mod: self.show_context_menu(e, m))
-        name_marquee.grid(row=0, column=3, padx=5, sticky="ew")
-        
-        author_marquee = MarqueeLabel(row_frame, text=mod.get('author', 'Unknown'), font=("Arial", 12), row_frame=row_frame,
-                                      on_click=lambda e=None, m=mod: self._on_mod_select(m), on_context=lambda e=None, m=mod: self.show_context_menu(e, m))
-        author_marquee.configure(width=100)
-        author_marquee.label.configure(text_color=("gray60", "gray50"))
-        author_marquee.grid(row=0, column=4, padx=5)
-        
-        version_label = customtkinter.CTkLabel(row_frame, text=mod.get('version', '1.0'), anchor="w", text_color=("gray60", "gray50"), width=50)
-        version_label.grid(row=0, column=5, padx=5)
-
-        def on_enter(e, rf=row_frame, nm=name_marquee, am=author_marquee):
-            try:
-                if not getattr(rf, '_hover_active', False):
-                    rf._hover_active = True
-                    rf.configure(fg_color=("gray85", "gray20"), cursor="hand2")
-                    nm.start_scrolling()
-                    am.start_scrolling()
-            except:
-                pass
-                
-        def on_leave(e, rf=row_frame, nm=name_marquee, am=author_marquee):
-            try:
-                # Short delay to check if mouse really left (prevents flickering)
-                def check_mouse_left():
-                    try:
-                        if rf.winfo_exists():
-                            x, y = rf.winfo_pointerxy()
-                            x1, y1 = rf.winfo_rootx(), rf.winfo_rooty()
-                            x2, y2 = x1 + rf.winfo_width(), y1 + rf.winfo_height()
-                            if not (x1 <= x <= x2 and y1 <= y <= y2):
-                                rf._hover_active = False
-                                rf.configure(fg_color="transparent", cursor="")
-                                nm.stop_scrolling()
-                                am.stop_scrolling()
-                    except:
-                        pass
-                rf.after(20, check_mouse_left)  # Reduced from 50ms to 20ms
-            except:
-                pass
-
-        # Hover on the row_frame
-        row_frame._hover_active = False
-        row_frame.bind("<Enter>", on_enter)
-        row_frame.bind("<Leave>", on_leave)
-        
-        for w in (cb, star_btn, version_label, indicator if mod.get("has_options") else None):
-            if w:
-                w.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
-                w.bind("<Button-3>", lambda e=None, m=mod: self.show_context_menu(e, m))
-
     def _on_header_click(self, key):
         self.app.app_state.set_sort_key(key)
+        self._update_header_sort_indicators()
         self.refresh_logic(force_rebuild=True)
+        if hasattr(self.app, 'sort_btn') and self.app.sort_btn.winfo_exists():
+            self.app.sort_btn.configure(text=self.app.app_state.get_sort_display_text(t))
 
     def show_context_menu(self, event, mod):
         # Theme-aware colors for context menu
@@ -534,25 +460,70 @@ class ModListController:
                 bind_mousewheel(child)
         bind_mousewheel(scroll_frame)
 
+    def _cover_crop_image(self, img, target_w, target_h):
+        """Resize + center-crop img to exactly fill a target_w x target_h box
+        (like CSS 'object-fit: cover'), instead of shrinking it to fit inside
+        the box and leaving empty space around it. Keeps every card's preview
+        the same size and framing regardless of the source screenshot's own
+        aspect ratio.
+        """
+        src_w, src_h = img.size
+        target_ratio = target_w / target_h
+        src_ratio = src_w / src_h
+
+        if src_ratio > target_ratio:
+            # Source is relatively wider than target - crop the sides.
+            new_h = src_h
+            new_w = int(src_h * target_ratio)
+            x0 = (src_w - new_w) // 2
+            box = (x0, 0, x0 + new_w, new_h)
+        else:
+            # Source is relatively taller than target - crop top/bottom.
+            new_w = src_w
+            new_h = int(src_w / target_ratio)
+            y0 = (src_h - new_h) // 2
+            box = (0, y0, new_w, y0 + new_h)
+
+        cropped = img.crop(box)
+        try:
+            from PIL import Image
+            return cropped.resize((target_w, target_h), Image.LANCZOS)
+        except Exception:
+            return cropped.resize((target_w, target_h))
+
     def _render_mod_card(self, item, parent, row, col):
         """Render a single mod card for grid view."""
         mod = item['mod_info']
         var = item['variable']
-        
-        # Card frame
-        card = customtkinter.CTkFrame(parent, fg_color=("gray90", "gray15"), corner_radius=10)
-        card.grid(row=row, column=col, padx=8, pady=8, sticky="nsew")
+        accent = self.app._accent_color()
+        enabled = bool(var.get())
+
+        # Card frame - a thin accent-colored border marks enabled mods,
+        # mirroring the accent bar used in list view for the same purpose.
+        card = customtkinter.CTkFrame(
+            parent, fg_color=("gray92", "gray15"), corner_radius=14,
+            border_width=2, border_color=(accent, accent) if enabled else ("gray92", "gray15")
+        )
+        card.grid(row=row, column=col, padx=9, pady=9, sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
-        
+
         # Hover effect for card - defined early so child widgets can reference it
         def on_enter(e, c=card):
-            c.configure(fg_color=("gray85", "gray20"), cursor="hand2")
+            c.configure(fg_color=("gray87", "gray19"))
+            c.configure(cursor="hand2")
         def on_leave(e, c=card):
-            c.configure(fg_color=("gray90", "gray15"), cursor="")
-        
-        # Preview image
-        img_frame = customtkinter.CTkFrame(card, fg_color=("gray95", "gray18"), corner_radius=8, height=120)
-        img_frame.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
+            c.configure(fg_color=("gray92", "gray15"), cursor="")
+
+        # Preview image - fixed 16:9 box, same size on every card regardless
+        # of the source screenshot's own aspect ratio (previously each image
+        # was just shrunk to fit inside a ~4:3 box, so a mod with a wide
+        # screenshot and a mod with a square one produced very differently
+        # proportioned thumbnails, and cropped a tiny image floating in a
+        # mostly-empty frame - that's the "fighting for size" look).
+        IMG_W, IMG_H = 220, 124  # 220/124 ~= 16:9
+        img_frame = customtkinter.CTkFrame(card, fg_color=("gray97", "gray20"), corner_radius=10,
+                                            width=IMG_W, height=IMG_H)
+        img_frame.grid(row=0, column=0, padx=10, pady=(10, 8))
         img_frame.grid_propagate(False)
         
         # Load preview image
@@ -566,14 +537,22 @@ class ModListController:
             img = Image.open(img_path)
             if img.mode in ('RGBA', 'P'):
                 img = img.convert('RGB')
-            img.thumbnail((140, 100))
-            ctk_img = customtkinter.CTkImage(light_image=img, dark_image=img, size=(140, 100))
+            img = self._cover_crop_image(img, IMG_W, IMG_H)
+            ctk_img = customtkinter.CTkImage(light_image=img, dark_image=img, size=(IMG_W, IMG_H))
             img_label = customtkinter.CTkLabel(img_frame, image=ctk_img, text="")
             img_label.place(relx=0.5, rely=0.5, anchor="center")
         except:
             img_label = customtkinter.CTkLabel(img_frame, text=t("no_image"), text_color=("gray60", "gray50"))
             img_label.place(relx=0.5, rely=0.5, anchor="center")
-        
+
+        # Version pill, floating over the top-right corner of the preview.
+        version_pill = customtkinter.CTkLabel(
+            img_frame, text=mod.get('version', '1.0'), font=("Arial", 9, "bold"),
+            text_color=("gray20", "gray90"), fg_color=("gray85", "gray30"),
+            corner_radius=7, width=40, height=18
+        )
+        version_pill.place(relx=1.0, rely=0.0, x=-6, y=6, anchor="ne")
+
         # Click on image to select mod - bind to both frame and label
         for widget in (img_frame, img_label):
             if widget:
@@ -584,45 +563,49 @@ class ModListController:
         
         # Mod name
         name = mod.get('name', 'Unknown')
-        if len(name) > 20:
-            name = name[:18] + "..."
-        name_lbl = customtkinter.CTkLabel(card, text=name, font=("Arial", 12, "bold"))
-        name_lbl.grid(row=1, column=0, padx=10, pady=(5, 0), sticky="w")
+        if len(name) > 22:
+            name = name[:20] + "..."
+        name_lbl = customtkinter.CTkLabel(card, text=name, font=("Arial", 13, "bold"), anchor="w")
+        name_lbl.grid(row=1, column=0, padx=12, pady=(2, 0), sticky="w")
         name_lbl.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
         name_lbl.bind("<Enter>", lambda e, c=card: on_enter(e, c))
         name_lbl.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
         # Author
         author = mod.get('author', 'Unknown')
-        if len(author) > 20:
-            author = author[:18] + "..."
-        author_lbl = customtkinter.CTkLabel(card, text=f"by {author}", font=("Arial", 10), text_color=("gray60", "gray50"))
-        author_lbl.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="w")
+        if len(author) > 22:
+            author = author[:20] + "..."
+        author_lbl = customtkinter.CTkLabel(card, text=author, font=("Arial", 10), text_color=("gray45", "gray60"), anchor="w")
+        author_lbl.grid(row=2, column=0, padx=12, pady=(0, 8), sticky="w")
         author_lbl.bind("<Button-1>", lambda e=None, m=mod: self._on_mod_select(m))
         author_lbl.bind("<Enter>", lambda e, c=card: on_enter(e, c))
         author_lbl.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
-        # Bottom row with checkbox and favorite
+        # Bottom row with switch and favorite
         bottom = customtkinter.CTkFrame(card, fg_color="transparent")
-        bottom.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="ew")
+        bottom.grid(row=3, column=0, padx=12, pady=(0, 12), sticky="ew")
         bottom.bind("<Enter>", lambda e, c=card: on_enter(e, c))
         bottom.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
-        # Checkbox
-        cb = customtkinter.CTkCheckBox(bottom, text="", variable=var, width=20, height=20,
-                                       fg_color=(self.app._accent_color(), self.app._accent_color()),
-                                       hover_color=(self.app._hover_color(), self.app._hover_color()),
-                                       command=lambda: self._on_checkbox_click(mod, var))
-        cb.pack(side="left")
-        cb.bind("<Enter>", lambda e, c=card: on_enter(e, c))
-        cb.bind("<Leave>", lambda e, c=card: on_leave(e, c))
+        # Enable/disable switch (replaces the old checkbox - also updates
+        # the card's accent border live so it stays in sync).
+        def on_toggle(c=card):
+            c.configure(border_color=(accent, accent) if var.get() else ("gray92", "gray15"))
+            self._on_checkbox_click(mod, var)
+
+        switch = customtkinter.CTkSwitch(bottom, text="", variable=var, width=36, height=18,
+                                          progress_color=accent, button_color=("white", "gray90"),
+                                          command=on_toggle)
+        switch.pack(side="left")
+        switch.bind("<Enter>", lambda e, c=card: on_enter(e, c))
+        switch.bind("<Leave>", lambda e, c=card: on_leave(e, c))
         
         # Favorite button
         star_btn = customtkinter.CTkButton(
             bottom, text="★" if mod.get('is_favorite', False) else "☆", 
             width=28, height=28, font=("Arial", 12),
-            fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray40", "gray50"),
-            hover_color=(self.app._accent_color(), self.app._accent_color()),
+            fg_color="transparent", text_color=("#FFD700", "#FFD700") if mod.get('is_favorite') else ("gray50", "gray55"),
+            hover_color=(accent, accent),
             command=lambda: self._toggle_favorite(mod)
         )
         star_btn.pack(side="right")

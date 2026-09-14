@@ -58,8 +58,10 @@ class AppCallbacks:
     def toggle_sort(self):
         """Toggle sort order and refresh the mod list."""
         self.app.app_state.toggle_sort()
-        if hasattr(self.app, 'sort_btn') and self.app.sort_btn.winfo_exists(): 
-            self.app.sort_btn.configure(text=f"{t('sort')}: {self.app.app_state.sort_order}")
+        if hasattr(self.app, 'sort_btn') and self.app.sort_btn.winfo_exists():
+            self.app.sort_btn.configure(text=self.app.app_state.get_sort_display_text(t))
+        if hasattr(self.app, 'mod_list_controller'):
+            self.app.mod_list_controller._update_header_sort_indicators()
         self.app.refresh_logic()
     
     def refresh_logic(self):

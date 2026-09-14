@@ -1,20 +1,7 @@
 {
     "game_name": "MY HERO ULTRA RUMBLE",
-    "selected_mods": [
-        "Example Mod"
-    ],
-    "mod_data": {
-        "Example Mod": {
-            "name": "Example Mod",
-            "author": "Author name",
-            "version": "1.3",
-            "url": "https://example.com/mods/0",
-            "description": "Example mod template.",
-            "category": "Skin",
-            "screenshot": "preview.png",
-            "has_options": false
-        }
-    },
+    "selected_mods": [],
+    "mod_data": {},
     "mod_options": {
         "Lady Nagant - String Bikini": [
             "XNagantStringBikiniPonyTailOverHeroCostume-WindowsNoEditor_P.pak"
@@ -31,9 +18,9 @@
         "language": "Español",
         "check_updates": true,
         "minimize_to_tray": false,
-        "enable_console": true,
+        "enable_console": false,
         "backup_mods": true,
-        "appearance": "Light",
+        "appearance": "Dark",
         "accent_color": "#1a9f84",
         "button_color": "#1a9f84",
         "view_mode": "list",
@@ -41,8 +28,9 @@
         "game_path": "c:\\program files (x86)\\steam\\steamapps\\common\\My Hero Ultra Rumble\\HerovsGame\\Content\\Paks",
         "auto_update_enabled": true,
         "startup_page": "Home Dashboard",
-        "primary_color": "#1e2a2e"
+        "primary_color": "#1e2a2e",
+        "first_startup_check_done": true
     },
-    "saved_at": 1779235085,
+    "saved_at": 1789425153,
     "pum_version": "1.3.0"
 }

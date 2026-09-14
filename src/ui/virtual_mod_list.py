@@ -12,7 +12,7 @@ class VirtualModList:
     Uses a canvas with scrollbar and recycles widget rows.
     """
     
-    ROW_HEIGHT = 46  # Altura de cada fila de mod
+    ROW_HEIGHT = 58  # Altura de cada fila de mod (estilo "tarjeta", más espaciosa)
     VISIBLE_BUFFER = 3  # Filas extra a renderizar arriba/abajo (base value, will be adjusted dynamically)
     
     def __init__(self, parent, app_instance, row_renderer: Callable):
@@ -257,11 +257,24 @@ class VirtualModList:
         # Crear frame para la fila
         row_frame = customtkinter.CTkFrame(
             self.visible_frame,
-            fg_color="transparent",
-            corner_radius=8,
-            height=self.ROW_HEIGHT - 2
+            fg_color=("gray95", "gray14"),
+            corner_radius=12,
+            height=self.ROW_HEIGHT - 8
         )
-        row_frame.place(x=0, y=y_pos, relwidth=1)
+        # Lock the frame at its constructor height: without this, its
+        # grid-managed children (switch, marquee labels, etc.) can request
+        # slightly more height than we gave it, and CTk grows the frame to
+        # fit them - which pushes/overlaps it past the fixed y position we
+        # place() it at below, cutting the row content off against the next
+        # row.
+        row_frame.grid_propagate(False)
+        # x/width offsets give the row a small side margin so it reads as a
+        # card floating in the list, instead of a flush table row.
+        # NOTE: CustomTkinter's CTkFrame.place() explicitly forbids passing
+        # width/height here (unlike raw tkinter) - it must come from the
+        # constructor. So the small right-side margin comes from padding on
+        # the row's rightmost widget instead of a relwidth+width trick here.
+        row_frame.place(x=6, y=y_pos + 4, relwidth=1)
         
         # Renderizar contenido de la fila usando el callback
         widgets = self.row_renderer(mod_data, row_frame, row_idx)

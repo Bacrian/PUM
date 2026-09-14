@@ -2,6 +2,7 @@
 """Rebuilt Home Page with Multi-Game Management and Steam Integration."""
 import customtkinter
 import tkinter
+import threading
 from PIL import Image
 from pathlib import Path
 from src.core.constants import ASSETS_DIR, APP_VERSION
@@ -31,7 +32,7 @@ class HomePage(customtkinter.CTkScrollableFrame):
         welcome_text = customtkinter.CTkFrame(inner, fg_color="transparent")
         welcome_text.pack(side="left")
         customtkinter.CTkLabel(welcome_text, text=t("app_title"), font=("Arial", 28, "bold"), text_color=("black", "white")).pack(anchor="w")
-        customtkinter.CTkLabel(welcome_text, text=f"{t('version_label')} 1.3.0 - 13-09-2026 quirk-testing build", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
+        customtkinter.CTkLabel(welcome_text, text=f"{t('version_label')} 1.3.0 - 14-09-2026 quirk-testing build", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
 
         # 2. Game Library Section
         title_row = customtkinter.CTkFrame(self, fg_color="transparent")
@@ -124,28 +125,60 @@ class HomePage(customtkinter.CTkScrollableFrame):
         dialog.title(t("import_from_steam"))
         dialog.geometry("500x450")
         dialog.transient(self.app)
-        
+
         customtkinter.CTkLabel(dialog, text=t("select_steam_game"), font=("Arial", 14, "bold")).pack(pady=20)
-        
+
         scroll = customtkinter.CTkScrollableFrame(dialog, height=300)
         scroll.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-        
-        games = list_installed_steam_games()
-        
+
+        # Scanning every installed Steam game's install folder for a
+        # Content/Paks subfolder can take a while (large libraries, network
+        # drives, etc.) - run it on a background thread so the dialog (and
+        # the rest of the app) never becomes unresponsive while it works.
+        loading_lbl = customtkinter.CTkLabel(scroll, text=t("searching"), text_color=("gray40", "gray70"))
+        loading_lbl.pack(pady=50)
+
+        def scan():
+            try:
+                found_games = list_installed_steam_games()
+            except Exception as e:
+                print(f"DEBUG: list_installed_steam_games failed: {e}")
+                found_games = []
+
+            def populate():
+                if not dialog.winfo_exists():
+                    return
+                loading_lbl.destroy()
+                self._populate_steam_games(scroll, dialog, found_games)
+
+            try:
+                dialog.after(0, populate)
+            except Exception:
+                pass
+
+        threading.Thread(target=scan, daemon=True).start()
+
+    def _populate_steam_games(self, scroll, dialog, games):
+        """Render the detected-games list once the background scan is done."""
         if not games:
             customtkinter.CTkLabel(scroll, text=t("no_steam_games"), text_color=("gray40", "gray70")).pack(pady=50)
-        
+
         for game in games:
             g_frame = customtkinter.CTkFrame(scroll, fg_color=("gray90", "gray18"), corner_radius=10)
             g_frame.pack(fill="x", pady=5, padx=5)
-            
+
             customtkinter.CTkLabel(g_frame, text=game['name'], font=("Arial", 12, "bold")).pack(side="left", padx=15, pady=10)
-            
+
             def add_this(g=game):
+                # 1. Signal: user clicked -> add it to the registry right away.
                 add_game_to_registry(g['name'], g['path'], appid=g.get('appid'), install_dir=g.get('install_dir'))
-                self.refresh_games()
                 dialog.destroy()
-                
+                # 2. Small delay before reloading the home screen, so the
+                # add has a moment to fully settle (now backed by the
+                # in-memory cache fix in get_game_registry, so this is a
+                # UX pacing choice rather than something correctness relies on).
+                self.app.after(500, self.refresh_games)
+
             customtkinter.CTkButton(g_frame, text=t("add_game"), width=60, height=24, command=add_this).pack(side="right", padx=10)
 
     def _on_add_game(self):
@@ -170,8 +203,8 @@ class HomePage(customtkinter.CTkScrollableFrame):
         def save():
             if name_entry.get() and path_var.get():
                 add_game_to_registry(name_entry.get(), path_var.get())
-                self.refresh_games()
                 dialog.destroy()
+                self.app.after(500, self.refresh_games)
 
         customtkinter.CTkButton(dialog, text=t("register_game"), height=40, font=("Arial", 13, "bold"),
                                fg_color=self.app._accent_color(), hover_color=self.app._hover_color(),
