@@ -6,6 +6,7 @@ extension (JSON format), allowing users to save and load different mod configura
 """
 import os
 import json
+import sys
 import tkinter
 import tkinter.messagebox
 import tkinter.filedialog
@@ -21,8 +22,16 @@ from src.core.constants import ASSETS_DIR
 class ProfileManager:
     def __init__(self, app_instance):
         self.app = app_instance
-        self.profiles_dir = Path("profiles")
-        self.profiles_dir.mkdir(exist_ok=True)
+        # Use user-writable directory when running as compiled exe
+        if getattr(sys, 'frozen', False):
+            # Running as compiled exe - use user's Documents folder
+            import os
+            user_docs = Path(os.path.expanduser("~/Documents"))
+            self.profiles_dir = user_docs / "Plus Ultra Manager" / "profiles"
+        else:
+            # Running as script - use relative path
+            self.profiles_dir = Path("profiles")
+        self.profiles_dir.mkdir(parents=True, exist_ok=True)
     
     def get_saved_profiles(self, game_name=None):
         """Get list of saved profiles for specific game or all profiles.
