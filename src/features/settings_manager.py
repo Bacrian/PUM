@@ -10,6 +10,7 @@ from pathlib import Path
 from src.core.localization import t, list_available_languages, _guess_lang_code
 from src.core.config import save_config, load_app_settings, get_game_registry, update_game_path_in_registry, update_game_path_by_name_in_registry
 from src.core.constants import ASSETS_DIR, DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR
+from src.core.protocol_registration import register_protocol, is_protocol_registered
 from src.features.appearance_manager import AppearanceManager
 
 class SettingsManager:
@@ -167,6 +168,28 @@ class SettingsManager:
         self.backup_var = customtkinter.BooleanVar(value=self.app.app_settings.get("backup_mods", False))
         self._add_checkbox(self.tab_sys, t("backup_mods_label"), self.backup_var, self._save_all)
 
+        # Separator
+        protocol_separator = customtkinter.CTkFrame(self.tab_sys, height=2, fg_color=("gray80", "gray30"))
+        protocol_separator.pack(fill="x", pady=10)
+
+        # One-Click Install (pum:// protocol) status + manual (re)register button
+        self._add_label(self.tab_sys, t("protocol_section_label"))
+
+        protocol_row = customtkinter.CTkFrame(self.tab_sys, fg_color="transparent")
+        protocol_row.pack(fill="x", pady=(0, 5))
+
+        self.protocol_status_lbl = customtkinter.CTkLabel(
+            protocol_row, text=self._protocol_status_text(),
+            font=("Arial", 11), text_color=("gray30", "gray70")
+        )
+        self.protocol_status_lbl.pack(side="left")
+
+        customtkinter.CTkButton(
+            protocol_row, text=t("register_protocol_button"), width=170, height=26,
+            fg_color=self.app._accent_color(), hover_color=self.app._hover_color(),
+            command=self._on_register_protocol_click
+        ).pack(side="right")
+
         # --- TAB 3: GAME ---
         self._add_label(self.tab_game, t("game_content_dir_label"))
 
@@ -315,6 +338,31 @@ class SettingsManager:
             "backup_mods": self.backup_var.get()
         })
         save_config(self.app.current_path, self.app.saved_mods, self.app.mod_options, self.app.app_settings)
+
+    def _protocol_status_text(self):
+        """Human-readable status of the pum:// protocol registration."""
+        try:
+            return t("protocol_status_registered") if is_protocol_registered() else t("protocol_status_not_registered")
+        except Exception:
+            return t("protocol_status_unknown")
+
+    def _on_register_protocol_click(self):
+        """Force a fresh (re)registration of the pum:// protocol, ignoring any cached state."""
+        try:
+            success = register_protocol()
+        except Exception as e:
+            print(f"DEBUG: Manual protocol registration error: {e}")
+            success = False
+
+        if success:
+            tkinter.messagebox.showinfo(t("protocol_registered_title"), t("protocol_registered_body"))
+        else:
+            tkinter.messagebox.showerror(t("protocol_registration_failed_title"), t("protocol_registration_failed_body"))
+
+        try:
+            self.protocol_status_lbl.configure(text=self._protocol_status_text())
+        except Exception:
+            pass
 
     def _on_game_select(self, name):
         try:
