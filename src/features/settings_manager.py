@@ -37,7 +37,7 @@ class SettingsManager:
 
         self.setting_window = customtkinter.CTkToplevel(self.app)
         self.setting_window.title(t("settings_title"))
-        self.setting_window.geometry("550x580")
+        self.setting_window.geometry("550x680")
         self.setting_window.resizable(False, False)
         self.setting_window.transient(self.app)
         # Non-modal on purpose: no grab_set(). CTkToplevel windows
@@ -63,7 +63,7 @@ class SettingsManager:
         title_lbl.pack(anchor="w", pady=(0, 10))
 
         # --- TABVIEW ---
-        self.tabview = customtkinter.CTkTabview(self.main_container, width=500, height=350, 
+        self.tabview = customtkinter.CTkTabview(self.main_container, width=500, height=450, 
                                                anchor="w", segmented_button_selected_color=self.app._accent_color(),
                                                text_color=("gray20", "gray80"))
         self.tabview.pack(fill="both", expand=True)

@@ -242,14 +242,14 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.tools_menu_frame = customtkinter.CTkFrame(self.sidebar_frame, fg_color="transparent")
         self.tools_menu_frame.grid(row=11, column=0, padx=10, pady=5, sticky="ew")
         
-        # Mods tools (panel flotante, auto-ajuste de ancho)
+        # Mods tools (floating panel, auto-adjust width)
         self.mods_tools_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("mods_menu"), accent_color=self._accent_color(), width="auto")
         self.mods_tools_menu.pack(fill="x", pady=2)
         self.mods_tools_menu.add_item(t("open_mods_folder"), lambda: os.startfile(Path("mods")), "📁")
         self.mods_tools_menu.add_item(t("download_mod"), self.download_url_callback, "⬇")
         self.mods_tools_menu.add_item(t("mod_marketplace"), self.open_mod_marketplace, "🛒")
         
-        # Floating: System (auto-ajuste de ancho)
+        # Floating: System (auto-adjust width)
         self.system_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("system_menu"), accent_color=self._accent_color(), width="auto")
         self.system_menu.pack(fill="x", pady=2)
         self.system_menu.add_item(t("settings"), self.open_settings, "⚙")
@@ -257,7 +257,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.system_menu.add_item(t("backups"), self.open_backup_manager, "📦")
         self.system_menu.add_item(t("console_button"), self.toggle_console, "⌨")
         
-        # Floating: Utilities (auto-ajuste de ancho)
+        # Floating: Utilities (auto-adjust width)
         self.utilities_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("utilities_menu"), accent_color=self._accent_color(), width="auto")
         self.utilities_menu.pack(fill="x", pady=2)
         self.utilities_menu.add_item(t("check_updates"), lambda: self.auto_updater.manual_check(), "⚡")
@@ -265,7 +265,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.utilities_menu.add_item(t("export_profile"), self.export_profile, "📤")
         self.utilities_menu.add_item(t("import_profile"), self.import_profile, "📥")
         
-        # Botón Credits directo (sin sección About)
+        # Direct Credits button (without About section)
         self._sidebar_btn_direct(self.tools_menu_frame, f"❓ {t('credits_title')}", self.open_credits)
 
         # --- VIEW CONTAINER ---
@@ -1756,3 +1756,7 @@ if __name__ == "__main__":
     if sys.platform == 'win32': ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     app = App()
     app.mainloop()
+
+
+
+
