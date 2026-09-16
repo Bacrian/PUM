@@ -7,6 +7,7 @@ mod deletion, mod information editing, and size calculation.
 import os
 import shutil
 import json
+import sys
 import time
 import tkinter
 import tkinter.messagebox
@@ -129,7 +130,12 @@ class ModManager:
     def install_mod(self, mod_path, destination=None, mod_info=None):
         """Install a mod from path (folder, .pak, or .zip) with optional metadata"""
         if destination is None:
-            destination = Path("mods")
+            # Use user-writable directory when running as compiled exe
+            if getattr(sys, 'frozen', False):
+                user_docs = Path(os.path.expanduser("~/Documents"))
+                destination = user_docs / "Plus Ultra Manager" / "mods"
+            else:
+                destination = Path("mods")
         
         mod_path = Path(mod_path)
         if not mod_path.exists():

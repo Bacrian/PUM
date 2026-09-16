@@ -30,9 +30,54 @@ def check_for_updates(root):
 
 def ensure_assets_exist():
     try:
-        ASSETS_DIR.mkdir(exist_ok=True)
+        assets_dir = ASSETS_DIR
+        assets_dir.mkdir(parents=True, exist_ok=True)
+        
+        # When running as compiled exe, copy bundled assets from various possible locations
+        if getattr(sys, 'frozen', False):
+            import shutil
+            possible_locations = []
+            
+            # Try standard PyInstaller location
+            try:
+                possible_locations.append(Path(sys._MEIPASS) / "assets")
+            except AttributeError:
+                pass
+            
+            # Try location next to exe
+            try:
+                exe_dir = Path(sys.executable).parent
+                possible_locations.append(exe_dir / "assets")
+                possible_locations.append(exe_dir / "_internals" / "assets")
+            except Exception:
+                pass
+            
+            # Try current directory
+            possible_locations.append(Path("assets"))
+            
+            # Try each location
+            for bundled_assets in possible_locations:
+                if bundled_assets.exists():
+                    print(f"Found assets at: {bundled_assets}")
+                    # Copy all assets from bundled location to user directory
+                    for item in bundled_assets.iterdir():
+                        dest = assets_dir / item.name
+                        if not dest.exists():
+                            try:
+                                if item.is_file():
+                                    shutil.copy2(item, dest)
+                                    print(f"Copied: {item.name}")
+                                elif item.is_dir():
+                                    shutil.copytree(item, dest)
+                                    print(f"Copied directory: {item.name}")
+                            except Exception as e:
+                                print(f"Failed to copy {item.name}: {e}")
+                    break
+            else:
+                print(f"Warning: Could not find assets in any location: {possible_locations}")
+        
         # default preview image for unknown mods
-        dp = ASSETS_DIR / "default_preview.png"
+        dp = assets_dir / "default_preview.png"
         if not dp.exists():
             img = Image.new("RGBA", (320, 180), (40, 40, 40, 255))
             img.save(dp)
@@ -44,15 +89,15 @@ def ensure_assets_exist():
             "icon.png": (26, 159, 132, 255)
         }
         for name, col in icons.items():
-            p = ASSETS_DIR / name
+            p = assets_dir / name
             if not p.exists():
                 img = Image.new("RGBA", (64, 64), col)
                 img.save(p)
 
-        ico = ASSETS_DIR / "icon.ico"
+        ico = assets_dir / "icon.ico"
         if not ico.exists():
             try:
-                Image.open(ASSETS_DIR / "icon.png").save(ico)
+                Image.open(assets_dir / "icon.png").save(ico)
             except Exception:
                 Image.new("RGBA", (64, 64), (0, 0, 0, 255)).save(ico)
     except Exception:

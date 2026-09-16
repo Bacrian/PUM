@@ -6,6 +6,7 @@ mod configurations and game files with versioning support.
 """
 import os
 import json
+import sys
 import shutil
 import zipfile
 import time
@@ -18,8 +19,15 @@ class BackupManager:
     
     def __init__(self, app_instance):
         self.app = app_instance
-        self.backup_dir = Path("backups")
-        self.backup_dir.mkdir(exist_ok=True)
+        # Use user-writable directory when running as compiled exe
+        if getattr(sys, 'frozen', False):
+            # Running as compiled exe - use user's Documents folder
+            user_docs = Path(os.path.expanduser("~/Documents"))
+            self.backup_dir = user_docs / "Plus Ultra Manager" / "backups"
+        else:
+            # Running as script - use relative path
+            self.backup_dir = Path("backups")
+        self.backup_dir.mkdir(parents=True, exist_ok=True)
         self.metadata_file = self.backup_dir / "backup_metadata.json"
         self._load_metadata()
     
