@@ -5,6 +5,7 @@ import re
 import requests
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -33,6 +34,16 @@ class URLHandler:
         self.loading_win = None
         self.download_dialog = None
         self.download_in_progress = False
+    
+    def _get_base_dir(self):
+        """Get base directory for user data (mods, downloads, etc.)."""
+        if getattr(sys, 'frozen', False):
+            # Running as compiled exe - use user's Documents folder
+            user_docs = Path(os.path.expanduser("~/Documents"))
+            return user_docs / "Plus Ultra Manager"
+        else:
+            # Running as script - use current directory
+            return Path(".")
     
     def download_url_callback(self):
         """Handle URL download button click - prevent multiple windows"""
@@ -159,13 +170,14 @@ class URLHandler:
                 print(f"DEBUG: Starting silent download of {len(files)} file(s) for {meta.get('name', 'Unknown')}")
                 
                 # Determine destination
+                base_dir = self._get_base_dir()
                 if game_name:
-                    destination = Path("mods") / game_name
+                    destination = base_dir / "mods" / game_name
                 else:
-                    destination = Path("mods")
+                    destination = base_dir / "mods"
                 destination.mkdir(parents=True, exist_ok=True)
                 
-                downloads_dir = Path("downloads")
+                downloads_dir = base_dir / "downloads"
                 downloads_dir.mkdir(exist_ok=True)
                 
                 # Prepare metadata
@@ -799,14 +811,15 @@ Do you want to continue downloading anyway?"""
         def download_thread():
             try:
                 # Create directories
-                downloads_dir = Path("downloads")
+                base_dir = self._get_base_dir()
+                downloads_dir = base_dir / "downloads"
                 downloads_dir.mkdir(exist_ok=True)
                 
                 # Determine destination
                 if selected_game:
-                    destination = Path("mods") / selected_game
+                    destination = base_dir / "mods" / selected_game
                 else:
-                    destination = Path("mods")
+                    destination = base_dir / "mods"
                 destination.mkdir(parents=True, exist_ok=True)
                 
                 # Get mod info

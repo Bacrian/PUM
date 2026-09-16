@@ -411,5 +411,14 @@
   "sort_name_az": "Nombre (A-Z)",
   "show_nsfw": "Mostrar NSFW",
   "all_games": "Todos los juegos",
-  "refresh": "Actualizar"
+  "refresh": "Actualizar",
+  "protocol_section_label": "Instalación de 1 clic (enlaces pum://)",
+  "register_protocol_button": "Registrar / Reparar protocolo",
+  "protocol_status_registered": "Estado: registrado y apuntando a esta instalación.",
+  "protocol_status_not_registered": "Estado: no registrado (o apuntando a una instalación vieja).",
+  "protocol_status_unknown": "Estado: desconocido.",
+  "protocol_registered_title": "Protocolo registrado",
+  "protocol_registered_body": "Los enlaces pum:// ahora van a abrir esta instalación de PUM. Si el navegador sigue abriendo una copia vieja, reiniciá el navegador una vez.",
+  "protocol_registration_failed_title": "Registro fallido",
+  "protocol_registration_failed_body": "No se pudo registrar el protocolo pum://. Revisá la consola de debug para más detalles."
 }

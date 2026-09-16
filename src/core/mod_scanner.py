@@ -7,6 +7,7 @@ reading modinfo.json files, and supporting game-specific mod isolation.
 import shutil
 import json
 import os
+import sys
 import time
 import logging
 from pathlib import Path
@@ -76,6 +77,11 @@ def mod_info(game_name=None, normalize_loose_paks=False):
         normalize_loose_paks: If True, normalize loose .pak files (expensive operation)
     """
     base_mods_folder = Path(MODS_FOLDER).resolve()
+    
+    # Use user-writable directory when running as compiled exe
+    if getattr(sys, 'frozen', False):
+        user_docs = Path(os.path.expanduser("~/Documents"))
+        base_mods_folder = user_docs / "Plus Ultra Manager" / "mods"
     
     if game_name:
         # Isolate mods by game subfolder

@@ -17,7 +17,6 @@ For installation info, see [Quick Start Up](https://github.com/Bacrian/PUM/wiki/
 
 Any contribution to this project is appreciated as long as the function it performs is clearly defined with a pull request, whether it is bug fixing, a new feature, a suggestion, etc.
 
-
 branches:
 
 main <- You're here

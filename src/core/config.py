@@ -6,6 +6,7 @@ to prevent excessive disk I/O and ensure thread safety.
 """
 import json
 import os
+import sys
 import logging
 import threading
 from pathlib import Path
@@ -14,6 +15,13 @@ from .constants import CONFIG_FILE
 
 # Configure logging for configuration operations
 logger = logging.getLogger(__name__)
+
+def _get_config_path():
+    """Get the config file path, using user-writable directory when compiled."""
+    if getattr(sys, 'frozen', False):
+        user_docs = Path(os.path.expanduser("~/Documents"))
+        return user_docs / "Plus Ultra Manager" / CONFIG_FILE
+    return Path(CONFIG_FILE)
 
 # In-memory cache for configuration to reduce disk I/O
 _config_cache = {}
@@ -55,7 +63,9 @@ def _schedule_save():
             try:
                 with _cache_lock:
                     if _config_cache:
-                        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                        config_path = _get_config_path()
+                        config_path.parent.mkdir(parents=True, exist_ok=True)
+                        with open(config_path, "w", encoding="utf-8") as f:
                             json.dump(_config_cache, f, indent=4)
                 _save_pending = False
                 _save_timer = None
@@ -67,7 +77,7 @@ def _schedule_save():
         _save_timer.start()
 
 def load_config(file_path=None):
-    target = file_path if file_path else CONFIG_FILE
+    target = file_path if file_path else _get_config_path()
     
     # Check cache first
     with _cache_lock:
@@ -101,8 +111,9 @@ def load_config(file_path=None):
 
 def load_app_settings():
     try:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        config_path = _get_config_path()
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return data.get("app_settings", {}) or {}
     except (OSError, json.JSONDecodeError) as e:
@@ -119,8 +130,9 @@ def get_game_registry():
         if _config_cache and "game_registry" in _config_cache:
             return list(_config_cache["game_registry"])
     try:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        config_path = _get_config_path()
+        if os.path.exists(config_path):
+            with open(config_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return data.get("game_registry", [])
     except (OSError, json.JSONDecodeError) as e:
@@ -135,11 +147,12 @@ def add_game_to_registry(name, path, engine="UE4", appid=None, install_dir=None)
         registry = data.get("game_registry", [])
         # Check for duplicates
         if not any(g['path'] == path for g in registry):
+            config_path = _get_config_path()
             entry = {
                 "name": name,
                 "path": path,
                 "engine": engine,
-                "added_at": os.path.getmtime(CONFIG_FILE) if os.path.exists(CONFIG_FILE) else 0
+                "added_at": os.path.getmtime(config_path) if os.path.exists(config_path) else 0
             }
             if appid is not None:
                 entry["appid"] = str(appid)

@@ -6,7 +6,8 @@ scripts/__pycache__/
 .vscode/
 .idea/
 _unused/
-docs/
+output/
+protocol_handler.md
 /.vscode/settings.json
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/.gitignore

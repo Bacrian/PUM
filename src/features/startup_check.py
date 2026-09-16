@@ -9,6 +9,8 @@ import tkinter
 import tkinter.messagebox
 from pathlib import Path
 import shutil
+import sys
+import os
 
 from src.core.localization import t
 from src.core.mod_scanner import detect_game_mods
@@ -19,6 +21,16 @@ class StartupCheck:
     
     def __init__(self, app_instance):
         self.app = app_instance
+    
+    def _get_base_dir(self):
+        """Get base directory for user data (mods, etc.)."""
+        if getattr(sys, 'frozen', False):
+            # Running as compiled exe - use user's Documents folder
+            user_docs = Path(os.path.expanduser("~/Documents"))
+            return user_docs / "Plus Ultra Manager"
+        else:
+            # Running as script - use current directory
+            return Path(".")
     
     def check_first_startup(self):
         """Check if this is first startup and if there are mods in ~mods."""
@@ -229,8 +241,8 @@ class StartupCheck:
                 
                 if target.exists():
                     # Create PUM mods folder for this game
-                    from src.core.constants import MODS_FOLDER
-                    pum_mods_dir = Path(MODS_FOLDER) / game_info['name']
+                    base_dir = self._get_base_dir()
+                    pum_mods_dir = base_dir / "mods" / game_info['name']
                     pum_mods_dir.mkdir(parents=True, exist_ok=True)
                     
                     for mod in game_info['mods']:
