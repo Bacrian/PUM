@@ -99,23 +99,75 @@ class AppCallbacks:
                     self.app.saved_mods.remove(mod_name)
         
         self.app.refresh_logic()
-    
+
     def game_callback(self):
         """Deploy mods and launch the game."""
         if not self.app.current_path:
             tkinter.messagebox.showwarning(t("warning"), t("game_path_not_set"))
             return
-        
+
         if self.deploy_mods():
-            game_exe = Path(self.app.current_path) / "MHUR-Win64-Shipping.exe"
-            if game_exe.exists():
-                subprocess.Popen([str(game_exe)], cwd=str(Path(self.app.current_path).parent))
-            else:
-                if "Ultra Rumble" in str(self.app.active_game_name):
-                    os.startfile("steam://rungameid/1607250")
-                else:
-                    os.startfile(self.app.current_path)
-    
+            appid = getattr(self.app, "current_appid", None)
+
+            # Steam game
+            if appid:
+                os.startfile(f"steam://rungameid/{appid}")
+                return
+
+            # Non-Steam game
+            install_dir = getattr(self.app, "current_install_dir", "")
+
+            if install_dir:
+                game_exe = self.find_game_executable(install_dir)
+
+                if game_exe:
+                    subprocess.Popen(
+                        [str(game_exe)],
+                        cwd=str(game_exe.parent)
+                    )
+                    return
+
+            tkinter.messagebox.showwarning(
+                t("warning"),
+                t("game_executable_not_found")
+            )
+
+    def find_game_executable(install_dir):
+        install_dir = Path(install_dir)
+
+        candidates = []
+        candidates.extend(install_dir.glob("*.exe"))
+
+        for pattern in [
+            "*/Binaries/Win64/*.exe",
+            "*/Binaries/Win32/*.exe",
+            "*/Binaries/*.exe",
+        ]:
+            candidates.extend(install_dir.glob(pattern))
+
+        excluded = {
+            "CrashReportClient",
+            "UnrealCEFSubProcess",
+        }
+
+        candidates = [
+            exe for exe in candidates
+            if exe.stem not in excluded
+        ]
+
+        binaries = [
+            exe for exe in candidates
+            if "Binaries" in exe.parts
+        ]
+
+        if len(binaries) == 1:
+            return binaries[0]
+
+        if len(candidates) == 1:
+            return candidates[0]
+
+        return None
+
     def deploy_mods(self):
         """
         Deploy selected mods to the game's ~mods folder.

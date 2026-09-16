@@ -6,6 +6,7 @@ translated strings throughout the application.
 """
 import json
 import os
+import sys
 from pathlib import Path
 
 from .constants import DEFAULT_WINDOW_SIZE
@@ -52,9 +53,14 @@ def _guess_lang_code(name: str):
     # fallback to first two letters
     return n[:2]
 
+def get_base_path():
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return Path(__file__).resolve().parents[2]
+
 def load_translations_for(language_name: str):
     code = _guess_lang_code(language_name)
-    path = Path("lang") / f"{code}.json"
+    path = get_base_path() / "lang" / f"{code}.json"
     try:
         if path.exists():
             with open(path, "r", encoding="utf-8") as f:
@@ -63,7 +69,7 @@ def load_translations_for(language_name: str):
         pass
     # fallback to English built-in
     try:
-        with open(Path("lang") / "en.json", "r", encoding="utf-8") as f:
+        with open(get_base_path() / "lang" / "en.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return {}
@@ -85,7 +91,7 @@ def list_available_languages():
     }
     results = []
     try:
-        lang_dir = Path("lang")
+        lang_dir = get_base_path() / "lang"
         if lang_dir.exists():
             for p in sorted(lang_dir.glob("*.json")):
                 code = p.stem

@@ -116,8 +116,15 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         # Set default game from registry if not set
         if not hasattr(self, 'active_game_name') or not self.active_game_name:
             if get_game_registry():
-                self.active_game_name = get_game_registry()[0]["name"]
-                self.current_path = get_game_registry()[0]["path"]
+                default_game = get_game_registry()[0]
+
+                self.active_game_name = default_game["name"]
+                self.current_path = default_game["path"]
+                self.current_appid = default_game.get("appid")
+                self.current_install_dir = default_game.get("install_dir", "")
+            else:
+                self.current_appid = None
+                self.current_install_dir = ""
 
         # Auto-detect game path (Legacy support for MHUR)
         if not self.current_path:
@@ -340,6 +347,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
                     if game.get("name") == default_game:
                         self.active_game_name = game["name"]
                         self.current_path = game["path"]
+                        self.current_install_dir = game.get("install_dir")
                         self.show_mod_manager(game)
                         return
             
@@ -378,6 +386,8 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
             if game["name"] == game_name:
                 self.active_game_name = game["name"]
                 self.current_path = game["path"]
+                self.current_appid = game.get("appid")
+                self.current_install_dir = game.get("install_dir", "")
                 # Ensure Default Profile exists for this game
                 self.profile_manager.ensure_default_profile_exists(game_name)
                 # Clear mod variable cache to prevent memory accumulation
@@ -390,8 +400,10 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
 
     def show_mod_manager(self, game):
         """Enter the specific mod manager for a selected game."""
-        self.active_game_name = game['name']
-        self.current_path = game['path']
+        self.active_game_name = game["name"]
+        self.current_path = game["path"]
+        self.current_appid = game.get("appid")
+        self.current_install_dir = game.get("install_dir", "")
         self._clear_view()
         
         # Update profile menu for new game
