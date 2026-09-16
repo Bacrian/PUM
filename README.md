@@ -20,6 +20,6 @@ Any contribution to this project is appreciated as long as the function it perfo
 
 branches:
 
-[main](https://github.com/Bacrian/PUM/)
+main <- You're here
 
-quirk-testing <- You're here
+[quirk-testing](https://github.com/Bacrian/PUM/tree/quirk-testing)
