@@ -1,6 +1,4 @@
 config.json
-keyboard_shortcuts.json
-docs/
 __init__.py
 __pycache__/
 venv/

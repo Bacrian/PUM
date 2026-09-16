@@ -153,7 +153,7 @@ class ProfileManager:
         if not game_name:
             # Default to current game for Default Profile
             if profile_name == "Default Profile":
-                game_name = getattr(self.app, 'active_game_name', 'Default')
+                game_name = (getattr(self.app, 'active_game_name', None) or 'Default')
                 # Try to load from file if it exists
                 profile_path = self.profiles_dir / game_name / "Default Profile.pum"
                 if profile_path.exists():
@@ -499,7 +499,7 @@ class ProfileManager:
     def ensure_default_profile_exists(self, game_name=None):
         """Ensure Default Profile exists as a file for the given game. Creates it if missing."""
         if not game_name:
-            game_name = getattr(self.app, 'active_game_name', 'Default')
+            game_name = (getattr(self.app, 'active_game_name', None) or 'Default')
         
         # Check if Default Profile file exists
         game_profiles_dir = self.profiles_dir / game_name

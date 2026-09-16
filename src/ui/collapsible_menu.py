@@ -15,7 +15,7 @@ class FloatingMenuSection(customtkinter.CTkFrame):
         self.app = app_instance
         self.title = title
         self.accent_color = accent_color
-        self.panel_width = width  # "auto" for auto-adjust, or fixed number
+        self.panel_width = width  # "auto" para auto-ajuste, o número fijo
 
         self._is_open = False
         self._popup = None
@@ -133,10 +133,10 @@ class FloatingMenuSection(customtkinter.CTkFrame):
                 command=_run
             )
             btn.pack(fill="x", padx=10, pady=1)
-            # Measure text width for auto-adjust
+            # Medir ancho del texto para auto-ajuste
             try:
                 text_len = len(f"{icon} {text}" if icon else text)
-                # Approximately 7px per character + padding
+                # Aproximadamente 7px por caracter + padding
                 text_width = text_len * 7 + 40
                 max_text_width = max(max_text_width, text_width)
             except Exception:
@@ -145,13 +145,13 @@ class FloatingMenuSection(customtkinter.CTkFrame):
         self._popup.update_idletasks()
         try:
             req_h = self._content_frame.winfo_reqheight()
-            # Use fixed width if specified, or auto-adjust based on content
+            # Usar ancho fijo si se especificó, o auto-ajustar según contenido
             if self.panel_width and self.panel_width != "auto":
                 final_width = self.panel_width
             else:
-                # Auto-adjust: maximum between minimum width (180) and calculated width
+                # Auto-ajuste: máximo entre ancho mínimo (180) y ancho calculado
                 final_width = max(180, max_text_width + 20)
-                # Cap at a reasonable maximum (400px)
+                # Cap a un máximo razonable (400px)
                 final_width = min(400, final_width)
             self._popup.geometry(f"{final_width}x{req_h}")
         except Exception:
@@ -202,7 +202,7 @@ class FloatingMenuSection(customtkinter.CTkFrame):
         def _on_escape(event):
             self.close()
 
-        # Use bind (not bind_all) to be able to unregister only our callbacks
+        # Usar bind (no bind_all) para poder desregistrar solo nuestros callbacks
         self._root_click_binding = self.app.bind("<Button-1>", _on_root_click, add="+")
         self._esc_binding = self.app.bind("<Escape>", _on_escape, add="+")
 
