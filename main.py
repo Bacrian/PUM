@@ -242,14 +242,14 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.tools_menu_frame = customtkinter.CTkFrame(self.sidebar_frame, fg_color="transparent")
         self.tools_menu_frame.grid(row=11, column=0, padx=10, pady=5, sticky="ew")
         
-        # Mods tools (floating panel, auto-adjust width)
+        # Mods tools (panel flotante, auto-ajuste de ancho)
         self.mods_tools_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("mods_menu"), accent_color=self._accent_color(), width="auto")
         self.mods_tools_menu.pack(fill="x", pady=2)
         self.mods_tools_menu.add_item(t("open_mods_folder"), lambda: os.startfile(Path("mods")), "📁")
         self.mods_tools_menu.add_item(t("download_mod"), self.download_url_callback, "⬇")
         self.mods_tools_menu.add_item(t("mod_marketplace"), self.open_mod_marketplace, "🛒")
         
-        # Floating: System (auto-adjust width)
+        # Floating: System (auto-ajuste de ancho)
         self.system_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("system_menu"), accent_color=self._accent_color(), width="auto")
         self.system_menu.pack(fill="x", pady=2)
         self.system_menu.add_item(t("settings"), self.open_settings, "⚙")
@@ -257,7 +257,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.system_menu.add_item(t("backups"), self.open_backup_manager, "📦")
         self.system_menu.add_item(t("console_button"), self.toggle_console, "⌨")
         
-        # Floating: Utilities (auto-adjust width)
+        # Floating: Utilities (auto-ajuste de ancho)
         self.utilities_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("utilities_menu"), accent_color=self._accent_color(), width="auto")
         self.utilities_menu.pack(fill="x", pady=2)
         self.utilities_menu.add_item(t("check_updates"), lambda: self.auto_updater.manual_check(), "⚡")
@@ -265,7 +265,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.utilities_menu.add_item(t("export_profile"), self.export_profile, "📤")
         self.utilities_menu.add_item(t("import_profile"), self.import_profile, "📥")
         
-        # Direct Credits button (without About section)
+        # Botón Credits directo (sin sección About)
         self._sidebar_btn_direct(self.tools_menu_frame, f"❓ {t('credits_title')}", self.open_credits)
 
         # --- VIEW CONTAINER ---
@@ -1452,7 +1452,7 @@ TIPS
         
         # Get current selected mods
         sel = [item['mod_info']['name'] for item in self.mod_list_controller.mod_checkboxes if item['variable'].get() == 1]
-        game_name = getattr(self, 'active_game_name', 'Default')
+        game_name = (getattr(self, 'active_game_name', None) or 'Default')
         
         # Save without showing dialogs
         result = self.profile_manager.save_profile(internal_name, sel, self.mod_options, self.app_settings, game_name)
@@ -1515,7 +1515,7 @@ TIPS
             sel = [item['mod_info']['name'] for item in self.mod_list_controller.mod_checkboxes if item['variable'].get() == 1]
             print(f"DEBUG SAVE: Selected mods to save: {sel}")
             print(f"DEBUG SAVE: Total checkboxes: {len(self.mod_list_controller.mod_checkboxes)}")
-            game_name = getattr(self, 'active_game_name', 'Default')
+            game_name = (getattr(self, 'active_game_name', None) or 'Default')
             result = self.profile_manager.save_profile(name, sel, self.mod_options, self.app_settings, game_name)
             print(f"DEBUG SAVE: save_profile returned: {result}")
             if result:

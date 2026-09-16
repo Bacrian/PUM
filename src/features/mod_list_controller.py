@@ -30,13 +30,13 @@ class ModListController:
         self.virtual_list = None
         self._last_rendered_mods = []
         self._refreshing = False
-        self._mod_vars = {}  # Cache of IntVar variables for checkboxes
+        self._mod_vars = {}  # Cache de variables IntVar para checkboxes
         
     def _init_virtual_list(self):
-        """Initialize the virtualized list if it doesn't exist yet."""
+        """Inicializa la lista virtualizada si aún no existe."""
         if self.virtual_list is None or not self.virtual_list.get_container().winfo_exists():
             if hasattr(self.app, 'modlist_frame') and self.app.modlist_frame.winfo_exists():
-                # Clear ALL previous content (previous grid or list view)
+                # Limpiar TODO el contenido anterior (grid o list view anterior)
                 if self.virtual_list is not None:
                     try:
                         self.virtual_list.destroy()
@@ -47,14 +47,14 @@ class ModListController:
                 self.content_frame = None
                 self.virtual_list = None
                 
-                # Create headers frame (fixed, not virtualized)
+                # Crear headers frame (fijo, no virtualizado)
                 self.content_frame = customtkinter.CTkFrame(self.app.modlist_frame, fg_color="transparent")
                 self.content_frame.pack(fill="both", expand=True)
                 
-                # Render headers
+                # Renderizar headers
                 self._render_headers_in_frame(self.content_frame)
                 
-                # Create virtualized list below headers
+                # Crear lista virtualizada debajo de los headers
                 self.virtual_list = VirtualModList(
                     self.content_frame,
                     self.app,
@@ -62,11 +62,11 @@ class ModListController:
                 )
                 self.virtual_list.get_container().pack(fill="both", expand=True, pady=(5, 0))
                 
-                # Bind mousewheel to virtual list widgets
+                # Bind mousewheel a los widgets de la lista virtual
                 self._bind_mousewheel_to_virtual()
     
     def _bind_mousewheel_to_virtual(self):
-        """Bind mousewheel to all widgets in the virtual list."""
+        """Vincula mousewheel a todos los widgets de la lista virtual."""
         def bind_recursive(widget):
             widget.bind("<MouseWheel>", self._on_mousewheel)
             widget.bind("<Button-4>", self._on_mousewheel)
@@ -78,13 +78,13 @@ class ModListController:
             bind_recursive(self.virtual_list.get_container())
     
     def _on_mousewheel(self, event):
-        """Delegate scroll to the virtual list."""
+        """Delega el scroll a la lista virtual."""
         if self.virtual_list:
             return self.virtual_list._on_mousewheel(event)
         return None
     
     def _render_headers_in_frame(self, parent_frame):
-        """Render headers in a specific frame."""
+        """Renderiza los headers en un frame específico."""
         header_row = customtkinter.CTkFrame(parent_frame, fg_color="transparent", height=25)
         header_row.pack(fill="x", pady=(0, 6), padx=6)
         header_row.grid_columnconfigure(4, weight=1)
@@ -189,7 +189,7 @@ class ModListController:
             self.mod_checkboxes = []
             for m in mods:
                 is_selected = m.get('name') in self.app.saved_mods
-                # Reuse variable if it exists
+                # Reusar variable si existe
                 if m.get('name') not in self._mod_vars:
                     self._mod_vars[m.get('name')] = customtkinter.IntVar(value=1 if is_selected else 0)
                 else:
@@ -422,7 +422,7 @@ class ModListController:
                 item['variable'].set(0)
                 if mod_name in self.app.saved_mods:
                     self.app.saved_mods.remove(mod_name)
-            # Verify current value
+            # Verificar el valor actual
             print(f"DEBUG SET: Variable value for {mod_name} is now: {item['variable'].get()}")
         
         # Force visual refresh by re-rendering the list
