@@ -1,0 +1,16 @@
+{
+  "toggle_console": "F12",
+  "open_settings": "Alt+comma",
+  "refresh_mods": "F5",
+  "toggle_all_mods": "Alt+a",
+  "deploy_mods": "Alt+d",
+  "search_focus": "Alt+f",
+  "open_mods_folder": "Alt+o",
+  "save_profile": "Alt+s",
+  "open_profile_manager": "Alt+p",
+  "open_backup_manager": "Alt+b",
+  "check_updates": "Alt+u",
+  "show_home": "Alt+h",
+  "toggle_view_mode": "Alt+v",
+  "sort_mods": "Alt+r"
+}

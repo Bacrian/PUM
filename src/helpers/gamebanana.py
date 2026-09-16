@@ -22,6 +22,11 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 
 
 def _parse_gb_url(url: str) -> Tuple[str, str]:
+    # Handle both https:// and pum:// URLs
+    if url.startswith("pum://"):
+        # Convert pum:// to https:// for parsing
+        url = url.replace("pum://", "https://")
+    
     m = re.search(r"gamebanana\.com/(mods|sounds|skins|guis|gamefiles)/(\d+)", url)
     if not m:
         raise ValueError("Invalid GameBanana URL")
@@ -135,20 +140,27 @@ def fetch_mod_from_url(url: str) -> Tuple[Dict, Optional[str], List[Dict]]:
     Returns (meta, img_url, files).
     """
     typ, item_id = _parse_gb_url(url)
+    print(f"DEBUG GB: Fetching mod {item_id} of type {typ}")
     # 1) Prefer the ProfilePage endpoint which the site uses for the mod page (richer, less strict)
     api_data = None
     try:
         profile_url = f"https://gamebanana.com/apiv11/Mod/{item_id}/ProfilePage"
         headers = {"User-Agent": USER_AGENT}
+        print(f"DEBUG GB: Trying ProfilePage API: {profile_url}")
         r = requests.get(profile_url, timeout=12, headers=headers)
+        print(f"DEBUG GB: ProfilePage response status: {r.status_code}")
         if r.status_code == 200:
             try:
                 j = r.json()
-            except Exception:
+                print(f"DEBUG GB: ProfilePage response keys: {j.keys() if isinstance(j, dict) else 'not dict'}")
+            except Exception as e:
+                print(f"DEBUG GB: ProfilePage JSON parse error: {e}")
                 j = None
             if isinstance(j, dict) and (j.get('_aFiles') or j.get('_sName') or j.get('_aSubmitter')):
                 api_data = j
-    except Exception:
+                print(f"DEBUG GB: Using ProfilePage API data")
+    except Exception as e:
+        print(f"DEBUG GB: ProfilePage API error: {e}")
         api_data = None
 
     # 2) If ProfilePage didn't return usable data, try the apiv11/Mod endpoint with _csvFields
@@ -197,7 +209,7 @@ def fetch_mod_from_url(url: str) -> Tuple[Dict, Optional[str], List[Dict]]:
             if api_data is not None:
                 break
 
-    meta = {'name': f'GB_{item_id}', 'description': '', 'version': '1.0', 'author': 'Unknown', 'category': 'Other'}
+    meta = {'name': f'GB_{item_id}', 'description': '', 'version': '1.0', 'author': 'Unknown', 'category': 'Other', 'game_id': None, 'game_name': None}
     img_url = None
     files = []
 
@@ -227,19 +239,47 @@ def fetch_mod_from_url(url: str) -> Tuple[Dict, Optional[str], List[Dict]]:
             submit = api_data.get('_aSubmitter') or api_data.get('_aSubmitter')
             if isinstance(submit, dict):
                 meta['author'] = submit.get('_sName') or meta['author']
-            # preview media may be array
-            pm = api_data.get('_aPreviewMedia') or api_data.get('_aPreviewMedia') or api_data.get('_aPreviewMedia')
-            if isinstance(pm, list) and pm:
-                # try find a URL inside preview media entries
+            # game info - check if mod is for correct game
+            game_data = api_data.get('_aGame') or api_data.get('_aGame')
+            if isinstance(game_data, dict):
+                meta['game_id'] = game_data.get('_idRow')
+                meta['game_name'] = game_data.get('_sName')
+            # preview media may be dict with _aImages array
+            pm = api_data.get('_aPreviewMedia')
+            print(f"DEBUG GB: _aPreviewMedia = {pm}")
+            if isinstance(pm, dict):
+                # New API structure: {_aImages: [...]}
+                images = pm.get('_aImages', [])
+                if isinstance(images, list) and images:
+                    first_image = images[0]
+                    if isinstance(first_image, dict):
+                        base_url = first_image.get('_sBaseUrl', '')
+                        file_name = first_image.get('_sFile', '')
+                        if base_url and file_name:
+                            img_url = f"{base_url}/{file_name}"
+                            print(f"DEBUG GB: Constructed img_url = {img_url}")
+            elif isinstance(pm, list) and pm:
+                # Old API structure: direct list
                 for entry in pm:
                     if isinstance(entry, dict):
+                        print(f"DEBUG GB: Preview entry = {entry}")
                         # common keys
-                        for k in ('_sBaseUrl', '_sFile', '_sUrl', 'sBaseUrl', 'sFile'):
+                        for k in ('_sBaseUrl', '_sFile', '_sUrl', 'sBaseUrl', 'sFile', 'url', 'image'):
                             if entry.get(k):
+                                print(f"DEBUG GB: Found key {k} = {entry.get(k)}")
                                 if k.lower().endswith('url') and isinstance(entry.get(k), str):
                                     img_url = entry.get(k)
                                     break
+                                elif k in ('_sFile', 'sFile') and isinstance(entry.get(k), str):
+                                    # Construct full URL from base if available
+                                    base = entry.get('_sBaseUrl', '')
+                                    if base and not entry.get(k).startswith('http'):
+                                        img_url = base + entry.get(k)
+                                    else:
+                                        img_url = entry.get(k)
+                                    break
                         if img_url:
+                            print(f"DEBUG GB: img_url set to {img_url}")
                             break
             # files list
             files = []
