@@ -15,6 +15,7 @@ import customtkinter
 
 from src.core.localization import t
 from src.core.config import save_config, load_config
+from src.core.constants import ASSETS_DIR
 
 
 class ProfileManager:
@@ -409,6 +410,10 @@ class ProfileManager:
         dialog.geometry("500x400")
         dialog.transient(self.app)
         dialog.grab_set()
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         # Info label
         info_text = f"The following {len(missing_mods)} mod(s) from the imported profile are not installed:\n\nSelect which mods to download automatically:"

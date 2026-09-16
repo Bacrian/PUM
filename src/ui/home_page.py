@@ -32,7 +32,7 @@ class HomePage(customtkinter.CTkScrollableFrame):
         welcome_text = customtkinter.CTkFrame(inner, fg_color="transparent")
         welcome_text.pack(side="left")
         customtkinter.CTkLabel(welcome_text, text=t("app_title"), font=("Arial", 28, "bold"), text_color=("black", "white")).pack(anchor="w")
-        customtkinter.CTkLabel(welcome_text, text=f"{t('version_label')} 1.3.0 - 14-09-2026 quirk-testing build", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
+        customtkinter.CTkLabel(welcome_text, text=f"{t('version_label')} 1.3.0 - Full Overhaul Update", font=("Arial", 14, "italic"), text_color=self.app._accent_color()).pack(anchor="w")
 
         # 2. Game Library Section
         title_row = customtkinter.CTkFrame(self, fg_color="transparent")
@@ -125,6 +125,10 @@ class HomePage(customtkinter.CTkScrollableFrame):
         dialog.title(t("import_from_steam"))
         dialog.geometry("500x450")
         dialog.transient(self.app)
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
 
         customtkinter.CTkLabel(dialog, text=t("select_steam_game"), font=("Arial", 14, "bold")).pack(pady=20)
 
@@ -186,6 +190,10 @@ class HomePage(customtkinter.CTkScrollableFrame):
         dialog.title(t("add_game_manually"))
         dialog.geometry("450x300")
         dialog.transient(self.app)
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         customtkinter.CTkLabel(dialog, text=t("game_name"), font=("Arial", 12, "bold")).pack(pady=(20, 0), padx=30, anchor="w")
         name_entry = customtkinter.CTkEntry(dialog, placeholder_text=t("game_name_placeholder"), height=32)

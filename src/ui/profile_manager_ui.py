@@ -5,6 +5,7 @@ from tkinter import filedialog, messagebox
 from pathlib import Path
 from datetime import datetime
 from src.core.localization import t
+from src.core.constants import ASSETS_DIR
 
 class ProfileManagerWindow:
     """Window for managing mod profiles."""
@@ -26,6 +27,10 @@ class ProfileManagerWindow:
         self.window.geometry("800x600")
         self.window.transient(self.app)
         self.window.grab_set()
+        try:
+            self.window.after(200, lambda: self.window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         # Main layout
         main_frame = customtkinter.CTkFrame(self.window, fg_color=("gray95", "gray10"))
@@ -247,6 +252,10 @@ Selected Mods:
         dialog.geometry("400x200")
         dialog.transient(self.window)
         dialog.grab_set()
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         customtkinter.CTkLabel(
             dialog, text=t("profile_name"),
@@ -304,6 +313,10 @@ Selected Mods:
         dialog.geometry("400x200")
         dialog.transient(self.window)
         dialog.grab_set()
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         customtkinter.CTkLabel(
             dialog, text=t("new_profile_name"),
@@ -369,6 +382,10 @@ Selected Mods:
         dialog.geometry("400x200")
         dialog.transient(self.window)
         dialog.grab_set()
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         customtkinter.CTkLabel(
             dialog, text=t("new_name"),

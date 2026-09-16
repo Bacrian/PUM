@@ -14,7 +14,7 @@ import requests
 from pathlib import Path
 from typing import Dict, Optional
 
-from src.core.constants import APP_VERSION
+from src.core.constants import APP_VERSION, ASSETS_DIR
 from src.core.localization import t
 
 
@@ -90,6 +90,10 @@ class AutoUpdater:
         dialog.geometry("500x500")
         dialog.transient(self.app)
         dialog.grab_set()
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         # Main container
         container = customtkinter.CTkFrame(dialog, fg_color="transparent")

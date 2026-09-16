@@ -20,6 +20,7 @@ import requests
 
 from src.core.localization import t
 from src.core.config import save_config
+from src.core.constants import ASSETS_DIR
 from src.ui.animations import ToastNotification
 
 def sanitize_filename(name: str) -> str:
@@ -94,6 +95,10 @@ class ModManager:
         dialog.geometry("400x200")
         dialog.transient(self.app)
         dialog.grab_set()
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         customtkinter.CTkLabel(dialog, text=t("collision_text", mod=mod_name), wraplength=350).pack(pady=20)
         

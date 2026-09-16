@@ -379,5 +379,11 @@
   "first_startup_description": "PUM hat Mods im ~mods-Ordner deines Spiels erkannt. Diese Mods wurden außerhalb von PUM installiert. Was möchtest du mit ihnen tun?",
   "delete_all_mods": "Alle löschen",
   "import_to_pum": "In PUM importieren",
-  "skip": "Überspringen"
+  "sort_most_viewed": "Meist angesehen",
+  "sort_most_liked": "Beliebteste",
+  "sort_newest": "Neueste",
+  "sort_name_az": "Name (A-Z)",
+  "show_nsfw": "NSFW anzeigen",
+  "all_games": "Alle Spiele",
+  "refresh": "Aktualisieren"
 }

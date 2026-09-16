@@ -242,14 +242,14 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.tools_menu_frame = customtkinter.CTkFrame(self.sidebar_frame, fg_color="transparent")
         self.tools_menu_frame.grid(row=11, column=0, padx=10, pady=5, sticky="ew")
         
-        # Mods tools (panel flotante, auto-ajuste de ancho)
+        # Mods tools (floating panel, auto-adjust width)
         self.mods_tools_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("mods_menu"), accent_color=self._accent_color(), width="auto")
         self.mods_tools_menu.pack(fill="x", pady=2)
         self.mods_tools_menu.add_item(t("open_mods_folder"), lambda: os.startfile(Path("mods")), "📁")
         self.mods_tools_menu.add_item(t("download_mod"), self.download_url_callback, "⬇")
         self.mods_tools_menu.add_item(t("mod_marketplace"), self.open_mod_marketplace, "🛒")
         
-        # Floating: System (auto-ajuste de ancho)
+        # Floating: System (auto-adjust width)
         self.system_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("system_menu"), accent_color=self._accent_color(), width="auto")
         self.system_menu.pack(fill="x", pady=2)
         self.system_menu.add_item(t("settings"), self.open_settings, "⚙")
@@ -257,7 +257,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.system_menu.add_item(t("backups"), self.open_backup_manager, "📦")
         self.system_menu.add_item(t("console_button"), self.toggle_console, "⌨")
         
-        # Floating: Utilities (auto-ajuste de ancho)
+        # Floating: Utilities (auto-adjust width)
         self.utilities_menu = FloatingMenuSection(self.tools_menu_frame, self, title=t("utilities_menu"), accent_color=self._accent_color(), width="auto")
         self.utilities_menu.pack(fill="x", pady=2)
         self.utilities_menu.add_item(t("check_updates"), lambda: self.auto_updater.manual_check(), "⚡")
@@ -265,7 +265,7 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.utilities_menu.add_item(t("export_profile"), self.export_profile, "📤")
         self.utilities_menu.add_item(t("import_profile"), self.import_profile, "📥")
         
-        # Botón Credits directo (sin sección About)
+        # Direct Credits button (without About section)
         self._sidebar_btn_direct(self.tools_menu_frame, f"❓ {t('credits_title')}", self.open_credits)
 
         # --- VIEW CONTAINER ---
@@ -651,6 +651,10 @@ class App(customtkinter.CTk, TkinterDnD.DnDWrapper):
         self.console_window.title(t("debug_console"))
         self.console_window.geometry("700x500")
         self.console_window.transient(self)
+        try:
+            self.console_window.after(200, lambda: self.console_window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         # Console frame
         console_frame = customtkinter.CTkFrame(self.console_window, fg_color=("gray95", "gray10"))
@@ -1352,6 +1356,10 @@ TIPS
         self.path_dialog.geometry("450x300")
         self.path_dialog.transient(self)
         self.path_dialog.grab_set()
+        try:
+            self.path_dialog.after(200, lambda: self.path_dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         frame = customtkinter.CTkFrame(self.path_dialog, fg_color="transparent")
         frame.pack(fill="both", expand=True, padx=30, pady=30)
         def on_auto():
@@ -1547,6 +1555,10 @@ TIPS
         self.credits_window.geometry("450x550")
         self.credits_window.transient(self)
         try:
+            self.credits_window.after(200, lambda: self.credits_window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
+        try:
             light = Image.open(ASSETS_DIR / "icon_black.png")
             dark = Image.open(ASSETS_DIR / "icon_white.png")
             img_credits = customtkinter.CTkImage(light_image=light, dark_image=dark, size=(100, 100))
@@ -1572,6 +1584,10 @@ TIPS
         self.editor_window.title(t("editing_mod_info").format(name=self.focused_mod['name']))
         self.editor_window.geometry("950x650")
         self.editor_window.transient(self)
+        try:
+            self.editor_window.after(200, lambda: self.editor_window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         self.editor_window.grid_columnconfigure(0, weight=1)
         self.editor_window.grid_columnconfigure(1, weight=1)
         self.editor_window.grid_rowconfigure(0, weight=1)
@@ -1708,6 +1724,10 @@ TIPS
         self.config_parts_window.title(f"Parts: {mod['name']}")
         self.config_parts_window.geometry("400x500")
         self.config_parts_window.transient(self)
+        try:
+            self.config_parts_window.after(200, lambda: self.config_parts_window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         vars_map = {}
         scroll = customtkinter.CTkScrollableFrame(self.config_parts_window); scroll.pack(fill="both", expand=True, padx=20, pady=10)
         current_opts = self.mod_options.get(mod["name"], [])

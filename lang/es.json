@@ -379,7 +379,6 @@
   "first_startup_description": "PUM ha detectado mods en la carpeta ~mods de tu juego. Estos mods fueron instalados fuera de PUM. ¿Qué te gustaría hacer con ellos?",
   "delete_all_mods": "Eliminar Todos",
   "import_to_pum": "Importar a PUM",
-  "skip": "Omitir",
   "cancel_download_confirm": "¿Estás seguro de que quieres cancelar la descarga?",
   "tab_shortcuts": "Atajos",
   "shortcuts_title": "Atajos de Teclado",
@@ -405,5 +404,12 @@
   "shortcut_show_home": "Mostrar panel de inicio",
   "shortcut_show_library": "Mostrar biblioteca de juegos",
   "shortcut_toggle_view_mode": "Alternar vista lista/cuadrícula",
-  "shortcut_sort_mods": "Alternar orden de clasificación"
+  "shortcut_sort_mods": "Alternar orden de clasificación",
+  "sort_most_viewed": "Más vistos",
+  "sort_most_liked": "Más gustados",
+  "sort_newest": "Más recientes",
+  "sort_name_az": "Nombre (A-Z)",
+  "show_nsfw": "Mostrar NSFW",
+  "all_games": "Todos los juegos",
+  "refresh": "Actualizar"
 }

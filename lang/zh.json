@@ -376,5 +376,12 @@
   "conflicts_detected_header": "⚠️ 检测到模组冲突",
   "no_conflicts_message": "未检测到冲突！您启用的模组兼容。",
   "conflicts_found_summary": "在启用的模组中发现 {count} 个冲突的.pak文件",
-  "check_again_button": "重新检查"
+  "check_again_button": "重新检查",
+  "sort_most_viewed": "浏览最多",
+  "sort_most_liked": "最受喜爱",
+  "sort_newest": "最新",
+  "sort_name_az": "名称 (A-Z)",
+  "show_nsfw": "显示 NSFW",
+  "all_games": "所有游戏",
+  "refresh": "刷新"
 }

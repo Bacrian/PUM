@@ -376,5 +376,12 @@
   "conflicts_detected_header": "⚠️ Conflitti Mod Rilevati",
   "no_conflicts_message": "Nessun conflitto rilevato! I tuoi mod attivati sono compatibili.",
   "conflicts_found_summary": "Trovati {count} file .pak in conflitto tra i mod attivati",
-  "check_again_button": "Controlla di nuovo"
+  "check_again_button": "Controlla di nuovo",
+  "sort_most_viewed": "Più visti",
+  "sort_most_liked": "Più apprezzati",
+  "sort_newest": "Più recenti",
+  "sort_name_az": "Nome (A-Z)",
+  "show_nsfw": "Mostra NSFW",
+  "all_games": "Tutti i giochi",
+  "refresh": "Aggiorna"
 }

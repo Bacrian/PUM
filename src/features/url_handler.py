@@ -64,6 +64,10 @@ class URLHandler:
         dialog.transient(self.app)
         dialog.grab_set()
         dialog.resizable(False, False)
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         # Center dialog
         dialog.update_idletasks()
@@ -584,6 +588,10 @@ Do you want to continue downloading anyway?"""
         dialog.geometry("560x400")
         dialog.transient(self.app)
         dialog.grab_set()
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         self.download_dialog = dialog
         def on_dialog_close():
@@ -1301,6 +1309,10 @@ Do you want to continue downloading anyway?"""
             info_dialog.transient(self.app)
             info_dialog.attributes("-topmost", True)
             info_dialog.resizable(False, False)
+            try:
+                info_dialog.after(200, lambda: info_dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+            except Exception:
+                pass
             
             # Content
             content_frame = customtkinter.CTkFrame(info_dialog, fg_color=("gray95", "gray10"))

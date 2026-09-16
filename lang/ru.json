@@ -376,5 +376,12 @@
   "conflicts_detected_header": "⚠️ Обнаружены конфликты модов",
   "no_conflicts_message": "Конфликты не обнаружены! Ваши включенные моды совместимы.",
   "conflicts_found_summary": "Найдено {count} конфликтующих .pak файлов среди включенных модов",
-  "check_again_button": "Проверить снова"
+  "check_again_button": "Проверить снова",
+  "sort_most_viewed": "Популярные",
+  "sort_most_liked": "Понравившиеся",
+  "sort_newest": "Новые",
+  "sort_name_az": "Название (А-Я)",
+  "show_nsfw": "Показать NSFW",
+  "all_games": "Все игры",
+  "refresh": "Обновить"
 }

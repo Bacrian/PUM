@@ -328,7 +328,7 @@
   "files": "Fichiers :",
   "one_click_install": "Installation en 1 clic",
   "ver": "Ver",
-  "skip": "Passer",
+  "skip": "Ignorer",
   "download_urls": "URLs de téléchargement",
   "download_manual_prompt": "Veuillez télécharger les mods suivants manuellement :\n\n{urls}",
   "failed_import_profile": "Échec de l'importation du profil",
@@ -379,5 +379,11 @@
   "first_startup_description": "PUM a détecté des mods dans le dossier ~mods de votre jeu. Ces mods ont été installés en dehors de PUM. Que souhaitez-vous faire avec eux ?",
   "delete_all_mods": "Supprimer tout",
   "import_to_pum": "Importer dans PUM",
-  "skip": "Ignorer"
+  "sort_most_viewed": "Les plus vus",
+  "sort_most_liked": "Les plus aimés",
+  "sort_newest": "Plus récents",
+  "sort_name_az": "Nom (A-Z)",
+  "show_nsfw": "Afficher NSFW",
+  "all_games": "Tous les jeux",
+  "refresh": "Actualiser"
 }

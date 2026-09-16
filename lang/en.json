@@ -379,7 +379,6 @@
   "first_startup_description": "PUM has detected mods in your game's ~mods folder. These mods were installed outside of PUM. What would you like to do with them?",
   "delete_all_mods": "Delete All",
   "import_to_pum": "Import to PUM",
-  "skip": "Skip",
   "cancel_download_confirm": "Are you sure you want to cancel the download?",
   "tab_shortcuts": "Shortcuts",
   "shortcuts_title": "Keyboard Shortcuts",
@@ -405,5 +404,12 @@
   "shortcut_show_home": "Show home dashboard",
   "shortcut_show_library": "Show game library",
   "shortcut_toggle_view_mode": "Toggle list/grid view",
-  "shortcut_sort_mods": "Toggle sort order"
+  "shortcut_sort_mods": "Toggle sort order",
+  "sort_most_viewed": "Most viewed",
+  "sort_most_liked": "Most liked",
+  "sort_newest": "Newest",
+  "sort_name_az": "Name (A-Z)",
+  "show_nsfw": "Show NSFW",
+  "all_games": "All games",
+  "refresh": "Refresh"
 }

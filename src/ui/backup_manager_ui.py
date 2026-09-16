@@ -6,6 +6,7 @@ from tkinter import filedialog, messagebox
 from pathlib import Path
 from datetime import datetime
 from src.core.localization import t
+from src.core.constants import ASSETS_DIR
 
 class BackupManagerWindow:
     """Window for managing mod backups."""
@@ -27,6 +28,10 @@ class BackupManagerWindow:
         self.window.geometry("800x650")
         self.window.transient(self.app)
         self.window.grab_set()
+        try:
+            self.window.after(200, lambda: self.window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         # Main layout
         main_frame = customtkinter.CTkFrame(self.window, fg_color=("gray95", "gray10"))
@@ -243,6 +248,10 @@ class BackupManagerWindow:
         dialog.geometry("400x200")
         dialog.transient(self.window)
         dialog.grab_set()
+        try:
+            dialog.after(200, lambda: dialog.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         customtkinter.CTkLabel(
             dialog, text=t("backup_description_optional"),

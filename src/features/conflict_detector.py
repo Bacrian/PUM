@@ -9,6 +9,7 @@ from pathlib import Path
 
 from src.features.pak_analyzer import PakAnalyzer, check_mod_conflicts
 from src.core.localization import t
+from src.core.constants import ASSETS_DIR
 
 
 class ConflictDetectorWindow:
@@ -27,6 +28,10 @@ class ConflictDetectorWindow:
         self.window.geometry("700x500")
         self.window.transient(self.app)
         self.window.grab_set()
+        try:
+            self.window.after(200, lambda: self.window.iconbitmap(str(ASSETS_DIR / "icon.ico")))
+        except Exception:
+            pass
         
         # Main container
         container = customtkinter.CTkFrame(self.window, fg_color="transparent")
