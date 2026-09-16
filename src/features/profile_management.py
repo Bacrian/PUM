@@ -131,7 +131,7 @@ class ProfileManager:
             "mod_options": mod_options,
             "app_settings": app_settings,
             "saved_at": int(time.time()),
-            "pum_version": "1.3.0"
+            "pum_version": "1.3.1"
         }
         
         profile_path = game_profiles_dir / f"{profile_name}.pum"
@@ -280,7 +280,7 @@ class ProfileManager:
             "mod_options": mod_options,
             "app_settings": app_settings,
             "exported_at": int(time.time()),
-            "pum_version": "1.3.0"
+            "pum_version": "1.3.1"
         }
         
         file_path = tkinter.filedialog.asksaveasfilename(
@@ -525,7 +525,7 @@ class ProfileManager:
                 "mod_options": {},
                 "app_settings": {},
                 "saved_at": int(time.time()),
-                "pum_version": "1.3.0",
+                "pum_version": "1.3.1",
                 "is_default": True,
                 "display_name_key": "default_profile"
             }
@@ -562,7 +562,7 @@ class ProfileManager:
                         "mod_options": old_data.get("mod_options", {}),
                         "app_settings": old_data.get("app_settings", {}),
                         "saved_at": old_data.get("saved_at", int(time.time())),
-                        "pum_version": "1.3.0",
+                        "pum_version": "1.3.1",
                         "migrated_from": "json"
                     }
                     

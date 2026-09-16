@@ -12,7 +12,7 @@ from pathlib import Path
 # App constants - Theme is set in main.py from user settings
 theme = "dark"
 dynamic_text_color = ("black", "white")
-APP_VERSION = "1.3.0"
+APP_VERSION = "1.3.1"
 
 # Path constants
 from pathlib import Path as _Path
