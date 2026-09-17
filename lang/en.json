@@ -420,5 +420,7 @@
   "protocol_registered_title": "Protocol registered",
   "protocol_registered_body": "pum:// links will now open this install of PUM. If a browser still opens an old copy, restart the browser once.",
   "protocol_registration_failed_title": "Registration failed",
-  "protocol_registration_failed_body": "Could not register the pum:// protocol. Check the debug console for details."
+  "protocol_registration_failed_body": "Could not register the pum:// protocol. Check the debug console for details.",
+  "warning": "Warning!",
+  "game_executable_not_found": "Game executable not found."
 }
