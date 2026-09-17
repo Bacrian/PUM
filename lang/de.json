@@ -425,5 +425,7 @@
   "protocol_registered_title": "Protokoll registriert",
   "protocol_registered_body": "pum:// Links öffnen nun diese PUM-Installation. Wenn ein Browser noch eine alte Kopie öffnet, starte den Browser einmal neu.",
   "protocol_registration_failed_title": "Registrierung fehlgeschlagen",
-  "protocol_registration_failed_body": "Das pum:// Protokoll konnte nicht registriert werden. Prüfe die Debug-Konsole für Details."
+  "protocol_registration_failed_body": "Das pum:// Protokoll konnte nicht registriert werden. Prüfe die Debug-Konsole für Details.",
+  "warning": "Warnung!",
+  "game_executable_not_found": "Spiel-Executable nicht gefunden."
 }

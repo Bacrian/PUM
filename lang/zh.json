@@ -423,5 +423,7 @@
   "protocol_registered_title": "协议已注册",
   "protocol_registered_body": "pum:// 链接现在将打开此 PUM 安装。如果浏览器仍打开旧副本，请重新启动浏览器一次。",
   "protocol_registration_failed_title": "注册失败",
-  "protocol_registration_failed_body": "无法注册 pum:// 协议。请查看调试控制台了解详细信息。"
+  "protocol_registration_failed_body": "无法注册 pum:// 协议。请查看调试控制台了解详细信息。",
+  "warning": "警告！",
+  "game_executable_not_found": "未找到游戏可执行文件。"
 }

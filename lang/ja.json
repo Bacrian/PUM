@@ -423,5 +423,7 @@
   "protocol_registered_title": "プロトコルが登録されました",
   "protocol_registered_body": "pum:// リンクがこのPUMインストールを開くようになりました。ブラウザがまだ古いコピーを開く場合は、ブラウザを1回再起動してください。",
   "protocol_registration_failed_title": "登録に失敗しました",
-  "protocol_registration_failed_body": "pum:// プロトコルを登録できませんでした。詳細についてはデバッグコンソールを確認してください。"
+  "protocol_registration_failed_body": "pum:// プロトコルを登録できませんでした。詳細についてはデバッグコンソールを確認してください。",
+  "warning": "警告！",
+  "game_executable_not_found": "ゲームの実行ファイルが見つかりません"
 }

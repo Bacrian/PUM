@@ -1,10 +1,46 @@
 {
   "backups": [
     {
-      "name": "backup_MY HERO ULTRA RUMBLE_20260405_213212.zip",
+      "name": "backup_MY HERO ULTRA RUMBLE_20260916_203704.zip",
       "game_name": "MY HERO ULTRA RUMBLE",
-      "timestamp": "20260405_213212",
-      "description": "ewsda",
+      "timestamp": "20260916_203704",
+      "description": "Auto-backup before deployment",
+      "file_count": 0,
+      "size_mb": 0.0,
+      "mods_path": "c:\\program files (x86)\\steam\\steamapps\\common\\My Hero Ultra Rumble\\HerovsGame\\Content\\~mods"
+    },
+    {
+      "name": "backup_MY HERO ULTRA RUMBLE_20260916_202938.zip",
+      "game_name": "MY HERO ULTRA RUMBLE",
+      "timestamp": "20260916_202938",
+      "description": "Auto-backup before deployment",
+      "file_count": 0,
+      "size_mb": 0.0,
+      "mods_path": "c:\\program files (x86)\\steam\\steamapps\\common\\My Hero Ultra Rumble\\HerovsGame\\Content\\~mods"
+    },
+    {
+      "name": "backup_MY HERO ULTRA RUMBLE_20260916_202448.zip",
+      "game_name": "MY HERO ULTRA RUMBLE",
+      "timestamp": "20260916_202448",
+      "description": "Auto-backup before deployment",
+      "file_count": 0,
+      "size_mb": 0.0,
+      "mods_path": "c:\\program files (x86)\\steam\\steamapps\\common\\My Hero Ultra Rumble\\HerovsGame\\Content\\~mods"
+    },
+    {
+      "name": "backup_MY HERO ULTRA RUMBLE_20260916_202356.zip",
+      "game_name": "MY HERO ULTRA RUMBLE",
+      "timestamp": "20260916_202356",
+      "description": "Auto-backup before deployment",
+      "file_count": 0,
+      "size_mb": 0.0,
+      "mods_path": "c:\\program files (x86)\\steam\\steamapps\\common\\My Hero Ultra Rumble\\HerovsGame\\Content\\~mods"
+    },
+    {
+      "name": "backup_MY HERO ULTRA RUMBLE_20260916_202009.zip",
+      "game_name": "MY HERO ULTRA RUMBLE",
+      "timestamp": "20260916_202009",
+      "description": "Auto-backup before deployment",
       "file_count": 0,
       "size_mb": 0.0,
       "mods_path": "c:\\program files (x86)\\steam\\steamapps\\common\\My Hero Ultra Rumble\\HerovsGame\\Content\\~mods"

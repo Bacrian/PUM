@@ -425,5 +425,7 @@
   "protocol_registered_title": "Protocole enregistré",
   "protocol_registered_body": "Les liens pum:// ouvriront désormais cette installation de PUM. Si un navigateur ouvre encore une ancienne copie, redémarrez le navigateur une fois.",
   "protocol_registration_failed_title": "Échec de l'enregistrement",
-  "protocol_registration_failed_body": "Impossible d'enregistrer le protocole pum://. Vérifiez la console de débogage pour plus de détails."
+  "protocol_registration_failed_body": "Impossible d'enregistrer le protocole pum://. Vérifiez la console de débogage pour plus de détails.",
+  "warning": "Attention!",
+  "game_executable_not_found": "Exécutable du jeu introuvable."
 }
